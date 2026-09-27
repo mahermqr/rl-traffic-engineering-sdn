@@ -18,25 +18,47 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(BASE_DIR, 'agent'))
 sys.path.append(os.path.join(BASE_DIR, 'controller'))
 sys.path.append(os.path.join(BASE_DIR, 'topology'))
+sys.path.append(BASE_DIR)
 
+from config import (
+    DEFAULT_MODEL_PATH,
+    STATE_SIZE,
+    ACTION_SIZE,
+    K_CANDIDATE_PATHS,
+    DEFAULT_LINK_CAPACITY_MBPS,
+    DEFAULT_LINK_DELAY_MS,
+    TORCH_DEVICE,
+)
 from dqn_router import DQNRoutingAgent
 from state_manager import StateManager
 from topology_library import build_random_topology
 from traditional_routing import dijkstra_spf, compute_path_metrics
 
-def evaluate_random_blind_topology(num_nodes=20, seed=None, num_flows=200):
+def evaluate_random_blind_topology(
+    num_nodes=20,
+    seed=None,
+    num_flows=200,
+    model_path=None,
+    output_json=None,
+    k_paths=None,
+    burst_flows_count=500,
+    device=None
+):
     print("=" * 85)
     print(" 🎲 ZERO-SHOT BLIND EVALUATION ON DYNAMICALLY GENERATED RANDOM TOPOLOGY (EC499)")
     print("=" * 85)
 
+    k_val = k_paths or K_CANDIDATE_PATHS
+    dev = device or TORCH_DEVICE
+
     # 1. Load trained agent checkpoints
-    router_agent = DQNRoutingAgent(state_size=10, action_size=4)
-    router_ckpt = os.path.join(BASE_DIR, 'models', 'dqn_router.pth')
+    router_agent = DQNRoutingAgent(state_size=STATE_SIZE, action_size=ACTION_SIZE, device=dev)
+    router_ckpt = model_path or os.environ.get('SDN_MODEL_PATH', DEFAULT_MODEL_PATH)
     if not router_agent.load(router_ckpt):
         print(f"[Error] Failed to load router weights from {router_ckpt}")
-        return
+        return None
     router_agent.epsilon = 0.0 # Strict greedy inference
-    print(f"[Init] Loaded trained Double DQN Router checkpoint from models/dqn_router.pth")
+    print(f"[Init] Loaded trained Double DQN Router checkpoint from {router_ckpt}")
 
     # 2. Build completely unseen random connected topology
     graph, meta = build_random_topology(num_nodes=num_nodes, p_edge=0.30, seed=seed)
@@ -77,7 +99,7 @@ def evaluate_random_blind_topology(num_nodes=20, seed=None, num_flows=200):
     dqn_latencies, spf_latencies = [], []
 
     def evaluate_flow(src, dst):
-        cand_paths = sm.get_candidate_paths(src, dst, k=4)
+        cand_paths = sm.get_candidate_paths(src, dst, k=k_val)
         spf_p = dijkstra_spf(sm.graph, src, dst)
 
         st = sm.get_routing_state(src, dst)
@@ -113,18 +135,18 @@ def evaluate_random_blind_topology(num_nodes=20, seed=None, num_flows=200):
     print(f" • Autonomous Offload Rate:              {offload_rate:.1f}% of flows steered away from core jam")
 
     # -------------------------------------------------------------------------
-    # TEST 2: High-Concurrency Burst (500 Flows)
+    # TEST 2: High-Concurrency Burst
     # -------------------------------------------------------------------------
     print("\n" + "-" * 85)
-    print(f" [TEST 2/4] HIGH-CONCURRENCY DECISION AVALANCHE (500 Simultaneous Ingress Flows)")
+    print(f" [TEST 2/4] HIGH-CONCURRENCY DECISION AVALANCHE ({burst_flows_count} Simultaneous Ingress Flows)")
     print("-" * 85)
-    burst_flows = [(random.choice(edge_nodes), random.choice([n for n in edge_nodes if n != s])) for s in [random.choice(edge_nodes) for _ in range(500)]]
+    burst_flows = [(random.choice(edge_nodes), random.choice([n for n in edge_nodes if n != s])) for s in [random.choice(edge_nodes) for _ in range(burst_flows_count)]]
     t0 = time.time()
     link_loads_dqn = {e: 0 for e in sm.graph.edges()}
     link_loads_spf = {e: 0 for e in sm.graph.edges()}
 
     for s, d in burst_flows:
-        cands = sm.get_candidate_paths(s, d, k=4)
+        cands = sm.get_candidate_paths(s, d, k=k_val)
         st = sm.get_routing_state(s, d)
         act = router_agent.act(st, explore=False)
         p_dqn = cands[act % len(cands)]
@@ -137,7 +159,7 @@ def evaluate_random_blind_topology(num_nodes=20, seed=None, num_flows=200):
                 link_loads_spf[(p_spf[i], p_spf[i+1])] += 1
 
     burst_time_ms = (time.time() - t0) * 1000.0
-    decisions_per_sec = 500.0 / max(0.001, (burst_time_ms / 1000.0))
+    decisions_per_sec = burst_flows_count / max(0.001, (burst_time_ms / 1000.0))
 
     def jains_fairness(loads_dict):
         x = list(loads_dict.values())
@@ -147,7 +169,7 @@ def evaluate_random_blind_topology(num_nodes=20, seed=None, num_flows=200):
 
     j_dqn = jains_fairness(link_loads_dqn)
     j_spf = jains_fairness(link_loads_spf)
-    print(f" • Processed Burst:                      500 concurrent flows in {burst_time_ms:.1f} ms")
+    print(f" • Processed Burst:                      {burst_flows_count} concurrent flows in {burst_time_ms:.1f} ms")
     print(f" • Controller Decision Throughput:       {decisions_per_sec:.1f} decisions/second")
     print(f" • Jain's Fairness Index:                DQN: {j_dqn:.4f} vs SPF: {j_spf:.4f}")
 
@@ -190,7 +212,7 @@ def evaluate_random_blind_topology(num_nodes=20, seed=None, num_flows=200):
         src = random.choice(edge_nodes)
         dst = random.choice([n for n in edge_nodes if n != src])
         _, _, _, _, _, dj, dloss = evaluate_flow(src, dst)
-        cand_paths = sm.get_candidate_paths(src, dst, k=4)
+        cand_paths = sm.get_candidate_paths(src, dst, k=k_val)
         spf_p = dijkstra_spf(sm.graph, src, dst)
         m_spf = compute_path_metrics(spf_p, sm.link_utilization, sm.link_delays, sm.link_bandwidths)
         t4_dqn_j.append(dj)
@@ -204,11 +226,66 @@ def evaluate_random_blind_topology(num_nodes=20, seed=None, num_flows=200):
     print(f" ✅ ZERO-SHOT BLIND TRANSFER TEST PASSED ON UNSEEN {n_nodes}-NODE RANDOM TOPOLOGY!")
     print("=" * 85)
 
+    results = {
+        'topology_name': topo_name,
+        'num_nodes': n_nodes,
+        'num_edges': n_edges,
+        'num_flows': num_flows,
+        'burst_flows': burst_flows_count,
+        'k_candidate_paths': k_val,
+        'test1_jamming': {
+            'dqn_bottleneck_pct': float(round(mean_dqn_b, 2)),
+            'spf_bottleneck_pct': float(round(mean_spf_b, 2)),
+            'congestion_relief_pct': float(round(congestion_relief, 2)),
+            'offload_rate_pct': float(round(offload_rate, 2))
+        },
+        'test2_avalanche': {
+            'burst_time_ms': float(round(burst_time_ms, 2)),
+            'decisions_per_sec': float(round(decisions_per_sec, 1)),
+            'jains_fairness_dqn': float(round(j_dqn, 4)),
+            'jains_fairness_spf': float(round(j_spf, 4))
+        },
+        'test3_latency': {
+            'dqn_mean_latency_ms': float(round(float(np.mean(t3_dqn_l)), 2)),
+            'spf_mean_latency_ms': float(round(float(np.mean(t3_spf_l)), 2)),
+            'latency_improvement_ms': float(round(t3_savings, 2))
+        },
+        'test4_jitter_loss': {
+            'dqn_mean_jitter_ms': float(round(float(np.mean(t4_dqn_j)), 2)),
+            'spf_mean_jitter_ms': float(round(float(np.mean(t4_spf_j)), 2)),
+            'dqn_mean_loss_pct': float(round(float(np.mean(t4_dqn_loss)), 2)),
+            'spf_mean_loss_pct': float(round(float(np.mean(t4_spf_loss)), 2))
+        }
+    }
+
+    if output_json:
+        import json
+        out_dir = os.path.dirname(os.path.abspath(output_json))
+        if out_dir:
+            os.makedirs(out_dir, exist_ok=True)
+        with open(output_json, 'w') as f:
+            json.dump(results, f, indent=2)
+        print(f"[Saved] Blind evaluation metrics exported to: {output_json}")
+
+    return results
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Evaluate DRL Traffic Engineering Zero-Shot on Random Unseen Topologies")
     parser.add_argument('--nodes', type=int, default=20, help="Number of random network switches/nodes (default: 20)")
     parser.add_argument('--seed', type=int, default=None, help="Random seed for reproducibility (default: None)")
     parser.add_argument('--flows', type=int, default=200, help="Number of test flows to evaluate (default: 200)")
+    parser.add_argument('--burst-flows', type=int, default=500, help="Number of concurrent burst flows in Test 2 (default: 500)")
+    parser.add_argument('--candidate-paths', '-k', type=int, default=None, help=f"Number of candidate paths K (default: {K_CANDIDATE_PATHS})")
+    parser.add_argument('--model-path', '-m', type=str, default=None, help=f"Path to trained model checkpoint (default: {DEFAULT_MODEL_PATH})")
+    parser.add_argument('--output-json', '-o', type=str, default=None, help="Optional path to export JSON evaluation results")
     args = parser.parse_args()
 
-    evaluate_random_blind_topology(num_nodes=args.nodes, seed=args.seed, num_flows=args.flows)
+    evaluate_random_blind_topology(
+        num_nodes=args.nodes,
+        seed=args.seed,
+        num_flows=args.flows,
+        model_path=args.model_path,
+        output_json=args.output_json,
+        k_paths=args.candidate_paths,
+        burst_flows_count=args.burst_flows
+    )

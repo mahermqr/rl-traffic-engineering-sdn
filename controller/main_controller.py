@@ -15,6 +15,12 @@ import time
 # Add controller and agent directories to path
 sys.path.append(os.path.dirname(__file__))
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'agent'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
+try:
+    import config
+except ImportError:
+    config = None
 
 from state_manager import StateManager
 from routing_module import RoutingModule
@@ -36,14 +42,20 @@ class MainController(app_manager.RyuApp):
         # Initialize Adaptive Traffic Engineering Routing Module
         self.routing_module = RoutingModule(self, self.state_manager)
 
-        # Initialize Live Web Dashboard & REST Server (port 8080)
-        self.dashboard_server = DashboardServer(self, self.state_manager, port=8080)
+        # Initialize Live Web Dashboard & REST Server (configurable host and port)
+        rest_port = int(os.environ.get("SDN_REST_PORT", getattr(config, "REST_PORT", 8080)))
+        rest_host = os.environ.get("SDN_REST_HOST", getattr(config, "REST_HOST", "0.0.0.0"))
+        self.dashboard_server = DashboardServer(self, self.state_manager, host=rest_host, port=rest_port)
 
         self.logger.info("=" * 65)
         self.logger.info("MainController Initialized: Adaptive SDN Traffic Engineering (EC499)")
+        self.logger.info("Dashboard Port: %d | Host: %s", rest_port, rest_host)
         self.logger.info("=" * 65)
 
-        # Start periodic telemetry polling thread (every 3 seconds)
+        # Start periodic telemetry polling thread (configurable interval)
+        self.poll_interval = float(os.environ.get("SDN_POLL_INTERVAL", getattr(config, "STATS_POLL_INTERVAL", 3.0)))
+        self.default_capacity = float(os.environ.get("SDN_DEFAULT_CAPACITY", getattr(config, "DEFAULT_LINK_CAPACITY", 100.0)))
+        self.default_delay = float(os.environ.get("SDN_DEFAULT_DELAY", getattr(config, "DEFAULT_LINK_DELAY", 2.0)))
         self.monitor_thread = hub.spawn(self._monitor_loop)
 
     def _monitor_loop(self):
@@ -59,7 +71,7 @@ class MainController(app_manager.RyuApp):
                 for link in get_link(self, None):
                     self.state_manager.update_link(
                         link.src.dpid, link.dst.dpid, link.src.port_no, link.dst.port_no,
-                        capacity_mbps=100.0, delay_ms=2.0
+                        capacity_mbps=self.default_capacity, delay_ms=self.default_delay
                     )
             except Exception:
                 pass
@@ -68,7 +80,7 @@ class MainController(app_manager.RyuApp):
                 self._request_stats(dp)
                 self._send_echo_request(dp)
 
-            hub.sleep(3)
+            hub.sleep(self.poll_interval)
 
     def _request_stats(self, datapath):
         """Sends OFPFlowStatsRequest and OFPPortStatsRequest, accounting for control overhead."""
@@ -268,6 +280,8 @@ class MainController(app_manager.RyuApp):
         dst = ev.link.dst.dpid
         src_port = ev.link.src.port_no
         dst_port = ev.link.dst.port_no
-        self.state_manager.update_link(src, dst, src_port, dst_port, capacity_mbps=100.0, delay_ms=2.0)
+        cap = getattr(self, 'default_capacity', 100.0)
+        delay = getattr(self, 'default_delay', 2.0)
+        self.state_manager.update_link(src, dst, src_port, dst_port, capacity_mbps=cap, delay_ms=delay)
         self.logger.info("[Topology] Discovered Link: Switch %s (port %s) <-> Switch %s (port %s)",
                          src, src_port, dst, dst_port)

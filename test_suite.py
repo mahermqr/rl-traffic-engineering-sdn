@@ -373,5 +373,45 @@ class TestClosedLoopDynamicsAndUpgrades(unittest.TestCase):
         self.assertAlmostEqual(max_u, 0.92, places=2)
 
 
+class TestCentralConfig(unittest.TestCase):
+    """Verifies the centralized, zero-hardcoded configuration engine and environment variable overrides."""
+
+    def test_config_dictionary_structure(self):
+        import config
+        conf_dict = config.to_dict()
+        self.assertIn("paths", conf_dict)
+        self.assertIn("network", conf_dict)
+        self.assertIn("rl", conf_dict)
+        self.assertIn("traffic_engineering", conf_dict)
+
+        self.assertIn("default_model_path", conf_dict["paths"])
+        self.assertIn("controller_port", conf_dict["network"])
+        self.assertIn("learning_rate", conf_dict["rl"])
+        self.assertIn("congestion_barrier_threshold", conf_dict["traffic_engineering"])
+
+    def test_env_var_override_and_type_casting(self):
+        import config
+        test_var_name = "SDN_TEST_OVERRIDE_VAL"
+        os.environ[test_var_name] = "9999"
+        try:
+            val_int = config.get_config_val("dummy_key", test_var_name, default=1234, cast_type=int)
+            self.assertEqual(val_int, 9999)
+
+            val_str = config.get_config_val("dummy_key", test_var_name, default="default", cast_type=str)
+            self.assertEqual(val_str, "9999")
+        finally:
+            del os.environ[test_var_name]
+
+    def test_agent_and_state_manager_with_config_defaults(self):
+        import config
+        agent = DQNRoutingAgent(state_size=config.STATE_SIZE, action_size=config.ACTION_SIZE)
+        self.assertEqual(agent.state_size, config.STATE_SIZE)
+        self.assertEqual(agent.action_size, config.ACTION_SIZE)
+
+        sm = StateManager()
+        self.assertGreater(sm.default_capacity, 0.0)
+        self.assertGreater(sm.default_delay, 0.0)
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)

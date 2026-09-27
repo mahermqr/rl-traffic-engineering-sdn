@@ -5,6 +5,21 @@ import random
 from collections import deque
 import numpy as np
 import os
+import sys
+
+# Dynamic config resolution
+_BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _BASE_DIR not in sys.path:
+    sys.path.insert(0, _BASE_DIR)
+
+try:
+    import config
+except ImportError:
+    try:
+        from .. import config
+    except ImportError:
+        config = None
+
 try:
     from prioritized_replay import PrioritizedReplayBuffer
 except ImportError:
@@ -16,10 +31,13 @@ class DuelingQNetwork(nn.Module):
     Decouples state-value V(s) from candidate-path advantages A(s, a),
     enabling sharp policy differentiation in dense traffic congestion.
     """
-    def __init__(self, state_size=10, action_size=4):
+    def __init__(self, state_size=None, action_size=None):
         super(DuelingQNetwork, self).__init__()
+        self.state_size = state_size if state_size is not None else (config.STATE_SIZE if config else 10)
+        self.action_size = action_size if action_size is not None else (config.ACTION_SIZE if config else 4)
+
         self.feature_network = nn.Sequential(
-            nn.Linear(state_size, 64),
+            nn.Linear(self.state_size, 64),
             nn.LayerNorm(64),
             nn.ReLU(),
             nn.Linear(64, 128),
@@ -36,7 +54,7 @@ class DuelingQNetwork(nn.Module):
             nn.Linear(128, 64),
             nn.LayerNorm(64),
             nn.ReLU(),
-            nn.Linear(64, action_size)
+            nn.Linear(64, self.action_size)
         )
 
     def forward(self, state):
@@ -53,25 +71,36 @@ class DQNRoutingAgent:
     real-time network state (link latency, bandwidth utilization, topology features).
     Supports Prioritized Experience Replay (PER), Polyak target updates, and GPU/CPU acceleration.
     """
-    def __init__(self, state_size=10, action_size=4, lr=0.001, gamma=0.95,
-                 epsilon=1.0, epsilon_min=0.01, epsilon_decay=0.995, memory_size=5000, use_per=True, tau=0.005):
-        self.state_size = state_size
-        self.action_size = action_size
-        self.gamma = gamma
-        self.epsilon = epsilon
-        self.epsilon_min = epsilon_min
-        self.epsilon_decay = epsilon_decay
-        self.learning_rate = lr
-        self.use_per = use_per
-        self.tau = tau
+    def __init__(self, state_size=None, action_size=None, lr=None, gamma=None,
+                 epsilon=None, epsilon_min=None, epsilon_decay=None, memory_size=None,
+                 use_per=None, tau=None, target_update_freq=None, grad_clip_norm=None, device=None):
+        self.state_size = state_size if state_size is not None else (config.STATE_SIZE if config else 10)
+        self.action_size = action_size if action_size is not None else (config.ACTION_SIZE if config else 4)
+        self.gamma = gamma if gamma is not None else (config.GAMMA if config else 0.95)
+        self.epsilon = epsilon if epsilon is not None else (config.EPSILON_START if config else 1.0)
+        self.epsilon_min = epsilon_min if epsilon_min is not None else (config.EPSILON_MIN if config else 0.01)
+        self.epsilon_decay = epsilon_decay if epsilon_decay is not None else (config.EPSILON_DECAY if config else 0.995)
+        self.learning_rate = lr if lr is not None else (config.LEARNING_RATE if config else 0.001)
+        self.use_per = use_per if use_per is not None else (config.USE_PER if config else True)
+        self.tau = tau if tau is not None else (config.TAU if config else 0.005)
+        self.target_update_freq = target_update_freq if target_update_freq is not None else (config.TARGET_UPDATE_FREQ if config else 10)
+        self.grad_clip_norm = grad_clip_norm if grad_clip_norm is not None else (config.GRADIENT_CLIP_NORM if config else 1.0)
 
+        mem_size = memory_size if memory_size is not None else (config.MEMORY_SIZE if config else 5000)
         if self.use_per:
-            self.memory = PrioritizedReplayBuffer(capacity=memory_size, state_size=state_size)
+            self.memory = PrioritizedReplayBuffer(capacity=mem_size, state_size=self.state_size)
         else:
-            self.memory = deque(maxlen=memory_size)
+            self.memory = deque(maxlen=mem_size)
 
-        # Automatic device selection (GPU if available, otherwise CPU)
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        # Configurable device selection (supports TORCH_DEVICE env var or explicit param)
+        if device is not None:
+            self.device = torch.device(device)
+        elif config and config.TORCH_DEVICE:
+            self.device = torch.device(config.TORCH_DEVICE)
+        elif os.environ.get("TORCH_DEVICE"):
+            self.device = torch.device(os.environ["TORCH_DEVICE"])
+        else:
+            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # Build policy network and target network (Dueling Architecture)
         self.model = self._build_model().to(self.device)
@@ -81,10 +110,9 @@ class DQNRoutingAgent:
         self.target_model.eval()
 
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
-        self.criterion = nn.SmoothL1Loss(reduction='none' if use_per else 'mean')
+        self.criterion = nn.SmoothL1Loss(reduction='none' if self.use_per else 'mean')
 
         self.update_target_counter = 0
-        self.target_update_freq = 10
         self.loss_history = []
 
     def _build_model(self):
@@ -162,7 +190,7 @@ class DQNRoutingAgent:
 
         self.optimizer.zero_grad(set_to_none=True)
         loss.backward()
-        nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
+        nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=self.grad_clip_norm)
         self.optimizer.step()
         self.model.eval()
 
@@ -189,8 +217,10 @@ class DQNRoutingAgent:
             q_vals = self.model(state_tensor).squeeze(0).cpu().numpy()
         return q_vals
 
-    def save(self, filepath):
+    def save(self, filepath=None):
         """Saves model checkpoint."""
+        if filepath is None:
+            filepath = config.DEFAULT_MODEL_PATH if config else "models/dqn_router.pth"
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
         torch.save({
             'model_state_dict': self.model.state_dict(),
@@ -199,8 +229,10 @@ class DQNRoutingAgent:
             'epsilon': self.epsilon
         }, filepath)
 
-    def load(self, filepath):
+    def load(self, filepath=None):
         """Loads model checkpoint with backward compatibility for legacy weights."""
+        if filepath is None:
+            filepath = config.DEFAULT_MODEL_PATH if config else "models/dqn_router.pth"
         if os.path.exists(filepath):
             checkpoint = torch.load(filepath, map_location=self.device)
             try:

@@ -3,6 +3,17 @@ import networkx as nx
 import math
 import time
 import collections
+import os
+import sys
+
+_BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _BASE_DIR not in sys.path:
+    sys.path.insert(0, _BASE_DIR)
+
+try:
+    import config
+except ImportError:
+    config = None
 
 class StateManager:
     """
@@ -14,8 +25,14 @@ class StateManager:
         # Topology graph: nodes are switch DPIDs, edges have 'port', 'bandwidth', 'delay', 'loss'
         self.graph = nx.DiGraph()
 
+        # Configurable defaults
+        self.default_capacity = getattr(config, 'DEFAULT_LINK_CAPACITY', 100.0)
+        self.default_delay = getattr(config, 'DEFAULT_LINK_DELAY', 2.0)
+        self.default_jitter = getattr(config, 'DEFAULT_LINK_JITTER', 0.25)
+        self.default_k = getattr(config, 'ACTION_SIZE', 4)
+
         # Link metric dictionaries: keyed by (src_dpid, dst_dpid)
-        self.link_bandwidths = {}   # Capacity in Mbps (default: 100 Mbps)
+        self.link_bandwidths = {}   # Capacity in Mbps
         self.link_utilization = {}  # Current utilization [0.0 - 1.0]
         self.base_link_delays = {}  # Static physical base latency in ms (uncongested)
         self.link_delays = {}       # Real-time queuing latency in ms
@@ -58,8 +75,9 @@ class StateManager:
         self._routing_path_cache = {}
 
         # Active topology metadata tracking
-        self.current_topology_id = 'tree'
-        self.current_topology_meta = {'name': 'Hierarchical Tree (Baseline)', 'id': 'tree'}
+        default_topo = getattr(config, 'DEFAULT_TOPOLOGY_ID', 'tree')
+        self.current_topology_id = default_topo
+        self.current_topology_meta = {'name': f'Default Topology ({default_topo})', 'id': default_topo}
 
     def set_topology(self, topo_id, graph, meta):
         """Sets active topology and initializes links, attributes, and routing cache."""
@@ -94,8 +112,13 @@ class StateManager:
             self.graph.remove_node(dpid)
             self._routing_path_cache.clear()
 
-    def update_link(self, src_dpid, dst_dpid, src_port, dst_port=None, capacity_mbps=100.0, delay_ms=2.0, loss=0.0):
+    def update_link(self, src_dpid, dst_dpid, src_port, dst_port=None, capacity_mbps=None, delay_ms=None, loss=0.0):
         """Adds or updates an inter-switch directional link."""
+        if capacity_mbps is None:
+            capacity_mbps = self.default_capacity
+        if delay_ms is None:
+            delay_ms = self.default_delay
+
         self.register_switch(src_dpid)
         self.register_switch(dst_dpid)
 
@@ -106,7 +129,7 @@ class StateManager:
         if (src_dpid, dst_dpid) not in self.link_delays:
             self.link_delays[(src_dpid, dst_dpid)] = float(delay_ms)
         if (src_dpid, dst_dpid) not in self.link_jitter:
-            self.link_jitter[(src_dpid, dst_dpid)] = 0.25 # Nominal base jitter ms
+            self.link_jitter[(src_dpid, dst_dpid)] = float(self.default_jitter) # Nominal base jitter ms
         if (src_dpid, dst_dpid) not in self.link_loss:
             self.link_loss[(src_dpid, dst_dpid)] = float(loss)
         if (src_dpid, dst_dpid) not in self.link_utilization:
@@ -404,7 +427,7 @@ class StateManager:
     # Feature Extractors for DQN Adaptive Routing
     # --------------------------------------------------------------------------
 
-    def get_candidate_paths(self, src_dpid, dst_dpid, k=4):
+    def get_candidate_paths(self, src_dpid, dst_dpid, k=None):
         """
         Discovers up to k diversity-aware candidate paths between source and destination:
         - Path 0: Dijkstra Shortest Path (hop count / OSPF base)
@@ -412,10 +435,13 @@ class StateManager:
         - Path 2: Diverse / Low-Overlap Bypass Path (routes around primary path edges)
         - Path 3: Widest Path (minimizes peak link utilization)
         """
+        if k is None:
+            k = self.default_k
+
         if not self.graph.has_node(src_dpid) or not self.graph.has_node(dst_dpid):
             return [[src_dpid, dst_dpid]]
 
-        cache_key = (src_dpid, dst_dpid)
+        cache_key = (src_dpid, dst_dpid, k)
         cached = self._routing_path_cache.get(cache_key)
         if cached is not None:
             return cached
@@ -476,7 +502,7 @@ class StateManager:
         if not self.graph.has_node(src_dpid) or not self.graph.has_node(dst_dpid):
             return state
 
-        candidate_paths = self.get_candidate_paths(src_dpid, dst_dpid, k=4)
+        candidate_paths = self.get_candidate_paths(src_dpid, dst_dpid, k=self.default_k)
 
         # 0: Shortest path hops normalized
         if candidate_paths and len(candidate_paths[0]) > 1:
@@ -492,7 +518,7 @@ class StateManager:
                 p = candidate_paths[i]
                 if len(p) > 1:
                     utils = [self.link_utilization.get((p[j], p[j+1]), 0.0) for j in range(len(p)-1)]
-                    delays = [self.link_delays.get((p[j], p[j+1]), 2.0) for j in range(len(p)-1)]
+                    delays = [self.link_delays.get((p[j], p[j+1]), self.default_delay) for j in range(len(p)-1)]
                     state[1 + i] = min(1.0, max(0.0, float(max(utils) if utils else 0.0)))
                     state[5 + i] = min(1.0, max(0.0, float(sum(delays) / 50.0)))
                 else:
@@ -512,7 +538,7 @@ class StateManager:
     # Interactive Simulation & Telemetry Injection
     # --------------------------------------------------------------------------
 
-    def inject_traffic_flow(self, src_ip, dst_ip, src_dpid, dst_dpid, mbps=15.0, pps=1200.0, path=None):
+    def inject_traffic_flow(self, src_ip, dst_ip, src_dpid, dst_dpid, mbps=15.0, pps=1200.0, duration=10.0, path=None):
         """Injects a simulated flow and updates link utilization, jitter, and loss along the chosen path."""
         duration = 10.0
         bytes_count = int((mbps * 1e6 * duration) / 8.0)

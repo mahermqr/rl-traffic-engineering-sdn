@@ -401,12 +401,15 @@ To adhere to the highest academic standards expected by the graduation examinati
 
 ## 9. Software Verification & Automated Test Suite
 
-The repository includes a comprehensive unit test suite in [`test_suite.py`](file:///home/maher/Downloads/EC499t/Reinforcement_Learning_for_Adaptive_Traffic_Engineering_in_an_SDN_Network/test_suite.py). All 22 tests pass with 100% success rate:
+The repository includes a comprehensive unit test suite in [`test_suite.py`](../test_suite.py). All 26 tests pass with 100% success rate:
 
 ```
 ======================================================================
 Adaptive SDN Traffic Engineering Unit Test Suite (EC499)
 ======================================================================
+test_agent_and_state_manager_with_config_defaults (TestCentralConfig) ......... ok
+test_config_dictionary_structure (TestCentralConfig) .......................... ok
+test_env_var_override_and_type_casting (TestCentralConfig) .................... ok
 test_closed_loop_flow_accumulation_and_expiration (TestClosedLoopDynamicsAndUpgrades) ... ok
 test_generalized_core_congestion_across_topologies (TestClosedLoopDynamicsAndUpgrades) ... ok
 test_polyak_soft_update_consistency (TestClosedLoopDynamicsAndUpgrades) ................. ok
@@ -418,6 +421,7 @@ test_replay_buffer_sampling (TestPrioritizedReplay) ............................
 test_sumtree_arithmetic (TestPrioritizedReplay) .......................................... ok
 test_control_overhead_accounting (TestStateManager) ..................................... ok
 test_differential_port_rates (TestStateManager) .......................................... ok
+test_flow_table_records (TestStateManager) ............................................... ok
 test_host_location_tracking (TestStateManager) ........................................... ok
 test_jitter_calculation (TestStateManager) ............................................... ok
 test_link_failure_and_restoration (TestStateManager) ..................................... ok
@@ -431,7 +435,7 @@ test_ospf_routing (TestTraditionalRoutingBaselines) ............................
 test_wsp_and_llr_routing (TestTraditionalRoutingBaselines) ............................... ok
 
 ----------------------------------------------------------------------
-Ran 22 tests in 1.206s
+Ran 26 tests in 1.269s
 OK (100% Passed)
 ```
 
@@ -443,17 +447,18 @@ The repository is structured to enable one-click reproduction of all experimenta
 
 ### 10.1 Quick Execution Commands
 
-1. **Run Full Test Suite (22 Tests)**:
+1. **Run Full Test Suite (26 Tests)**:
    ```bash
    ./run_tests.sh
    ```
 2. **Execute Head-to-Head Tournament Benchmark (5 Topologies)**:
    ```bash
-   /home/maher/ec499_env/bin/python benchmark_routing_algorithms.py
+   ./run_benchmarks.sh
+   # Or with activated venv: python3 benchmark_routing_algorithms.py
    ```
 3. **Execute High-Intensity Multi-Topology Stress Suite**:
    ```bash
-   /home/maher/ec499_env/bin/python stress_test_blind_topologies.py
+   python3 stress_test_blind_topologies.py
    ```
 4. **Execute Zero-Shot Random Graph Evaluation**:
    ```bash

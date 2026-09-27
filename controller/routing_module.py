@@ -7,6 +7,13 @@ import numpy as np
 # Add agent and controller to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'agent'))
 sys.path.append(os.path.dirname(__file__))
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
+try:
+    import config
+except ImportError:
+    config = None
+
 from dqn_router import DQNRoutingAgent
 from ryu.lib.packet import ethernet, ipv4, ether_types
 
@@ -21,12 +28,18 @@ class RoutingModule:
         self.state_manager = state_manager
         self.logger = controller.logger
 
-        # Initialize Double DQN Agent (10 state features, 4 candidate path actions)
-        self.agent = DQNRoutingAgent(state_size=10, action_size=4, lr=0.001)
+        # Initialize Double DQN Agent with configurable dimensions
+        state_size = getattr(config, 'STATE_SIZE', 10)
+        action_size = getattr(config, 'ACTION_SIZE', 4)
+        lr = getattr(config, 'LEARNING_RATE', 0.001)
+        self.k_candidate_paths = action_size
+
+        self.agent = DQNRoutingAgent(state_size=state_size, action_size=action_size, lr=lr)
         self.prev_experience = {} # (src_dpid, dst_dpid) -> (state, action, candidate_paths)
 
-        # Auto-load trained checkpoint if available
-        ckpt_path = os.path.join(os.path.dirname(__file__), '..', 'models', 'dqn_router.pth')
+        # Auto-load trained checkpoint if available (supports SDN_MODEL_PATH env var)
+        default_ckpt = getattr(config, 'DEFAULT_MODEL_PATH', os.path.join(os.path.dirname(__file__), '..', 'models', 'dqn_router.pth'))
+        ckpt_path = os.environ.get("SDN_MODEL_PATH", default_ckpt)
         if os.path.exists(ckpt_path):
             self.agent.load(ckpt_path)
             self.logger.info("[RoutingModule] Loaded pre-trained Double DQN checkpoint from %s", ckpt_path)
@@ -110,7 +123,7 @@ class RoutingModule:
         self.state_manager.record_decision_latency(decision_time_ms)
 
         # Discover diversity-aware candidate paths using StateManager
-        candidate_paths = self.state_manager.get_candidate_paths(dpid, dst_dpid, k=4)
+        candidate_paths = self.state_manager.get_candidate_paths(dpid, dst_dpid, k=self.k_candidate_paths)
         if not candidate_paths or len(candidate_paths[0]) <= 1:
             self.logger.warning("[RoutingModule] No path found between switch %s and %s. Flooding.", dpid, dst_dpid)
             self._flood(datapath, msg, in_port)
@@ -160,9 +173,9 @@ class RoutingModule:
 
         for i in range(len(path) - 1):
             edge = (path[i], path[i+1])
-            delay = self.state_manager.link_delays.get(edge, 2.0)
+            delay = self.state_manager.link_delays.get(edge, getattr(config, 'DEFAULT_LINK_DELAY', 2.0))
             util = self.state_manager.link_utilization.get(edge, 0.0)
-            jitter = self.state_manager.link_jitter.get(edge, 0.25)
+            jitter = self.state_manager.link_jitter.get(edge, getattr(config, 'DEFAULT_LINK_JITTER', 0.25))
             loss = self.state_manager.link_loss.get(edge, 0.0)
 
             total_delay += delay
@@ -170,8 +183,9 @@ class RoutingModule:
             total_jitter += jitter
             max_loss = max(max_loss, loss)
 
-        # Asymptotic barrier penalty when bottleneck utilization exceeds 70%
-        if max_util > 0.70:
+        # Asymptotic barrier penalty when bottleneck utilization exceeds threshold
+        thresh = getattr(config, 'CONGESTION_BARRIER_THRESHOLD', 0.70)
+        if max_util > thresh:
             congestion_penalty = 12.0 * ((max_util ** 1.8) / max(0.01, 1.02 - max_util))
         else:
             congestion_penalty = 1.5 * max_util
@@ -181,6 +195,9 @@ class RoutingModule:
 
     def _install_path(self, path, final_port, eth_dst, ip_src=None, ip_dst=None):
         """Pushes flow rules across all switches along the calculated path."""
+        idle_to = getattr(config, 'FLOW_IDLE_TIMEOUT', 60)
+        hard_to = getattr(config, 'FLOW_HARD_TIMEOUT', 120)
+
         for i in range(len(path)):
             cur_dpid = path[i]
             dp = self.controller.datapaths.get(cur_dpid)
@@ -205,13 +222,15 @@ class RoutingModule:
             else:
                 match = parser.OFPMatch(eth_dst=eth_dst)
 
-            self.controller.add_flow(dp, priority=10, match=match, actions=actions, idle_timeout=60, hard_timeout=120)
+            self.controller.add_flow(dp, priority=10, match=match, actions=actions, idle_timeout=idle_to, hard_timeout=hard_to)
 
-    def calculate_wcmp_weights(self, candidate_paths, beta=4.0):
+    def calculate_wcmp_weights(self, candidate_paths, beta=None):
         """
         Calculates Weighted Cost Multi-Path (WCMP) distribution weights
         using Softmax over inverse bottleneck utilization and latency.
         """
+        if beta is None:
+            beta = getattr(config, 'WCMP_BETA', 4.0)
         if not candidate_paths:
             return []
         if len(candidate_paths) == 1:
@@ -224,7 +243,7 @@ class RoutingModule:
             for i in range(len(p) - 1):
                 edge = (p[i], p[i+1])
                 u = self.state_manager.link_utilization.get(edge, 0.0)
-                d = self.state_manager.link_delays.get(edge, 2.0)
+                d = self.state_manager.link_delays.get(edge, getattr(config, 'DEFAULT_LINK_DELAY', 2.0))
                 max_u = max(max_u, u)
                 total_d += d
             score = - (beta * max_u + 0.05 * total_d)
@@ -236,11 +255,13 @@ class RoutingModule:
         int_weights = np.maximum(1, np.round(probs * 100.0).astype(int))
         return list(zip(candidate_paths, int_weights.tolist()))
 
-    def install_wcmp_multipath(self, candidate_paths, final_port, eth_dst, ip_src=None, ip_dst=None, group_id=500):
+    def install_wcmp_multipath(self, candidate_paths, final_port, eth_dst, ip_src=None, ip_dst=None, group_id=None):
         """
         Installs an OpenFlow 1.3 OFPGT_SELECT Group on the ingress switch,
         distributing flows across multiple paths according to WCMP weights.
         """
+        if group_id is None:
+            group_id = getattr(config, 'WCMP_GROUP_ID', 500)
         if not candidate_paths:
             return False
 

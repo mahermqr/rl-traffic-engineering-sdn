@@ -8,8 +8,15 @@ from urllib.parse import urlparse, parse_qs
 import numpy as np
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if BASE_DIR not in sys.path:
+    sys.path.append(BASE_DIR)
 if os.path.join(BASE_DIR, 'topology') not in sys.path:
     sys.path.append(os.path.join(BASE_DIR, 'topology'))
+
+try:
+    import config
+except ImportError:
+    config = None
 
 from topology_library import get_topology, list_available_topologies, ALL_TOPOLOGY_BUILDERS
 
@@ -26,12 +33,13 @@ class DashboardServer:
     """
     Lightweight Embedded HTTP REST Server & Real-Time Web Dashboard for Ryu (EC499).
     Serves live network topology, port/flow metrics, RL agent telemetry,
-    latency, jitter, packet loss, and control overhead at http://localhost:8080.
+    latency, jitter, packet loss, and control overhead with configurable host and port.
     """
-    def __init__(self, controller, state_manager, port=8080):
+    def __init__(self, controller, state_manager, host=None, port=None):
         self.controller = controller
         self.state_manager = state_manager
-        self.port = port
+        self.host = host if host is not None else os.environ.get("SDN_REST_HOST", getattr(config, "REST_HOST", "0.0.0.0"))
+        self.port = port if port is not None else int(os.environ.get("SDN_REST_PORT", getattr(config, "REST_PORT", 8080)))
         self.logger = controller.logger
         self.static_dir = os.path.join(os.path.dirname(__file__), 'static')
         os.makedirs(self.static_dir, exist_ok=True)
@@ -243,7 +251,7 @@ class DashboardServer:
                 }
 
             def _get_benchmark_data(self):
-                json_path = os.path.join(BASE_DIR, 'logs', 'routing_tournament_results.json')
+                json_path = getattr(config, "TOURNAMENT_RESULTS_PATH", os.path.join(BASE_DIR, 'logs', 'routing_tournament_results.json'))
                 if os.path.exists(json_path):
                     try:
                         with open(json_path, 'r') as f:
@@ -256,10 +264,11 @@ class DashboardServer:
                 pass # Suppress HTTP access logging in controller console
 
         try:
-            server = HTTPServer(('0.0.0.0', self.port), RequestHandler)
+            server = HTTPServer((self.host, self.port), RequestHandler)
+            display_host = "localhost" if self.host in ("0.0.0.0", "") else self.host
             self.logger.info("=" * 65)
-            self.logger.info(f" Web Dashboard & REST API active at http://localhost:{self.port}")
+            self.logger.info(f" Web Dashboard & REST API active at http://{display_host}:{self.port} (Bound: {self.host})")
             self.logger.info("=" * 65)
             server.serve_forever()
         except Exception as e:
-            self.logger.error(f"[DashboardServer] Failed to start on port {self.port}: {e}")
+            self.logger.error(f"[DashboardServer] Failed to start on {self.host}:{self.port}: {e}")

@@ -28,6 +28,11 @@ sys.path.append(BASE_DIR)
 sys.path.append(os.path.join(BASE_DIR, 'agent'))
 sys.path.append(os.path.join(BASE_DIR, 'controller'))
 
+try:
+    import config
+except ImportError:
+    config = None
+
 from dqn_router import DQNRoutingAgent
 from state_manager import StateManager
 from benchmark_evaluation import build_evaluation_topology
@@ -39,18 +44,30 @@ def jains_fairness_index(loads):
         return 1.0
     return float((np.sum(arr)**2) / (len(arr) * np.sum(arr**2)))
 
-def run_stress_tests():
+def run_stress_tests(model_path=None, json_path=None, plots_dir=None, n_samples=100, n_burst=500, seed=None):
+    if seed is not None:
+        random.seed(seed)
+        np.random.seed(seed)
+
+    plots_dir = plots_dir or os.environ.get("SDN_PLOTS_DIR", getattr(config, 'PLOTS_DIR', os.path.join(BASE_DIR, 'logs', 'plots')))
+    os.makedirs(plots_dir, exist_ok=True)
+
+    ckpt_path = model_path or os.environ.get("SDN_MODEL_PATH", getattr(config, 'DEFAULT_MODEL_PATH', os.path.join(BASE_DIR, 'models', 'dqn_router.pth')))
+    out_json = json_path or os.environ.get("SDN_STRESS_RESULTS", getattr(config, 'STRESS_RESULTS_PATH', os.path.join(BASE_DIR, 'logs', 'stress_test_results.json')))
+
     print("=" * 80)
     print(" 🚀 STARTING HIGH-INTENSITY SDN LOAD BALANCER STRESS TEST")
+    print(f" Model Checkpoint: {ckpt_path}")
+    print(f" Output JSON:      {out_json}")
+    print(f" Plots Directory:  {plots_dir}")
     print("=" * 80)
 
     # 1. Load trained Double DQN checkpoint
-    agent = DQNRoutingAgent(state_size=10, action_size=4)
-    ckpt_path = os.path.join(BASE_DIR, 'models', 'dqn_router.pth')
+    agent = DQNRoutingAgent()
     if not agent.load(ckpt_path):
         print(f"[Error] Failed to load model weights from {ckpt_path}")
         return
-    print(f"[Init] Loaded trained Double DQN model checkpoint from models/dqn_router.pth")
+    print(f"[Init] Loaded trained Double DQN model checkpoint from {ckpt_path}")
 
     sm = StateManager()
     topo = build_evaluation_topology()
@@ -286,7 +303,6 @@ def run_stress_tests():
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
     out_img = os.path.join(plots_dir, 'stress_test_load_balancing.png')
     plt.savefig(out_img, dpi=300)
-    out_json = os.path.join(BASE_DIR, 'logs', 'stress_test_results.json')
     import json
     results_summary = {
         "scenario_1_core_jamming": {
@@ -330,4 +346,21 @@ def run_stress_tests():
     print("=" * 80)
 
 if __name__ == '__main__':
-    run_stress_tests()
+    import argparse
+    parser = argparse.ArgumentParser(description="SDN Load Balancer Stress Testing Suite (EC499)")
+    parser.add_argument('--model-path', default=None, help="Path to trained DQN weights (.pth)")
+    parser.add_argument('--output-json', default=None, help="Output path for results JSON")
+    parser.add_argument('--plots-dir', default=None, help="Directory to save generated plots")
+    parser.add_argument('--samples', type=int, default=100, help="Number of core jamming sample flows (default: 100)")
+    parser.add_argument('--burst-flows', type=int, default=500, help="Number of concurrent burst flows (default: 500)")
+    parser.add_argument('--seed', type=int, default=None, help="Random seed for reproducibility")
+    args = parser.parse_args()
+
+    run_stress_tests(
+        model_path=args.model_path,
+        json_path=args.output_json,
+        plots_dir=args.plots_dir,
+        n_samples=args.samples,
+        n_burst=args.burst_flows,
+        seed=args.seed
+    )

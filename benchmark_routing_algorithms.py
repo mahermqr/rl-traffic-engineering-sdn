@@ -34,6 +34,11 @@ sys.path.append(os.path.join(BASE_DIR, 'agent'))
 sys.path.append(os.path.join(BASE_DIR, 'controller'))
 sys.path.append(os.path.join(BASE_DIR, 'topology'))
 
+try:
+    import config
+except ImportError:
+    config = None
+
 from state_manager import StateManager
 from dqn_router import DQNRoutingAgent
 from topology_library import get_topology, build_random_topology
@@ -41,23 +46,38 @@ from traditional_routing import (
     ospf_routing, dijkstra_spf, ecmp_routing, widest_shortest_path, least_loaded_routing, compute_path_metrics
 )
 
-PLOTS_DIR = os.path.join(BASE_DIR, 'logs', 'plots')
-os.makedirs(PLOTS_DIR, exist_ok=True)
+DEFAULT_PLOTS_DIR = getattr(config, 'PLOTS_DIR', os.path.join(BASE_DIR, 'logs', 'plots'))
+DEFAULT_MODEL_PATH = getattr(config, 'DEFAULT_MODEL_PATH', os.path.join(BASE_DIR, 'models', 'dqn_router.pth'))
+DEFAULT_JSON_PATH = getattr(config, 'TOURNAMENT_RESULTS_PATH', os.path.join(BASE_DIR, 'logs', 'routing_tournament_results.json'))
+
+os.makedirs(DEFAULT_PLOTS_DIR, exist_ok=True)
 
 
-def run_routing_tournament():
+def run_routing_tournament(model_path=None, json_path=None, plots_dir=None, topologies=None, seed=None):
+    if seed is not None:
+        random.seed(seed)
+        np.random.seed(seed)
+
+    plots_dir = plots_dir or os.environ.get("SDN_PLOTS_DIR", DEFAULT_PLOTS_DIR)
+    os.makedirs(plots_dir, exist_ok=True)
+
+    ckpt_path = model_path or os.environ.get("SDN_MODEL_PATH", DEFAULT_MODEL_PATH)
+    out_json = json_path or os.environ.get("SDN_TOURNAMENT_RESULTS", DEFAULT_JSON_PATH)
+
     print("=" * 90)
     print(" 🏆 EC499 BENCHMARK TOURNAMENT: DQN ADAPTIVE ROUTING VS OSPF & GREEDY BASELINES")
+    print(f" Model Checkpoint: {ckpt_path}")
+    print(f" Results Output:   {out_json}")
+    print(f" Plots Directory:  {plots_dir}")
     print("=" * 90)
 
     # 1. Initialize RL Agent
-    ckpt_path = os.path.join(BASE_DIR, 'models', 'dqn_router.pth')
-    router_agent = DQNRoutingAgent(state_size=10, action_size=4)
+    router_agent = DQNRoutingAgent()
     if os.path.exists(ckpt_path):
         router_agent.load(ckpt_path)
         print(f"[Init] Loaded pre-trained DQN checkpoint from {ckpt_path}")
     else:
-        print("[Init] Checkpoint not found; agent initialized with fresh policy.")
+        print(f"[Init] Checkpoint not found at {ckpt_path}; agent initialized with fresh policy.")
 
     topologies_to_test = [
         ('tree', "Hierarchical Tree (7 Nodes)"),
@@ -198,18 +218,18 @@ def run_routing_tournament():
             print(f"  • {algo:<18}: Bottleneck: {b_util:5.1f}% | Latency: {lat:5.2f}ms | Jitter: {jit:5.2f}ms | Loss: {loss:4.2f}% | Jain: {jains:.3f} | Offload: {off:4.1f}%")
 
     # Save quantitative results JSON
-    json_path = os.path.join(BASE_DIR, 'logs', 'routing_tournament_results.json')
-    with open(json_path, 'w') as f:
+    with open(out_json, 'w') as f:
         json.dump(benchmark_data, f, indent=2)
-    print(f"\n[Saved] Detailed benchmark JSON saved to {json_path}")
+    print(f"\n[Saved] Detailed benchmark JSON saved to {out_json}")
 
     # Generate Publication-Grade 6-Panel Figure covering all Proposal Metrics
-    plot_proposal_tournament_figures(benchmark_data, decision_timings)
+    plot_proposal_tournament_figures(benchmark_data, decision_timings, plots_dir=plots_dir)
     return benchmark_data
 
 
-def plot_proposal_tournament_figures(data, decision_timings):
+def plot_proposal_tournament_figures(data, decision_timings, plots_dir=None):
     """Plots 6-panel comprehensive benchmark and radar comparison."""
+    plots_dir = plots_dir or DEFAULT_PLOTS_DIR
     fig, axes = plt.subplots(2, 3, figsize=(18, 10))
     plt.subplots_adjust(hspace=0.35, wspace=0.28)
 
@@ -295,17 +315,18 @@ def plot_proposal_tournament_figures(data, decision_timings):
     handles, labels = ax1.get_legend_handles_labels()
     fig.legend(handles, labels, loc='upper center', bbox_to_anchor=(0.5, 0.98), ncol=6, fontsize=10, frameon=True)
 
-    fig_path = os.path.join(PLOTS_DIR, 'proposal_benchmarks_all_metrics.png')
+    fig_path = os.path.join(plots_dir, 'proposal_benchmarks_all_metrics.png')
     plt.savefig(fig_path, dpi=300, bbox_inches='tight')
     plt.close()
     print(f"[Plot] Saved 6-panel proposal benchmark figure to {fig_path}")
 
     # Spider / Radar plot comparing DQN vs OSPF vs SPF vs LLR
-    plot_radar_summary(data)
+    plot_radar_summary(data, plots_dir=plots_dir)
 
 
-def plot_radar_summary(data):
+def plot_radar_summary(data, plots_dir=None):
     """Generates radar chart summarizing normalized scores across the 5 Proposal objectives."""
+    plots_dir = plots_dir or DEFAULT_PLOTS_DIR
     labels = ['Congestion Relief', 'Low Latency', 'Low Jitter', 'Zero Packet Loss', 'Jain Fairness']
     num_vars = len(labels)
     angles = np.linspace(0, 2 * np.pi, num_vars, endpoint=False).tolist()
@@ -355,11 +376,26 @@ def plot_radar_summary(data):
     ax.set_title("EC499 Proposal Objectives Radar Comparison\n(DQN vs Classical Routing Protocols)", fontsize=12, fontweight='bold', pad=25)
     ax.legend(loc='lower right', bbox_to_anchor=(1.35, -0.05), fontsize=9)
 
-    radar_path = os.path.join(PLOTS_DIR, 'proposal_tournament_radar.png')
+    radar_path = os.path.join(plots_dir, 'proposal_tournament_radar.png')
     plt.savefig(radar_path, dpi=300, bbox_inches='tight')
     plt.close()
     print(f"[Plot] Saved radar chart to {radar_path}")
 
 
 if __name__ == '__main__':
-    run_routing_tournament()
+    import argparse
+    parser = argparse.ArgumentParser(description="Routing Algorithms Tournament Benchmark (EC499)")
+    parser.add_argument('--model-path', default=None, help="Path to pre-trained DQN checkpoint (.pth)")
+    parser.add_argument('--output-json', default=None, help="Path to output JSON results")
+    parser.add_argument('--plots-dir', default=None, help="Directory to save generated comparison plots")
+    parser.add_argument('--topologies', nargs='+', default=None, help="Specific topologies to benchmark")
+    parser.add_argument('--seed', type=int, default=None, help="Random seed for reproducibility")
+    args = parser.parse_args()
+
+    run_routing_tournament(
+        model_path=args.model_path,
+        json_path=args.output_json,
+        plots_dir=args.plots_dir,
+        topologies=args.topologies,
+        seed=args.seed
+    )

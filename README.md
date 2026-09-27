@@ -110,29 +110,37 @@ Evaluated under **closed-loop dynamic flow accumulation and lifecycle stepping**
 
 ## Quick Start & Verification
 
-### 1. Run Unit & Integration Tests (23 Tests)
+Activate your Python virtual environment (e.g. `source venv/bin/activate` or `source ~/ec499_env/bin/activate`), or execute using the self-detecting portable scripts directly:
+
+### 1. Run Unit & Integration Tests (26 Tests)
 ```bash
-/home/maher/ec499_env/bin/python test_suite.py -v
+./run_tests.sh
+# Or with active virtual environment:
+python3 test_suite.py -v
 ```
 
 ### 2. Run Head-to-Head Routing Tournament Benchmark (5 Topologies)
 ```bash
-/home/maher/ec499_env/bin/python benchmark_routing_algorithms.py
+./run_benchmarks.sh
+# Or with active virtual environment:
+python3 benchmark_routing_algorithms.py
 ```
 
 ### 3. Run Multi-Topology Stress Testing Suite
 ```bash
-/home/maher/ec499_env/bin/python stress_test_blind_topologies.py
+python3 stress_test_blind_topologies.py
 ```
 
 ### 4. Zero-Shot Blind Random Topology Test
 ```bash
-/home/maher/ec499_env/bin/python evaluate_random_blind_topology.py --nodes 20 --flows 200
+./run_random_blind_test.sh
+# Or with active virtual environment:
+python3 evaluate_random_blind_topology.py --nodes 20 --flows 200
 ```
 
 ### 5. Train Deep Q-Network Agent
 ```bash
-/home/maher/ec499_env/bin/python benchmark_evaluation.py 1000
+python3 benchmark_evaluation.py --episodes 1000
 ```
 
 ### 6. Launch Ryu Controller, Live Traffic Simulation, and Web Dashboard
@@ -145,6 +153,36 @@ Open your browser at:
 ```
 http://localhost:8080
 ```
+(Configurable via `SDN_REST_PORT` or `--port`)
+
+---
+
+## Centralized Configuration System (Zero Hardcoding)
+
+All runtime parameters, model paths, SDN endpoints, and reinforcement learning hyperparameters are managed by `config.py` following strict precedence:
+1. **CLI Arguments** (highest priority, e.g. `--model-path`, `--rest-port`, `--episodes`)
+2. **Environment Variables** (e.g. `SDN_*`, `RL_*`, `TORCH_DEVICE`)
+3. **Optional `config.json`** file in the project directory
+4. **Sensible Production Defaults** (lowest priority)
+
+### Key Environment Variables
+
+| Variable | Default | Description |
+|:---|:---:|:---|
+| `SDN_MODEL_PATH` | `models/dqn_router.pth` | Path to PyTorch trained D3QN weights |
+| `SDN_LOGS_DIR` | `logs/` | Output directory for metrics, logs, and JSON summaries |
+| `SDN_PLOTS_DIR` | `logs/plots/` | Directory where publication figures are generated |
+| `SDN_CONTROLLER_IP` | `127.0.0.1` | Ryu OpenFlow controller host address |
+| `SDN_CONTROLLER_PORT` | `6633` | OpenFlow switch-controller listening port |
+| `SDN_REST_HOST` | `0.0.0.0` | Dashboard server bind address |
+| `SDN_REST_PORT` | `8080` | Dashboard server HTTP port |
+| `SDN_POLL_INTERVAL` | `3.0` | OpenFlow statistics polling period (seconds) |
+| `SDN_DEFAULT_TOPOLOGY` | `tree` | Default network fabric (`tree`, `fattree`, `abilene`, `nsfnet`, `spineleaf`) |
+| `RL_LR` | `0.001` | Adam optimizer learning rate |
+| `RL_BATCH_SIZE` | `32` | Experience replay mini-batch sample size |
+| `RL_MEMORY_SIZE` | `5000` | Prioritized experience replay buffer capacity |
+| `TORCH_DEVICE` | Auto (`cuda` / `cpu`) | PyTorch compute accelerator device |
+
 
 ---
 

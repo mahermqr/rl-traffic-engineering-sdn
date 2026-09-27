@@ -1,6 +1,17 @@
 import numpy as np
 import random
 import torch
+import sys
+import os
+
+_BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _BASE_DIR not in sys.path:
+    sys.path.insert(0, _BASE_DIR)
+
+try:
+    import config
+except ImportError:
+    config = None
 
 class SumTree:
     """
@@ -69,22 +80,24 @@ class PrioritizedReplayBuffer:
     w_i = (N * P(i))^(-beta) / max(w_j)
     Optimized with contiguous NumPy arrays for zero-copy PyTorch tensor sampling.
     """
-    def __init__(self, capacity=5000, alpha=0.6, beta=0.4, beta_increment=0.001, epsilon=0.01, state_size=10):
-        self.tree = SumTree(capacity)
-        self.capacity = capacity
-        self.state_size = state_size
-        self.alpha = alpha
-        self.beta = beta
-        self.beta_increment = beta_increment
+    def __init__(self, capacity=None, alpha=None, beta=None, beta_increment=None, epsilon=0.01, state_size=None):
+        cap = capacity if capacity is not None else (config.MEMORY_SIZE if config else 5000)
+        self.capacity = cap
+        self.state_size = state_size if state_size is not None else (config.STATE_SIZE if config else 10)
+        self.alpha = alpha if alpha is not None else (config.PER_ALPHA if config else 0.6)
+        self.beta = beta if beta is not None else (config.PER_BETA if config else 0.4)
+        self.beta_increment = beta_increment if beta_increment is not None else (config.PER_BETA_INCREMENT if config else 0.001)
         self.epsilon = epsilon
         self.max_priority = 1.0
 
+        self.tree = SumTree(cap)
+
         # Contiguous NumPy buffers for ultra-fast vectorized tensor conversion
-        self.states = np.zeros((capacity, state_size), dtype=np.float32)
-        self.actions = np.zeros(capacity, dtype=np.int64)
-        self.rewards = np.zeros(capacity, dtype=np.float32)
-        self.next_states = np.zeros((capacity, state_size), dtype=np.float32)
-        self.dones = np.zeros(capacity, dtype=np.float32)
+        self.states = np.zeros((cap, self.state_size), dtype=np.float32)
+        self.actions = np.zeros(cap, dtype=np.int64)
+        self.rewards = np.zeros(cap, dtype=np.float32)
+        self.next_states = np.zeros((cap, self.state_size), dtype=np.float32)
+        self.dones = np.zeros(cap, dtype=np.float32)
 
     def add(self, state, action, reward, next_state, done):
         s = np.asarray(state, dtype=np.float32)

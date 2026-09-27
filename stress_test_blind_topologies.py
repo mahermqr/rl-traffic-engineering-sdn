@@ -40,15 +40,23 @@ sys.path.append(os.path.join(BASE_DIR, 'agent'))
 sys.path.append(os.path.join(BASE_DIR, 'controller'))
 sys.path.append(os.path.join(BASE_DIR, 'topology'))
 
+try:
+    import config
+except ImportError:
+    config = None
+
 from dqn_router import DQNRoutingAgent
 from state_manager import StateManager
 from topology_library import get_topology
 from traditional_routing import compute_path_metrics
 
-PLOTS_DIR = os.path.join(BASE_DIR, 'logs', 'plots')
-LOGS_DIR = os.path.join(BASE_DIR, 'logs')
-os.makedirs(PLOTS_DIR, exist_ok=True)
-os.makedirs(LOGS_DIR, exist_ok=True)
+DEFAULT_PLOTS_DIR = getattr(config, 'PLOTS_DIR', os.path.join(BASE_DIR, 'logs', 'plots'))
+DEFAULT_LOGS_DIR = getattr(config, 'LOGS_DIR', os.path.join(BASE_DIR, 'logs'))
+DEFAULT_MODEL_PATH = getattr(config, 'DEFAULT_MODEL_PATH', os.path.join(BASE_DIR, 'models', 'dqn_router.pth'))
+DEFAULT_JSON_PATH = getattr(config, 'BLIND_STRESS_RESULTS_PATH', os.path.join(DEFAULT_LOGS_DIR, 'blind_topologies_stress_results.json'))
+
+os.makedirs(DEFAULT_PLOTS_DIR, exist_ok=True)
+os.makedirs(DEFAULT_LOGS_DIR, exist_ok=True)
 
 def jains_fairness_index(loads):
     """Computes Jain's Fairness Index in [1/n, 1.0]."""
@@ -57,23 +65,40 @@ def jains_fairness_index(loads):
         return 1.0
     return float((np.sum(arr)**2) / (len(arr) * np.sum(arr**2)))
 
-def run_blind_topology_stress_tests():
+def run_blind_topology_stress_tests(model_path=None, json_path=None, plots_dir=None, topologies=None, burst_flows=500, seed=None):
+    if seed is not None:
+        random.seed(seed)
+        np.random.seed(seed)
+
+    plots_dir = plots_dir or os.environ.get("SDN_PLOTS_DIR", DEFAULT_PLOTS_DIR)
+    os.makedirs(plots_dir, exist_ok=True)
+
+    ckpt_path = model_path or os.environ.get("SDN_MODEL_PATH", DEFAULT_MODEL_PATH)
+    out_json = json_path or os.environ.get("SDN_BLIND_STRESS_RESULTS", DEFAULT_JSON_PATH)
+
     print("=" * 85)
     print(" 🚀 STARTING MULTI-TOPOLOGY BLIND STRESS & GENERALIZATION BENCHMARK SUITE (EC499)")
     print(" Evaluating Double DQN Traffic Engineering Zero-Shot Across 5 Fabrics")
+    print(f" Model Checkpoint: {ckpt_path}")
+    print(f" Output JSON:      {out_json}")
+    print(f" Plots Directory:  {plots_dir}")
     print("=" * 85)
 
     # 1. Load trained agent checkpoint
-    router_agent = DQNRoutingAgent(state_size=10, action_size=4)
-    router_ckpt = os.path.join(BASE_DIR, 'models', 'dqn_router.pth')
-    if not router_agent.load(router_ckpt):
-        print(f"[Error] Failed to load router weights from {router_ckpt}")
+    router_agent = DQNRoutingAgent()
+    if not router_agent.load(ckpt_path):
+        print(f"[Error] Failed to load router weights from {ckpt_path}")
         return
-    print(f"[Init] Loaded trained Double DQN Router checkpoint from models/dqn_router.pth")
+    print(f"[Init] Loaded trained Double DQN Router checkpoint from {ckpt_path}")
 
     results_summary = {}
 
-    topo_order = ['tree', 'fattree', 'abilene', 'nsfnet', 'spineleaf']
+    all_topos = ['tree', 'fattree', 'abilene', 'nsfnet', 'spineleaf']
+    if topologies:
+        topo_order = [t for t in all_topos if t in topologies]
+    else:
+        topo_order = all_topos
+
     topo_labels = {
         'tree': 'Hierarchical Tree',
         'fattree': 'Fat-Tree Clos (k=4)',
@@ -158,16 +183,17 @@ def run_blind_topology_stress_tests():
         # ---------------------------------------------------------------------
         # TEST 2: High-Concurrency Flow Avalanche (500 Simultaneous Flows)
         # ---------------------------------------------------------------------
-        print(f"\n[Test 2/5] High-Concurrency Flow Avalanche (500 Concurrent Requests)")
+        print(f"\n[Test 2/5] High-Concurrency Flow Avalanche ({burst_flows} Concurrent Requests)")
         link_loads_dqn = {e: 0.05 for e in sm.graph.edges()}
         link_loads_spf = {e: 0.05 for e in sm.graph.edges()}
 
-        n_burst = 500
+        n_burst = burst_flows
+        k_paths = getattr(config, 'ACTION_SIZE', 4)
         t0 = time.time()
         for _ in range(n_burst):
             src = random.choice(edge_nodes)
             dst = random.choice([n for n in edge_nodes if n != src])
-            cands = sm.get_candidate_paths(src, dst, k=4)
+            cands = sm.get_candidate_paths(src, dst, k=k_paths)
             st = sm.get_routing_state(src, dst)
             act = router_agent.act(st, explore=False)
             p_dqn = cands[act % len(cands)]
@@ -186,7 +212,7 @@ def run_blind_topology_stress_tests():
         jain_dqn = jains_fairness_index(list(link_loads_dqn.values()))
         jain_spf = jains_fairness_index(list(link_loads_spf.values()))
 
-        print(f" • Execution Time:              {burst_duration*1000:.1f} ms for 500 decisions")
+        print(f" • Execution Time:              {burst_duration*1000:.1f} ms for {n_burst} decisions")
         print(f" • Decision Throughput:         {decisions_sec:.1f} decisions/sec")
         print(f" • Jain's Fairness Index:       DQN: {jain_dqn:.4f} vs SPF: {jain_spf:.4f}")
 
@@ -370,7 +396,7 @@ def run_blind_topology_stress_tests():
 
     plt.suptitle('Multi-Topology Blind Stress Testing: DQN Traffic Engineering Generalization Benchmark', fontsize=13, fontweight='bold')
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-    bench_plot = os.path.join(PLOTS_DIR, 'blind_topologies_stress_benchmark.png')
+    bench_plot = os.path.join(plots_dir, 'blind_topologies_stress_benchmark.png')
     plt.savefig(bench_plot, dpi=300)
     plt.close()
     print(f" • Saved Benchmark Plot to: {bench_plot}")
@@ -407,19 +433,35 @@ def run_blind_topology_stress_tests():
     ax_r.set_ylim(0, 100)
     plt.title('Multi-Topology Resilience & Generalization Radar', size=13, fontweight='bold', y=1.08)
     plt.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1), fontsize=9)
-    radar_plot = os.path.join(PLOTS_DIR, 'blind_topologies_radar.png')
+    radar_plot = os.path.join(plots_dir, 'blind_topologies_radar.png')
     plt.savefig(radar_plot, dpi=300, bbox_inches='tight')
     plt.close()
     print(f" • Saved Radar Plot to: {radar_plot}")
 
     # Save summary JSON
-    json_path = os.path.join(LOGS_DIR, 'blind_topologies_stress_results.json')
-    with open(json_path, 'w') as f:
+    with open(out_json, 'w') as f:
         json.dump(results_summary, f, indent=2)
-    print(f" • Saved Structured Results JSON to: {json_path}")
+    print(f" • Saved Structured Results JSON to: {out_json}")
     print("=" * 85)
     print(" ALL 5 TOPOLOGY BLIND STRESS BENCHMARKS COMPLETED SUCCESSFULLY!")
     print("=" * 85)
 
 if __name__ == '__main__':
-    run_blind_topology_stress_tests()
+    import argparse
+    parser = argparse.ArgumentParser(description="Multi-Topology Blind Stress & Generalization Benchmark (EC499)")
+    parser.add_argument('--model-path', default=None, help="Path to pre-trained DQN checkpoint (.pth)")
+    parser.add_argument('--output-json', default=None, help="Path to output JSON results")
+    parser.add_argument('--plots-dir', default=None, help="Directory to save generated comparison plots")
+    parser.add_argument('--topologies', nargs='+', default=None, help="Specific topologies to test")
+    parser.add_argument('--burst-flows', type=int, default=500, help="Number of concurrent burst flows in Test 2 (default: 500)")
+    parser.add_argument('--seed', type=int, default=None, help="Random seed for reproducibility")
+    args = parser.parse_args()
+
+    run_blind_topology_stress_tests(
+        model_path=args.model_path,
+        json_path=args.output_json,
+        plots_dir=args.plots_dir,
+        topologies=args.topologies,
+        burst_flows=args.burst_flows,
+        seed=args.seed
+    )

@@ -16,9 +16,20 @@ Computes comprehensive network telemetry metrics required by Proposal:
  - Hop Count & Control Overhead
 """
 
+import os
+import sys
 import itertools
 import networkx as nx
 import numpy as np
+
+_BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _BASE_DIR not in sys.path:
+    sys.path.insert(0, _BASE_DIR)
+
+try:
+    import config
+except ImportError:
+    config = None
 
 
 def compute_path_metrics(path, link_utilization, link_delays=None, link_bandwidths=None, jitter_history=None):
@@ -31,7 +42,7 @@ def compute_path_metrics(path, link_utilization, link_delays=None, link_bandwidt
          scales non-linearly with bottleneck link utilization:
          Jitter = base_jitter + 0.15 * total_delay * (U_bottleneck / max(0.01, 1.0 - min(0.98, U_bottleneck)))
       3. Packet Loss (%): Finite buffer queue overflow model (M/M/1/K queuing approximation).
-         Loss is near 0% under low load (U <= 70%), then escalates sharply when links saturate (U > 70%).
+         Loss is near 0% under low load (U <= threshold), then escalates sharply when links saturate.
     """
     if not path or len(path) <= 1:
         return {
@@ -47,6 +58,8 @@ def compute_path_metrics(path, link_utilization, link_delays=None, link_bandwidt
     hops = len(path) - 1
     total_delay = 0.0
     bottleneck_util = 0.0
+    default_delay = getattr(config, 'DEFAULT_LINK_DELAY', 2.0)
+    loss_threshold = getattr(config, 'CONGESTION_BARRIER_THRESHOLD', 0.70)
 
     for i in range(len(path) - 1):
         u, v = path[i], path[i + 1]
@@ -55,7 +68,7 @@ def compute_path_metrics(path, link_utilization, link_delays=None, link_bandwidt
         if util == 0.0 and (v, u) in link_utilization:
             util = float(link_utilization[(v, u)])
 
-        base_delay = float(delays.get((u, v), delays.get((v, u), 2.0)))
+        base_delay = float(delays.get((u, v), delays.get((v, u), default_delay)))
 
         # Queuing delay scales with link utilization: M/M/1 queue delay
         # D_e = base_delay / (1 - min(0.95, util))
@@ -72,12 +85,12 @@ def compute_path_metrics(path, link_utilization, link_delays=None, link_bandwidt
     jitter_ms = float(base_jitter + 0.45 * total_delay * min(5.0, congestion_factor))
 
     # 2. Packet Loss Rate (%):
-    # Under low load (util < 0.70), loss is negligible (< 0.05%)
-    # Under high load (util >= 0.70), queue drops escalate exponentially up to 25-35%
-    if bottleneck_util <= 0.70:
+    # Under low load (util <= threshold), loss is negligible (< 0.05%)
+    # Under high load (util > threshold), queue drops escalate exponentially up to 25-35%
+    if bottleneck_util <= loss_threshold:
         loss_pct = float(max(0.0, bottleneck_util * 0.05))
     else:
-        excess = (bottleneck_util - 0.70) / 0.30
+        excess = (bottleneck_util - loss_threshold) / max(0.01, 1.0 - loss_threshold)
         loss_pct = float(min(35.0, 0.05 + 30.0 * (excess ** 2.2)))
 
     return {

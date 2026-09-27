@@ -26,19 +26,27 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(BASE_DIR, 'agent'))
 sys.path.append(os.path.join(BASE_DIR, 'controller'))
 sys.path.append(os.path.join(BASE_DIR, 'topology'))
+sys.path.append(BASE_DIR)
 
+from config import (
+    MODELS_DIR,
+    LOGS_DIR,
+    PLOTS_DIR,
+    DEFAULT_MODEL_PATH,
+    METRICS_CSV_PATH,
+    EVALUATION_RESULTS_PATH,
+    STATE_SIZE,
+    ACTION_SIZE,
+    LEARNING_RATE,
+    MEMORY_SIZE,
+    BATCH_SIZE,
+    TORCH_DEVICE,
+    K_CANDIDATE_PATHS,
+)
 from dqn_router import DQNRoutingAgent
 from state_manager import StateManager
 from topology_library import ALL_TOPOLOGY_BUILDERS
 from traditional_routing import dijkstra_spf, ospf_routing, compute_path_metrics
-
-MODELS_DIR = os.path.join(BASE_DIR, 'models')
-LOGS_DIR = os.path.join(BASE_DIR, 'logs')
-PLOTS_DIR = os.path.join(LOGS_DIR, 'plots')
-
-os.makedirs(MODELS_DIR, exist_ok=True)
-os.makedirs(LOGS_DIR, exist_ok=True)
-os.makedirs(PLOTS_DIR, exist_ok=True)
 
 
 def build_evaluation_topology():
@@ -63,10 +71,31 @@ def build_evaluation_topology():
     return g
 
 
-def run_full_training(episodes=1000):
+def run_full_training(
+    episodes=1000,
+    lr=None,
+    memory_size=None,
+    batch_size=None,
+    save_model_path=None,
+    csv_metrics_path=None,
+    eval_json_path=None,
+    plots_dir=None,
+    device=None,
+    k_paths=None
+):
     print("=" * 85)
     print(f" 🚀 STARTING DEEP Q-NETWORK ADAPTIVE TRAFFIC ENGINEERING TRAINING ({episodes} EPISODES)")
     print("=" * 85)
+
+    lr_val = lr if lr is not None else LEARNING_RATE
+    mem_size = memory_size if memory_size is not None else MEMORY_SIZE
+    batch_sz = batch_size if batch_size is not None else BATCH_SIZE
+    save_ckpt = save_model_path or os.environ.get('SDN_MODEL_PATH', DEFAULT_MODEL_PATH)
+    csv_path = csv_metrics_path or os.environ.get('SDN_METRICS_CSV', METRICS_CSV_PATH)
+    eval_path = eval_json_path or os.environ.get('SDN_EVALUATION_RESULTS', EVALUATION_RESULTS_PATH)
+    plots_out = plots_dir or os.environ.get('SDN_PLOTS_DIR', PLOTS_DIR)
+    dev = device or TORCH_DEVICE
+    k_val = k_paths or K_CANDIDATE_PATHS
 
     # Initialize topologies for multi-fabric curriculum exposure
     topology_instances = {}
@@ -89,11 +118,12 @@ def run_full_training(episodes=1000):
 
     # Initialize DQN Agent with Prioritized Experience Replay
     router_agent = DQNRoutingAgent(
-        state_size=10,
-        action_size=4,
-        lr=0.0008,
-        memory_size=20000,
-        epsilon_decay=1.0 # Decay managed explicitly across 3-phase curriculum
+        state_size=STATE_SIZE,
+        action_size=ACTION_SIZE,
+        lr=lr_val,
+        memory_size=mem_size,
+        epsilon_decay=1.0, # Decay managed explicitly across 3-phase curriculum
+        device=dev
     )
 
     # 3-Phase Curriculum Boundaries:
@@ -112,7 +142,7 @@ def run_full_training(episodes=1000):
         'epsilons': []
     }
 
-    csv_path = os.path.join(LOGS_DIR, 'training_metrics.csv')
+    os.makedirs(os.path.dirname(os.path.abspath(csv_path)), exist_ok=True)
     csv_file = open(csv_path, 'w', newline='')
     csv_writer = csv.writer(csv_file)
     csv_writer.writerow(['episode', 'reward', 'loss', 'dqn_bottleneck', 'spf_bottleneck', 'latency_ms', 'jitter_ms', 'loss_pct', 'epsilon'])
@@ -141,22 +171,17 @@ def run_full_training(episodes=1000):
         dst_opts = [n for n in edge_nodes if n != src]
         dst = random.choice(dst_opts)
 
-        cand_paths = sm.get_candidate_paths(src, dst, k=4)
+        cand_paths = sm.get_candidate_paths(src, dst, k=k_val)
         spf_path = cand_paths[0]
 
         # 3. Simulate synthetic traffic patterns:
-        #  - Mode A (35%): Nominal network (all links lightly loaded 0.10 - 0.35)
-        #  - Mode B (45%): Congested Primary Path (links along Path 0 saturated at 0.75 - 0.98, alternate paths clean at 0.10 - 0.35)
-        #  - Mode C (20%): Core Jamming (core/aggregation transit nodes saturated)
         traffic_mode = random.choices(['nominal', 'congested_primary', 'core_jam'], weights=[0.35, 0.45, 0.20])[0]
 
-        # Reset nominal link loads and base delays
         sm.reset_simulation()
         for u, v in sm.graph.edges():
             sm.link_utilization[(u, v)] = random.uniform(0.10, 0.30)
 
         if traffic_mode == 'congested_primary':
-            # Saturate links along candidate path 0 (Shortest Path)
             for idx in range(len(spf_path) - 1):
                 u, v = spf_path[idx], spf_path[idx + 1]
                 sm.link_utilization[(u, v)] = random.uniform(0.78, 0.98)
@@ -171,7 +196,6 @@ def run_full_training(episodes=1000):
         chosen_path = cand_paths[action % len(cand_paths)]
 
         # Dynamic Closed-Loop Flow Allocation:
-        # Flow consumes bandwidth along chosen_path, authentically altering the network state:
         flow_mbps = random.uniform(10.0, 20.0)
         sm.allocate_dynamic_flow(flow_id=f"train_{ep}", path=chosen_path, mbps=flow_mbps, duration_sec=3.0)
 
@@ -189,24 +213,18 @@ def run_full_training(episodes=1000):
 
         # 6. Intelligent Traffic Engineering Multi-Objective Reward:
         if u_spf <= 0.60:
-            # Case 1: Primary path is uncongested -> Prefer Shortest Path (Action 0)
             if action == 0:
                 reward = 4.0 - 0.04 * lat_dqn - 0.1 * jit_dqn
             else:
                 hop_diff = max(0, hops_dqn - hops_spf)
                 reward = 1.0 - 1.0 * hop_diff - 0.05 * lat_dqn - 0.1 * jit_dqn
         else:
-            # Case 2: Primary path is congested (u_spf > 0.60)!
-            # Strongly incentivize diverting traffic to less loaded candidate paths
             if u_dqn < u_spf - 0.08:
-                # Big positive reward for offloading traffic away from congestion
                 relief = u_spf - u_dqn
                 reward = 12.0 * relief + 4.0 * (1.0 - u_dqn) - 0.15 * jit_dqn - 1.5 * loss_dqn
             elif action == 0:
-                # Severe penalty for driving traffic into the jammed primary queue
                 reward = - 14.0 * (u_spf ** 2) - 0.3 * jit_dqn - 3.0 * loss_dqn
             else:
-                # Alternative path chosen is also congested
                 reward = - 8.0 * (u_dqn ** 2) - 0.3 * jit_dqn - 2.0 * loss_dqn
 
         # 7. Observe genuine posterior state s_{t+1} after traffic placement
@@ -214,7 +232,7 @@ def run_full_training(episodes=1000):
         router_agent.remember(state, action, reward, next_state, done=False)
 
         # 8. Train policy network with mini-batch Double DQN update
-        loss_val = router_agent.train(batch_size=32) or 0.05
+        loss_val = router_agent.train(batch_size=batch_sz) or 0.05
 
         # Expire past flows to maintain realistic non-stationary traffic matrix
         sm.step_dynamic_flows(current_time=time.time() + (ep * 0.1))
@@ -252,9 +270,9 @@ def run_full_training(episodes=1000):
     print(f"\n[Completed] {episodes} episodes completed in {elapsed:.1f} seconds.")
 
     # Save trained checkpoint
-    save_path = os.path.join(MODELS_DIR, 'dqn_router.pth')
-    router_agent.save(save_path)
-    print(f"[Saved] Checkpoint successfully saved to {save_path}")
+    os.makedirs(os.path.dirname(os.path.abspath(save_ckpt)), exist_ok=True)
+    router_agent.save(save_ckpt)
+    print(f"[Saved] Checkpoint successfully saved to {save_ckpt}")
 
     # Generate Evaluation Results JSON
     eval_results = {
@@ -270,15 +288,16 @@ def run_full_training(episodes=1000):
         'final_packet_loss_pct': round(float(np.mean(history['packet_loss_pct'][-200:])), 3),
         'exploration_decay': '3-Phase Curriculum (Exploration -> Learning -> Exploitation)'
     }
-    with open(os.path.join(LOGS_DIR, 'evaluation_results.json'), 'w') as f:
+    os.makedirs(os.path.dirname(os.path.abspath(eval_path)), exist_ok=True)
+    with open(eval_path, 'w') as f:
         json.dump(eval_results, f, indent=2)
 
     # Plot Convergence Figures
-    plot_convergence_dashboard(history, phase1_end, phase2_end, episodes)
+    plot_convergence_dashboard(history, phase1_end, phase2_end, episodes, plots_dir=plots_out)
     return eval_results
 
 
-def plot_convergence_dashboard(history, p1_end, p2_end, total_episodes):
+def plot_convergence_dashboard(history, p1_end, p2_end, total_episodes, plots_dir=None):
     """Generates 4-panel publication-grade convergence dashboard."""
     fig, axes = plt.subplots(2, 2, figsize=(14, 9))
     plt.subplots_adjust(hspace=0.32, wspace=0.25)
@@ -349,25 +368,26 @@ def plot_convergence_dashboard(history, p1_end, p2_end, total_episodes):
     ax4.legend(lines, labels, loc='upper right', fontsize=8)
 
     plt.suptitle("Deep Q-Network Adaptive Traffic Engineering: Training Progression & Metric Convergence\n(EC499 - University of Tripoli)", fontsize=13, fontweight='bold')
-    plot_file = os.path.join(PLOTS_DIR, 'dqn_te_training_convergence.png')
+    out_dir = plots_dir or PLOTS_DIR
+    os.makedirs(out_dir, exist_ok=True)
+    plot_file = os.path.join(out_dir, 'dqn_te_training_convergence.png')
     plt.savefig(plot_file, dpi=300, bbox_inches='tight')
     plt.close()
     print(f"[Plot] Convergence dashboard saved to {plot_file}")
 
 
-def replot_convergence_from_csv(csv_path=None):
+def replot_convergence_from_csv(csv_path=None, plots_dir=None):
     """Re-generates publication convergence figure directly from logged metrics CSV."""
-    if csv_path is None:
-        csv_path = os.path.join(LOGS_DIR, 'training_metrics.csv')
-    if not os.path.exists(csv_path):
-        print(f"Error: {csv_path} not found.")
+    resolved_csv = csv_path or METRICS_CSV_PATH
+    if not os.path.exists(resolved_csv):
+        print(f"Error: {resolved_csv} not found.")
         return
     history = {
         'episodes': [], 'rewards': [], 'losses': [],
         'dqn_bottleneck': [], 'spf_bottleneck': [],
         'latency_ms': [], 'jitter_ms': [], 'packet_loss_pct': [], 'epsilons': []
     }
-    with open(csv_path, 'r') as f:
+    with open(resolved_csv, 'r') as f:
         reader = csv.DictReader(f)
         for row in reader:
             history['episodes'].append(int(row['episode']))
@@ -382,12 +402,39 @@ def replot_convergence_from_csv(csv_path=None):
     episodes = len(history['episodes'])
     p1_end = int(episodes * 0.25)
     p2_end = int(episodes * 0.75)
-    plot_convergence_dashboard(history, p1_end, p2_end, episodes)
+    plot_convergence_dashboard(history, p1_end, p2_end, episodes, plots_dir=plots_dir)
 
 
 if __name__ == '__main__':
-    if len(sys.argv) > 1 and sys.argv[1] == '--replot':
-        replot_convergence_from_csv()
+    import argparse
+    parser = argparse.ArgumentParser(description="Deep Q-Network Traffic Engineering Training & Benchmarking (EC499)")
+    parser.add_argument('episodes_pos', nargs='?', type=int, default=None, help="Optional positional episodes argument (default: 1000)")
+    parser.add_argument('--episodes', '-e', type=int, default=None, help="Number of training episodes (default: 1000)")
+    parser.add_argument('--replot', action='store_true', help="Re-generate convergence plots from existing CSV metrics")
+    parser.add_argument('--csv-path', type=str, default=None, help=f"Path to training metrics CSV (default: {METRICS_CSV_PATH})")
+    parser.add_argument('--model-path', '-m', type=str, default=None, help=f"Path to save/load trained model weights (default: {DEFAULT_MODEL_PATH})")
+    parser.add_argument('--output-json', '-o', type=str, default=None, help=f"Path to save evaluation summary JSON (default: {EVALUATION_RESULTS_PATH})")
+    parser.add_argument('--plots-dir', type=str, default=None, help=f"Directory to save generated convergence figures (default: {PLOTS_DIR})")
+    parser.add_argument('--lr', type=float, default=None, help=f"Learning rate for Adam optimizer (default: {LEARNING_RATE})")
+    parser.add_argument('--memory-size', type=int, default=None, help=f"Capacity of Prioritized Experience Replay buffer (default: {MEMORY_SIZE})")
+    parser.add_argument('--batch-size', type=int, default=None, help=f"Mini-batch size for training steps (default: {BATCH_SIZE})")
+    parser.add_argument('--device', type=str, default=None, help="Computation device: 'cpu', 'cuda', or auto")
+    parser.add_argument('--candidate-paths', '-k', type=int, default=None, help=f"Candidate paths count K (default: {K_CANDIDATE_PATHS})")
+    args = parser.parse_args()
+
+    if args.replot:
+        replot_convergence_from_csv(csv_path=args.csv_path, plots_dir=args.plots_dir)
     else:
-        episodes = int(sys.argv[1]) if len(sys.argv) > 1 else 1000
-        run_full_training(episodes=episodes)
+        episodes_val = args.episodes or args.episodes_pos or 1000
+        run_full_training(
+            episodes=episodes_val,
+            lr=args.lr,
+            memory_size=args.memory_size,
+            batch_size=args.batch_size,
+            save_model_path=args.model_path,
+            csv_metrics_path=args.csv_path,
+            eval_json_path=args.output_json,
+            plots_dir=args.plots_dir,
+            device=args.device,
+            k_paths=args.candidate_paths
+        )
