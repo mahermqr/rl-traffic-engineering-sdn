@@ -3,7 +3,7 @@ from ryu.controller import ofp_event
 from ryu.controller.handler import CONFIG_DISPATCHER, MAIN_DISPATCHER, DEAD_DISPATCHER
 from ryu.controller.handler import set_ev_cls
 from ryu.ofproto import ofproto_v1_3
-from ryu.lib.packet import packet, ethernet, ipv4, arp, ether_types
+from ryu.lib.packet import packet, ethernet, arp, ether_types
 from ryu.lib import hub
 from ryu.topology import event
 from ryu.topology.api import get_switch, get_link
@@ -15,12 +15,17 @@ import time
 # Add controller and agent directories to path
 sys.path.append(os.path.dirname(__file__))
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'agent'))
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'topology'))
 
 try:
     import config
 except ImportError:
     config = None
+
+try:
+    from topology_library import ALL_TOPOLOGY_BUILDERS
+except ImportError:
+    ALL_TOPOLOGY_BUILDERS = {}
 
 from state_manager import StateManager
 from routing_module import RoutingModule
@@ -38,6 +43,13 @@ class MainController(app_manager.RyuApp):
         super(MainController, self).__init__(*args, **kwargs)
         self.datapaths = {}
         self.state_manager = StateManager()
+
+        # Pre-populate state manager with default baseline topology
+        default_topo = os.environ.get("SDN_DEFAULT_TOPOLOGY", getattr(config, "DEFAULT_TOPOLOGY_ID", "tree"))
+        builder = ALL_TOPOLOGY_BUILDERS.get(default_topo, ALL_TOPOLOGY_BUILDERS.get("tree"))
+        if builder:
+            g_init, meta = builder()
+            self.state_manager.set_topology(default_topo, g_init, meta)
 
         # Initialize Adaptive Traffic Engineering Routing Module
         self.routing_module = RoutingModule(self, self.state_manager)

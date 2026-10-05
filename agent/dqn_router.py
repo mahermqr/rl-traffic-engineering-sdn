@@ -129,6 +129,13 @@ class DQNRoutingAgent:
             q_values = self.model(state_tensor)
         return int(torch.argmax(q_values[0]))
 
+    def get_q_values(self, state):
+        """Returns raw Q-values for all candidate path actions from the neural policy network."""
+        state_tensor = torch.as_tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
+        with torch.no_grad():
+            q_values = self.model(state_tensor)[0]
+        return [float(x) for x in q_values.cpu().numpy()]
+
     def remember(self, state, action, reward, next_state, done):
         """Stores experience tuple in replay memory."""
         s = np.asarray(state, dtype=np.float32)

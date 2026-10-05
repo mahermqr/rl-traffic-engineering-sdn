@@ -184,13 +184,19 @@ class RoutingModule:
             max_loss = max(max_loss, loss)
 
         # Asymptotic barrier penalty when bottleneck utilization exceeds threshold
-        thresh = getattr(config, 'CONGESTION_BARRIER_THRESHOLD', 0.70)
+        thresh = getattr(self.state_manager, 'congestion_barrier_pct', 70.0) / 100.0
+        w_gamma = getattr(self.state_manager, 'w_congestion', 1.0)
         if max_util > thresh:
-            congestion_penalty = 12.0 * ((max_util ** 1.8) / max(0.01, 1.02 - max_util))
+            congestion_penalty = 12.0 * w_gamma * ((max_util ** 1.8) / max(0.01, 1.02 - max_util))
         else:
-            congestion_penalty = 1.5 * max_util
+            congestion_penalty = 1.5 * w_gamma * max_util
 
-        reward = - (0.35 * hops + 0.06 * total_delay + congestion_penalty + 0.25 * total_jitter + 0.5 * max_loss)
+        w_h = getattr(self.state_manager, 'w_hops', 0.35)
+        w_d = getattr(self.state_manager, 'w_delay', 0.06)
+        w_j = getattr(self.state_manager, 'w_jitter', 0.25)
+        w_l = getattr(self.state_manager, 'w_loss', 0.50)
+
+        reward = - (w_h * hops + w_d * total_delay + congestion_penalty + w_j * total_jitter + w_l * max_loss)
         return float(reward)
 
     def _install_path(self, path, final_port, eth_dst, ip_src=None, ip_dst=None):

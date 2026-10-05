@@ -52,6 +52,12 @@ def run_simulation(mode="auto", interval=4.0, max_steps=0, base_url=DEFAULT_URL)
         "reset":         "🔄 Nominal Baseline Network Stabilization"
     }
 
+    # Ensure active topology links are populated on controller
+    try:
+        http_get(f"/api/simulate/switch_topology?topo=tree", base_url=base_url)
+    except Exception:
+        pass
+
     try:
         while True:
             step += 1

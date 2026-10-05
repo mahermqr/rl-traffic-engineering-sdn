@@ -29,8 +29,6 @@ sys.path.append(os.path.join(BASE_DIR, 'topology'))
 sys.path.append(BASE_DIR)
 
 from config import (
-    MODELS_DIR,
-    LOGS_DIR,
     PLOTS_DIR,
     DEFAULT_MODEL_PATH,
     METRICS_CSV_PATH,
@@ -46,7 +44,7 @@ from config import (
 from dqn_router import DQNRoutingAgent
 from state_manager import StateManager
 from topology_library import ALL_TOPOLOGY_BUILDERS
-from traditional_routing import dijkstra_spf, ospf_routing, compute_path_metrics
+from traditional_routing import compute_path_metrics
 
 
 def build_evaluation_topology():

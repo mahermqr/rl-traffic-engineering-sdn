@@ -1,6 +1,5 @@
 import numpy as np
 import networkx as nx
-import math
 import time
 import collections
 import os
@@ -64,8 +63,33 @@ class StateManager:
         self.controller_decision_times = collections.deque(maxlen=1000) # latencies in ms
         self.control_overhead_start_time = time.time()
 
-        # Link failure recovery tracking: (u, v) -> edge_attributes
+        # Link failure & degradation recovery tracking: (u, v) -> edge_attributes
         self.failed_links = {}
+        self.degraded_links = {}
+
+        # D3QN Multi-Objective reward weights
+        self.w_hops = 0.35
+        self.w_delay = 0.06
+        self.w_congestion = 1.0
+        self.w_jitter = 0.25
+        self.w_loss = 0.50
+        self.congestion_barrier_pct = 70.0
+
+        # Traffic Generation & Matrix defaults
+        self.traffic_pattern = 'uniform'
+        self.traffic_flow_rate_mbps = 15.0
+        self.diffserv_dscp = 'BE'
+
+        # OpenFlow 1.3 Control Plane defaults
+        self.switch_queue_depth = 256
+        self.switch_mtu = 1500
+        self.flow_timeout_sec = 30
+        self.max_flow_rules = 1000
+        self.poll_interval_sec = 2.5
+        self.k_candidate_paths = 4
+        self.lldp_interval_sec = 2.0
+        self.multipart_stats_mode = 'port'
+        self.control_channel_mode = 'oob'
 
         # Rolling time-series telemetry history (up to 60 data points for live web charts)
         self.telemetry_history = collections.deque(maxlen=60)
@@ -134,6 +158,30 @@ class StateManager:
             self.link_loss[(src_dpid, dst_dpid)] = float(loss)
         if (src_dpid, dst_dpid) not in self.link_utilization:
             self.link_utilization[(src_dpid, dst_dpid)] = 0.0
+
+    def update_network_parameters(self, default_capacity=None, default_delay=None, default_jitter=None, loss_rate=None, core_capacity_ratio=1.0):
+        """Configures global link capacities, propagation delays, and loss rates across the active fabric."""
+        if default_capacity is not None:
+            self.default_capacity = float(default_capacity)
+        if default_delay is not None:
+            self.default_delay = float(default_delay)
+        if default_jitter is not None:
+            self.default_jitter = float(default_jitter)
+        core_ratio = float(core_capacity_ratio) if core_capacity_ratio is not None else 1.0
+
+        for (u, v) in list(self.link_bandwidths.keys()):
+            cap = float(self.default_capacity)
+            is_core = (u == 1 or v == 1) if self.current_topology_id == 'tree' else False
+            if is_core and core_ratio > 1.0:
+                cap *= core_ratio
+
+            self.link_bandwidths[(u, v)] = cap
+            self.base_link_delays[(u, v)] = float(self.default_delay)
+            self.link_delays[(u, v)] = float(self.default_delay)
+            if loss_rate is not None:
+                self.link_loss[(u, v)] = float(loss_rate)
+
+        self._routing_path_cache.clear()
 
     def record_host(self, ip, mac, dpid, port):
         """Records host location and mapping for dynamic packet routing."""
@@ -754,6 +802,68 @@ class StateManager:
             if not self.failed_links:
                 self.active_simulation_mode = None
         return restored
+
+    def inject_link_degradation(self, u, v, throttle_pct=0.10, delay_mult=5.0):
+        """Simulates physical fiber degradation (e.g. dirty optics, high bit error rate)."""
+        if not self.graph.has_edge(u, v):
+            return False
+        pairs = [(u, v)]
+        if self.graph.has_edge(v, u):
+            pairs.append((v, u))
+        for src, dst in pairs:
+            orig_cap = self.link_bandwidths.get((src, dst), self.default_capacity)
+            orig_delay = self.base_link_delays.get((src, dst), self.default_delay)
+            orig_loss = self.link_loss.get((src, dst), 0.0)
+            self.degraded_links[(src, dst)] = {
+                'bandwidth': orig_cap,
+                'delay': orig_delay,
+                'loss': orig_loss
+            }
+            self.link_bandwidths[(src, dst)] = max(1.0, orig_cap * float(throttle_pct))
+            self.base_link_delays[(src, dst)] = orig_delay * float(delay_mult)
+            self.link_delays[(src, dst)] = orig_delay * float(delay_mult)
+            self.link_loss[(src, dst)] = 12.5  # High physical bit error rate
+        self._routing_path_cache.clear()
+        self.active_simulation_mode = f"degraded_{u}_{v}"
+        return True
+
+    def restore_degraded_links(self, u=None, v=None):
+        """Restores degraded links back to nominal capacity, delay, and zero base loss."""
+        restored = 0
+        if u is not None and v is not None:
+            pairs = [(u, v), (v, u)]
+        else:
+            pairs = list(self.degraded_links.keys())
+        for edge in pairs:
+            if edge in self.degraded_links:
+                data = self.degraded_links.pop(edge)
+                self.link_bandwidths[edge] = data['bandwidth']
+                self.base_link_delays[edge] = data['delay']
+                self.link_delays[edge] = data['delay']
+                self.link_loss[edge] = data['loss']
+                restored += 1
+        if restored > 0:
+            self._routing_path_cache.clear()
+            if not self.degraded_links and not self.failed_links:
+                self.active_simulation_mode = None
+        return restored
+
+    def inject_traffic_burst(self, u, v=None, mbps=50.0):
+        """Injects a sudden congestion spike / flash traffic surge to stress test D3QN rerouting."""
+        burst_edges = []
+        if v is not None and self.graph.has_edge(u, v):
+            burst_edges.append((u, v))
+        else:
+            for neighbor in self.graph.neighbors(u):
+                burst_edges.append((u, neighbor))
+        for src, dst in burst_edges:
+            cap = self.link_bandwidths.get((src, dst), self.default_capacity)
+            add_util = float(mbps) / max(1.0, cap)
+            self.link_utilization[(src, dst)] = min(1.0, self.link_utilization.get((src, dst), 0.1) + add_util)
+            self.link_delays[(src, dst)] = self.link_delays.get((src, dst), 2.0) * 3.5
+            self.link_loss[(src, dst)] = min(35.0, self.link_loss.get((src, dst), 0.0) + 18.0)
+        self._routing_path_cache.clear()
+        return len(burst_edges)
 
     def sample_telemetry_history(self):
         """Periodic telemetry history sampler."""

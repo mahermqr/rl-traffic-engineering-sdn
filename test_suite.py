@@ -413,5 +413,72 @@ class TestCentralConfig(unittest.TestCase):
         self.assertGreater(sm.default_delay, 0.0)
 
 
+class TestWebDashboardAndVersusAPI(unittest.TestCase):
+    """Automated tests for Web Dashboard, Connected Model Telemetry, and Versus Engine."""
+
+    @classmethod
+    def setUpClass(cls):
+        import urllib.request
+        from web_dashboard import DashboardServer
+        cls.test_port = 8111
+        cls.server = DashboardServer(host="127.0.0.1", port=cls.test_port)
+        time.sleep(0.5)
+
+    def _get_json(self, path):
+        import urllib.request
+        import json
+        url = f"http://127.0.0.1:{self.test_port}{path}"
+        with urllib.request.urlopen(url, timeout=10) as resp:
+            self.assertEqual(resp.status, 200)
+            return json.loads(resp.read().decode('utf-8'))
+
+    def test_dashboard_model_telemetry(self):
+        rl = self._get_json("/api/rl_metrics")
+        self.assertIn("router_epsilon", rl)
+        self.assertIn("router_device", rl)
+        self.assertTrue(rl.get("model_loaded"))
+        self.assertGreater(rl.get("parameter_count", 0), 20000)
+
+    def test_model_inspect_and_predict(self):
+        insp = self._get_json("/api/model_inspect")
+        self.assertEqual(insp["architecture"]["type"], "Dueling Double Deep Q-Network (D3QN)")
+        self.assertEqual(insp["architecture"]["state_dim"], 10)
+        self.assertEqual(insp["architecture"]["action_dim"], 4)
+
+        pred = self._get_json("/api/model_predict?src=4&dst=7")
+        self.assertIn("chosen_path", pred)
+        self.assertIn("inference_time_ms", pred)
+        self.assertEqual(len(pred["candidate_paths"]), 4)
+
+    def test_versus_endpoint_single_protocol(self):
+        res = self._get_json("/api/verse?topo=tree&protocol=ospf&pattern=jam&flows=15")
+        self.assertEqual(res["status"], "success")
+        self.assertEqual(res["topology_id"], "tree")
+        self.assertIn("DQN (Ours)", res["metrics"])
+        self.assertIn("OSPF (RFC 2328)", res["metrics"])
+        self.assertIn("deltas", res)
+        self.assertIn("radar", res)
+        self.assertIn("verdict", res)
+
+    def test_versus_endpoint_multi_protocol_checklist(self):
+        res = self._get_json("/api/verse?topo=fattree&protocol=ospf,ecmp,wsp&pattern=burst&flows=15")
+        self.assertEqual(res["status"], "success")
+        self.assertEqual(len(res["algorithms"]), 4)  # DQN + OSPF + ECMP + WSP
+        self.assertIn("DQN (Ours)", res["algorithms"])
+        self.assertIn("OSPF (RFC 2328)", res["algorithms"])
+        self.assertIn("ECMP Multi-Path", res["algorithms"])
+        self.assertIn("WSP Widest Path", res["algorithms"])
+        self.assertNotIn("Dijkstra SPF", res["algorithms"])
+        self.assertEqual(res["deltas"]["competitors_count"], 3)
+
+    def test_versus_endpoint_all_baselines(self):
+        res = self._get_json("/api/verse?topo=nsfnet&protocol=all&pattern=jam&flows=15")
+        self.assertEqual(res["status"], "success")
+        self.assertGreaterEqual(len(res["algorithms"]), 6)
+        self.assertIn("DQN (Ours)", res["algorithms"])
+        self.assertIn("OSPF (RFC 2328)", res["algorithms"])
+        self.assertIn("ECMP Multi-Path", res["algorithms"])
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)
