@@ -3,8 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#030303">
+    <meta name="theme-color" content="#F8FAFC">
     <title>Synapse — Adaptive SDN Traffic Engineering Console</title>
+    <script>
+        (function() {
+            var saved = localStorage.getItem('synapse_theme') || 'light';
+            document.documentElement.setAttribute('data-theme', saved);
+        })();
+    </script>
     <meta name="description" content="Clean, real-time reinforcement learning traffic engineering dashboard for carrier-grade OpenFlow networks.">
 
     <!-- Fonts: Instrument Serif, Inter, JetBrains Mono -->
@@ -16,12 +22,93 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
     <style>
-        :root {
+        /* ----------------------------------------------------
+           Theme Design Tokens (Default: Light Mode)
+           ---------------------------------------------------- */
+        :root, [data-theme="light"] {
+            --bg-base: #F8FAFC;
+            --bg-surface: #FFFFFF;
+            --bg-card: #F1F5F9;
+            --bg-card-hover: #E2E8F0;
+            --bg-footer: #F1F5F9;
+            --header-bg: rgba(255, 255, 255, 0.92);
+            --canvas-bg: #FFFFFF;
+            --input-bg: #FFFFFF;
+            --table-th-bg: #F8FAFC;
+            --modal-bg: #FFFFFF;
+            --modal-header-bg: #F8FAFC;
+            --tooltip-bg: rgba(255, 255, 255, 0.96);
+            --toast-bg: rgba(255, 255, 255, 0.98);
+            --surface-subtle: rgba(0, 0, 0, 0.02);
+            --surface-subtle-hover: rgba(0, 0, 0, 0.04);
+            --btn-bg: rgba(0, 0, 0, 0.03);
+            --btn-hover: rgba(0, 0, 0, 0.06);
+            --btn-primary-bg: #0F172A;
+            --btn-primary-text: #FFFFFF;
+            --btn-primary-hover: #1E293B;
+
+            /* Accent Colors */
+            --accent: #7C3AED;
+            --accent-violet: #7C3AED;
+            --accent-cyan: #0284C7;
+            --accent-emerald: #059669;
+            --accent-amber: #D97706;
+            --accent-rose: #E11D48;
+
+            /* Borders & Shadows */
+            --border-subtle: rgba(0, 0, 0, 0.08);
+            --border-hover: rgba(0, 0, 0, 0.18);
+            --border-divider: rgba(0, 0, 0, 0.06);
+            --glow-violet: 0 4px 20px rgba(124, 58, 237, 0.15);
+            --glow-cyan: 0 4px 20px rgba(2, 132, 199, 0.15);
+            --glow-emerald: 0 4px 20px rgba(5, 150, 105, 0.15);
+            --shadow-outer: 0 4px 20px -2px rgba(0, 0, 0, 0.06), 0 2px 6px -1px rgba(0, 0, 0, 0.03);
+            --shadow-inner: inset 0 1px 1px rgba(0, 0, 0, 0.04);
+            --shadow-inset-sm: inset 0 1px 2px rgba(0, 0, 0, 0.06);
+            --modal-shadow: 0 20px 50px rgba(0, 0, 0, 0.16);
+            --bg-convex: linear-gradient(135deg, rgba(0, 0, 0, 0.02) 0%, rgba(0, 0, 0, 0.005) 100%);
+            --grid-dot: rgba(0, 0, 0, 0.04);
+
+            /* Typography */
+            --font-display: 'Instrument Serif', Georgia, serif;
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+
+            /* Text Colors */
+            --text-main: #0F172A;
+            --text-secondary: #475569;
+            --text-dim: #64748B;
+            --text-muted: #94A3B8;
+
+            --radius-outer: 16px;
+            --radius-inner: 10px;
+            --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+        }
+
+        /* ----------------------------------------------------
+           Theme Design Tokens: Dark Mode
+           ---------------------------------------------------- */
+        [data-theme="dark"] {
             --bg-base: #030303;
             --bg-surface: rgba(12, 12, 12, 0.85);
             --bg-card: rgba(255, 255, 255, 0.02);
             --bg-card-hover: rgba(255, 255, 255, 0.04);
             --bg-footer: #050505;
+            --header-bg: rgba(3, 3, 3, 0.88);
+            --canvas-bg: #000000;
+            --input-bg: #080808;
+            --table-th-bg: #080808;
+            --modal-bg: #0A0A0A;
+            --modal-header-bg: rgba(255, 255, 255, 0.02);
+            --tooltip-bg: rgba(10, 10, 14, 0.94);
+            --toast-bg: rgba(18, 18, 22, 0.95);
+            --surface-subtle: rgba(255, 255, 255, 0.015);
+            --surface-subtle-hover: rgba(255, 255, 255, 0.04);
+            --btn-bg: rgba(255, 255, 255, 0.03);
+            --btn-hover: rgba(255, 255, 255, 0.07);
+            --btn-primary-bg: #FFFFFF;
+            --btn-primary-text: #000000;
+            --btn-primary-hover: #E5E5E5;
 
             /* Accent Colors */
             --accent: #8B5CF6;
@@ -31,32 +118,25 @@
             --accent-amber: #F59E0B;
             --accent-rose: #F43F5E;
 
-            /* Glows & Borders */
+            /* Borders & Shadows */
             --border-subtle: rgba(255, 255, 255, 0.07);
             --border-hover: rgba(255, 255, 255, 0.16);
+            --border-divider: rgba(255, 255, 255, 0.04);
             --glow-violet: 0 0 24px rgba(139, 92, 246, 0.18);
             --glow-cyan: 0 0 24px rgba(6, 182, 212, 0.18);
             --glow-emerald: 0 0 24px rgba(16, 185, 129, 0.20);
-
-            /* Typography */
-            --font-display: 'Instrument Serif', Georgia, serif;
-            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+            --shadow-outer: 0 8px 32px rgba(0, 0, 0, 0.45);
+            --shadow-inner: inset 0 1px 1px rgba(255, 255, 255, 0.06);
+            --shadow-inset-sm: inset 0 2px 4px rgba(0, 0, 0, 0.4);
+            --modal-shadow: 0 24px 64px rgba(0, 0, 0, 0.8);
+            --bg-convex: linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 100%);
+            --grid-dot: rgba(255, 255, 255, 0.015);
 
             /* Text Colors */
             --text-main: #FFFFFF;
             --text-secondary: #A3A3A3;
             --text-dim: #737373;
             --text-muted: #525252;
-
-            /* Neumorphic / Glass Surface Tokens */
-            --bg-convex: linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 100%);
-            --radius-outer: 16px;
-            --radius-inner: 10px;
-            --shadow-outer: 0 8px 32px rgba(0, 0, 0, 0.45);
-            --shadow-inner: inset 0 1px 1px rgba(255, 255, 255, 0.06);
-            --shadow-inset-sm: inset 0 2px 4px rgba(0, 0, 0, 0.4);
-            --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
         }
 
         * {
@@ -84,8 +164,8 @@
             width: 100%;
             height: 100%;
             background-image: 
-                linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+                linear-gradient(var(--grid-dot) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-dot) 1px, transparent 1px);
             background-size: 48px 48px;
             pointer-events: none;
             z-index: 0;
@@ -100,7 +180,7 @@
             align-items: center;
             justify-content: space-between;
             padding: 12px 28px;
-            background: rgba(3, 3, 3, 0.88);
+            background: var(--header-bg);
             backdrop-filter: blur(16px);
             border-bottom: 1px solid var(--border-subtle);
         }
@@ -115,7 +195,7 @@
             font-family: var(--font-display);
             font-size: 1.6rem;
             letter-spacing: -0.02em;
-            color: #fff;
+            color: var(--text-main);
             display: flex;
             align-items: center;
             gap: 8px;
@@ -141,7 +221,7 @@
         .neu-badge {
             padding: 3px 10px;
             border-radius: 9999px;
-            background: rgba(255, 255, 255, 0.03);
+            background: var(--btn-bg);
             border: 1px solid var(--border-subtle);
             font-family: var(--font-mono);
             font-size: 0.72rem;
@@ -156,7 +236,7 @@
         .neu-badge.interactive:hover {
             background: rgba(139, 92, 246, 0.12);
             border-color: var(--accent-violet);
-            color: #fff;
+            color: var(--accent-violet);
         }
 
         .status-live {
@@ -199,17 +279,17 @@
             font-size: 0.8rem;
             font-weight: 500;
             border-radius: var(--radius-inner);
-            background: rgba(255, 255, 255, 0.03);
+            background: var(--btn-bg);
             border: 1px solid var(--border-subtle);
             color: var(--text-main);
             cursor: pointer;
             transition: all 0.2s var(--ease-out);
             text-decoration: none;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
         }
 
         .neu-btn:hover {
-            background: rgba(255, 255, 255, 0.07);
+            background: var(--btn-hover);
             border-color: var(--border-hover);
             transform: translateY(-1px);
         }
@@ -219,16 +299,16 @@
         }
 
         .neu-btn-primary {
-            background: #fff;
-            color: #000;
-            border-color: #fff;
+            background: var(--btn-primary-bg);
+            color: var(--btn-primary-text);
+            border-color: var(--btn-primary-bg);
             font-weight: 600;
         }
 
         .neu-btn-primary:hover {
-            background: #e5e5e5;
-            border-color: #e5e5e5;
-            color: #000;
+            background: var(--btn-primary-hover);
+            border-color: var(--btn-primary-hover);
+            color: var(--btn-primary-text);
         }
 
         .neu-btn-danger {
@@ -307,7 +387,7 @@
             font-weight: 700;
             font-family: var(--font-mono);
             letter-spacing: -0.03em;
-            color: #fff;
+            color: var(--text-main);
             line-height: 1;
         }
 
@@ -323,14 +403,14 @@
             justify-content: space-between;
             font-size: 0.78rem;
             color: var(--text-secondary);
-            border-top: 1px solid rgba(255, 255, 255, 0.04);
+            border-top: 1px solid var(--border-divider);
             padding-top: 10px;
         }
 
         .kpi-bar-bg {
             width: 100%;
             height: 4px;
-            background: rgba(255, 255, 255, 0.08);
+            background: var(--border-subtle);
             border-radius: 9999px;
             overflow: hidden;
             margin-top: 4px;
@@ -346,10 +426,11 @@
         .stat-pill {
             padding: 2px 8px;
             border-radius: 9999px;
-            background: rgba(255, 255, 255, 0.04);
+            background: var(--surface-subtle);
             border: 1px solid var(--border-subtle);
             font-size: 0.7rem;
             font-family: var(--font-mono);
+            color: var(--text-secondary);
         }
 
         /* 2-Column Main Workspace */
@@ -385,7 +466,7 @@
         .card-title {
             font-family: var(--font-display);
             font-size: 1.45rem;
-            color: #fff;
+            color: var(--text-main);
             letter-spacing: -0.01em;
             display: flex;
             align-items: center;
@@ -403,7 +484,7 @@
             position: relative;
             width: 100%;
             height: 450px;
-            background: #000000;
+            background: var(--canvas-bg);
             border: 1px solid var(--border-subtle);
             border-radius: var(--radius-inner);
             overflow: hidden;
@@ -416,7 +497,7 @@
             display: block;
             width: 100%;
             height: 100%;
-            background: #000000;
+            background: var(--canvas-bg);
         }
 
         .canvas-tooltip {
@@ -424,22 +505,22 @@
             display: none;
             pointer-events: none;
             z-index: 10;
-            background: rgba(10, 10, 14, 0.94);
+            background: var(--tooltip-bg);
             backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.14);
+            border: 1px solid var(--border-hover);
             border-radius: 8px;
             padding: 10px 14px;
             font-size: 0.75rem;
             color: var(--text-main);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+            box-shadow: var(--shadow-outer);
             min-width: 200px;
         }
 
         .canvas-tooltip-title {
             font-weight: 700;
-            color: #fff;
+            color: var(--text-main);
             margin-bottom: 6px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            border-bottom: 1px solid var(--border-divider);
             padding-bottom: 4px;
         }
 
@@ -483,7 +564,7 @@
             margin-top: 20px;
             border: 1px solid var(--border-subtle);
             border-radius: var(--radius-inner);
-            background: rgba(255, 255, 255, 0.015);
+            background: var(--surface-subtle);
             overflow: hidden;
         }
 
@@ -494,12 +575,12 @@
             padding: 12px 16px;
             cursor: pointer;
             user-select: none;
-            background: rgba(255, 255, 255, 0.02);
+            background: var(--surface-subtle);
             transition: background 0.2s var(--ease-out);
         }
 
         .collapsible-header:hover {
-            background: rgba(255, 255, 255, 0.04);
+            background: var(--surface-subtle-hover);
         }
 
         .collapsible-title {
@@ -508,6 +589,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
+            color: var(--text-main);
         }
 
         .flow-table-wrapper {
@@ -526,7 +608,7 @@
         .neu-table th {
             position: sticky;
             top: 0;
-            background: #080808;
+            background: var(--table-th-bg);
             padding: 8px 12px;
             color: var(--text-dim);
             font-family: var(--font-mono);
@@ -539,13 +621,13 @@
 
         .neu-table td {
             padding: 8px 12px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            border-bottom: 1px solid var(--border-divider);
             color: var(--text-secondary);
         }
 
         .neu-table tr:hover td {
-            background: rgba(255, 255, 255, 0.02);
-            color: #fff;
+            background: var(--surface-subtle-hover);
+            color: var(--text-main);
         }
 
         /* Predictor Controls */
@@ -555,7 +637,7 @@
             gap: 12px;
             align-items: end;
             margin-bottom: 16px;
-            background: rgba(255, 255, 255, 0.02);
+            background: var(--surface-subtle);
             padding: 14px;
             border-radius: var(--radius-inner);
             border: 1px solid var(--border-subtle);
@@ -573,9 +655,9 @@
 
         .neu-select, .neu-input {
             width: 100%;
-            background: #080808;
+            background: var(--input-bg);
             border: 1px solid var(--border-subtle);
-            color: #fff;
+            color: var(--text-main);
             padding: 7px 10px;
             border-radius: 6px;
             font-size: 0.8rem;
@@ -609,15 +691,15 @@
         }
 
         .sub-comparison-card {
-            background: rgba(255, 255, 255, 0.02);
+            background: var(--surface-subtle);
             border: 1px solid var(--border-subtle);
             border-radius: var(--radius-inner);
             padding: 14px 16px;
         }
 
         .sub-comparison-card.champion {
-            border-color: rgba(139, 92, 246, 0.35);
-            background: linear-gradient(180deg, rgba(139, 92, 246, 0.04) 0%, rgba(255, 255, 255, 0.01) 100%);
+            border-color: rgba(139, 92, 246, 0.4);
+            background: linear-gradient(180deg, rgba(139, 92, 246, 0.08) 0%, var(--surface-subtle) 100%);
         }
 
         .sub-card-header {
@@ -630,7 +712,7 @@
         .sub-card-title {
             font-weight: 600;
             font-size: 0.85rem;
-            color: #fff;
+            color: var(--text-main);
             display: flex;
             align-items: center;
             gap: 6px;
@@ -641,7 +723,7 @@
             grid-template-columns: repeat(4, 1fr);
             gap: 8px;
             margin-top: 10px;
-            border-top: 1px solid rgba(255, 255, 255, 0.04);
+            border-top: 1px solid var(--border-divider);
             padding-top: 10px;
         }
 
@@ -656,7 +738,7 @@
             font-size: 0.88rem;
             font-weight: 700;
             font-family: var(--font-mono);
-            color: #fff;
+            color: var(--text-main);
             margin-top: 2px;
         }
 
@@ -666,12 +748,12 @@
             border: 1px solid var(--border-subtle);
             border-radius: var(--radius-inner);
             overflow: hidden;
-            background: rgba(255, 255, 255, 0.015);
+            background: var(--surface-subtle);
         }
 
         .candidate-paths-title {
             padding: 10px 14px;
-            background: rgba(255, 255, 255, 0.02);
+            background: var(--surface-subtle);
             font-size: 0.78rem;
             font-weight: 600;
             color: var(--text-secondary);
@@ -691,7 +773,7 @@
 
         .rank-pill.champion {
             background: rgba(139, 92, 246, 0.15);
-            color: #c4b5fd;
+            color: var(--accent-violet);
             border: 1px solid rgba(139, 92, 246, 0.35);
         }
 
@@ -704,7 +786,7 @@
         .metric-bar-bg {
             flex: 1;
             height: 4px;
-            background: rgba(255, 255, 255, 0.08);
+            background: var(--border-subtle);
             border-radius: 9999px;
             overflow: hidden;
         }
@@ -731,7 +813,7 @@
             flex-wrap: wrap;
             margin-bottom: 20px;
             padding: 14px 18px;
-            background: rgba(255, 255, 255, 0.02);
+            background: var(--surface-subtle);
             border-radius: var(--radius-inner);
             border: 1px solid var(--border-subtle);
         }
@@ -749,7 +831,7 @@
             gap: 6px;
             padding: 6px 12px;
             border-radius: 8px;
-            background: rgba(255, 255, 255, 0.03);
+            background: var(--btn-bg);
             border: 1px solid var(--border-subtle);
             font-size: 0.78rem;
             color: var(--text-secondary);
@@ -761,7 +843,8 @@
         .protocol-chip.active {
             background: rgba(139, 92, 246, 0.12);
             border-color: var(--accent-violet);
-            color: #fff;
+            color: var(--accent-violet);
+            font-weight: 600;
         }
 
         .charts-triad-grid {
@@ -772,7 +855,7 @@
         }
 
         .chart-box {
-            background: rgba(255, 255, 255, 0.015);
+            background: var(--surface-subtle);
             border: 1px solid var(--border-subtle);
             border-radius: var(--radius-inner);
             padding: 16px;
@@ -797,14 +880,14 @@
         .verdict-box {
             margin-top: 18px;
             padding: 14px 18px;
-            background: rgba(16, 185, 129, 0.04);
-            border: 1px solid rgba(16, 185, 129, 0.2);
+            background: rgba(16, 185, 129, 0.08);
+            border: 1px solid rgba(16, 185, 129, 0.25);
             border-radius: var(--radius-inner);
             display: flex;
             align-items: center;
             gap: 12px;
             font-size: 0.85rem;
-            color: #fff;
+            color: var(--text-main);
         }
 
         /* Settings Modal */
@@ -814,7 +897,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.6);
             backdrop-filter: blur(12px);
             z-index: 1000;
             display: none;
@@ -827,13 +910,13 @@
             display: flex;
         }
 
-        .modal-dialog {
-            background: #0A0A0A;
+        .modal-dialog, .modal-card {
+            background: var(--modal-bg);
             border: 1px solid var(--border-hover);
             border-radius: var(--radius-outer);
             width: 100%;
             max-width: 900px;
-            box-shadow: 0 24px 64px rgba(0, 0, 0, 0.8);
+            box-shadow: var(--modal-shadow);
             overflow: hidden;
             display: flex;
             flex-direction: column;
@@ -845,13 +928,13 @@
             justify-content: space-between;
             padding: 18px 24px;
             border-bottom: 1px solid var(--border-subtle);
-            background: rgba(255, 255, 255, 0.02);
+            background: var(--modal-header-bg);
         }
 
         .modal-title {
             font-family: var(--font-display);
             font-size: 1.5rem;
-            color: #fff;
+            color: var(--text-main);
         }
 
         .modal-subtitle {
@@ -860,7 +943,7 @@
             margin-top: 2px;
         }
 
-        .modal-close {
+        .modal-close, .modal-close-btn {
             background: transparent;
             border: none;
             color: var(--text-dim);
@@ -870,13 +953,13 @@
             transition: color 0.2s;
         }
 
-        .modal-close:hover {
-            color: #fff;
+        .modal-close:hover, .modal-close-btn:hover {
+            color: var(--text-main);
         }
 
-        .modal-tab-bar {
+        .modal-tab-bar, .modal-tabs-bar {
             display: flex;
-            background: rgba(255, 255, 255, 0.02);
+            background: var(--modal-header-bg);
             border-bottom: 1px solid var(--border-subtle);
             overflow-x: auto;
         }
@@ -888,18 +971,23 @@
             color: var(--text-dim);
             cursor: pointer;
             border-bottom: 2px solid transparent;
+            border-top: none;
+            border-left: none;
+            border-right: none;
+            background: transparent;
             transition: all 0.2s;
             white-space: nowrap;
         }
 
         .modal-tab:hover {
-            color: #fff;
+            color: var(--text-main);
         }
 
         .modal-tab.active {
-            color: #fff;
+            color: var(--accent-violet);
             border-bottom-color: var(--accent-violet);
-            background: rgba(139, 92, 246, 0.04);
+            background: rgba(139, 92, 246, 0.08);
+            font-weight: 600;
         }
 
         .modal-body {
@@ -917,7 +1005,7 @@
         }
 
         .settings-subcard {
-            background: rgba(255, 255, 255, 0.015);
+            background: var(--surface-subtle);
             border: 1px solid var(--border-subtle);
             border-radius: var(--radius-inner);
             padding: 16px 18px;
@@ -934,13 +1022,47 @@
             font-weight: 600;
         }
 
+        .settings-form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 14px 18px;
+            margin-top: 10px;
+        }
+
+        .form-group-block {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-group-block label {
+            font-size: 0.72rem;
+            font-family: var(--font-mono);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-dim);
+            font-weight: 500;
+        }
+
+        .slider-val-pair {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .slider-val-pair input[type="range"] {
+            flex: 1;
+            accent-color: var(--accent-violet);
+            cursor: pointer;
+        }
+
         .modal-footer {
             display: flex;
             align-items: center;
             justify-content: space-between;
             padding: 16px 24px;
             border-top: 1px solid var(--border-subtle);
-            background: rgba(255, 255, 255, 0.02);
+            background: var(--modal-header-bg);
         }
 
         /* Toast notifications */
@@ -956,14 +1078,15 @@
         }
 
         .toast {
-            background: rgba(18, 18, 22, 0.95);
+            background: var(--toast-bg);
             backdrop-filter: blur(12px);
             border: 1px solid var(--border-hover);
-            color: #fff;
+            color: var(--text-main);
             padding: 10px 16px;
             border-radius: 8px;
             font-size: 0.8rem;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+            font-weight: 500;
+            box-shadow: var(--shadow-outer);
             animation: slide-in 0.25s var(--ease-out);
             pointer-events: auto;
         }
@@ -1017,6 +1140,9 @@
             </div>
         </div>
         <div class="header-right">
+            <button class="neu-btn" id="btnThemeToggle" onclick="toggleTheme()" title="Switch between Light and Dark mode">
+                <span id="themeToggleIcon">☀️</span> <span id="themeToggleText">Light</span>
+            </button>
             <button class="neu-btn" id="btnAutoRefresh" onclick="toggleAutoRefresh()" title="Toggle 2.5s telemetry auto-polling">
                 <span id="autoRefreshIcon">⏸</span> Auto-Refresh
             </button>
@@ -1240,7 +1366,7 @@
                             </div>
                         </div>
                         <div style="font-size:0.75rem; color:var(--text-dim); margin-top:8px; font-family:var(--font-mono);">
-                            Path: <span id="dqnPathNodes" style="color:#fff;">[4, 2, 5, 7]</span>
+                            Path: <span id="dqnPathNodes" style="color:var(--text-main);">[4, 2, 5, 7]</span>
                         </div>
                     </div>
 
@@ -1269,7 +1395,7 @@
                             </div>
                         </div>
                         <div style="font-size:0.75rem; color:var(--text-dim); margin-top:8px; font-family:var(--font-mono);">
-                            Path: <span id="ospfPathNodes" style="color:#fff;">[4, 2, 5, 7]</span>
+                            Path: <span id="ospfPathNodes" style="color:var(--text-main);">[4, 2, 5, 7]</span>
                         </div>
                     </div>
                 </div>
@@ -1425,19 +1551,19 @@
                 <div class="settings-subcard" style="margin-bottom: 16px;">
                     <div class="settings-section-title">⚡ Neural Architecture Overview</div>
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 10px;">
-                        <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); padding: 10px 14px; border-radius: 8px;">
+                        <div style="background: var(--surface-subtle); border: 1px solid var(--border-subtle); padding: 10px 14px; border-radius: 8px;">
                             <div style="font-size: 0.72rem; color: var(--text-dim); text-transform: uppercase;">Model Class</div>
                             <div style="font-size: 0.95rem; font-weight: 700; color: var(--accent-violet); margin-top: 2px;">Dueling Double DQN</div>
                         </div>
-                        <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); padding: 10px 14px; border-radius: 8px;">
+                        <div style="background: var(--surface-subtle); border: 1px solid var(--border-subtle); padding: 10px 14px; border-radius: 8px;">
                             <div style="font-size: 0.72rem; color: var(--text-dim); text-transform: uppercase;">Parameters</div>
                             <div style="font-size: 0.95rem; font-weight: 700; color: var(--accent-emerald); margin-top: 2px;" id="modalParamCount">26,501 Weights</div>
                         </div>
-                        <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); padding: 10px 14px; border-radius: 8px;">
+                        <div style="background: var(--surface-subtle); border: 1px solid var(--border-subtle); padding: 10px 14px; border-radius: 8px;">
                             <div style="font-size: 0.72rem; color: var(--text-dim); text-transform: uppercase;">Inference Device</div>
                             <div style="font-size: 0.95rem; font-weight: 700; color: var(--accent-cyan); margin-top: 2px;" id="modalDeviceVal">CPU (torch.device)</div>
                         </div>
-                        <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); padding: 10px 14px; border-radius: 8px;">
+                        <div style="background: var(--surface-subtle); border: 1px solid var(--border-subtle); padding: 10px 14px; border-radius: 8px;">
                             <div style="font-size: 0.72rem; color: var(--text-dim); text-transform: uppercase;">Exploration (ε)</div>
                             <div style="font-size: 0.95rem; font-weight: 700; color: var(--accent-amber); margin-top: 2px;" id="modalEpsDisplay">ε = 0.010</div>
                         </div>
@@ -1446,7 +1572,7 @@
 
                 <div class="settings-subcard" style="margin-bottom: 16px;">
                     <div class="settings-section-title">📐 Dueling Pipeline Breakdown</div>
-                    <div style="font-family:'JetBrains Mono',monospace; font-size:0.78rem; background:rgba(0,0,0,0.4); padding:14px; border-radius:8px; border:1px solid var(--border-subtle); line-height:1.6; color:#E5E7EB;">
+                    <div style="font-family:'JetBrains Mono',monospace; font-size:0.78rem; background:var(--surface-subtle); padding:14px; border-radius:8px; border:1px solid var(--border-subtle); line-height:1.6; color:var(--text-main);">
                         <span style="color:#A78BFA;">Input State:</span> s ∈ ℝ¹⁰ (Ingress load, Egress load, Core utilization, Link delays, Loss rates)<br>
                         <span style="color:#60A5FA;">Feature Extractor:</span> Linear(10 → 64) → LayerNorm → ReLU → Linear(64 → 128) → LayerNorm → ReLU<br>
                         <span style="color:#34D399;">Value Stream V(s):</span> Linear(128 → 64) → LayerNorm → ReLU → Linear(64 → 1) [Scalar State Value]<br>
@@ -1460,11 +1586,11 @@
                     <div class="settings-section-title">📊 Live Input Vector & Q-Values (Current Pair)</div>
                     <div style="margin-top: 10px; font-size: 0.8rem;">
                         <div style="color: var(--text-dim); margin-bottom: 4px;">Normalized State Features s:</div>
-                        <div id="modalStateVectorDisplay" style="font-family:'JetBrains Mono',monospace; font-size:0.75rem; background:rgba(0,0,0,0.3); padding:8px 12px; border-radius:6px; border:1px solid var(--border-subtle); color:var(--accent-cyan); overflow-x:auto;">
+                        <div id="modalStateVectorDisplay" style="font-family:'JetBrains Mono',monospace; font-size:0.75rem; background:var(--surface-subtle); padding:8px 12px; border-radius:6px; border:1px solid var(--border-subtle); color:var(--accent-cyan); overflow-x:auto;">
                             [0.30, 0.30, 0.00, 0.50, 0.30, 0.12, 0.12, 0.16, 0.24, 0.50]
                         </div>
                         <div style="color: var(--text-dim); margin-top: 12px; margin-bottom: 4px;">Estimated Action Q-Values:</div>
-                        <div id="modalQValuesDisplay" style="font-family:'JetBrains Mono',monospace; font-size:0.75rem; background:rgba(0,0,0,0.3); padding:8px 12px; border-radius:6px; border:1px solid var(--border-subtle); color:var(--accent-emerald);">
+                        <div id="modalQValuesDisplay" style="font-family:'JetBrains Mono',monospace; font-size:0.75rem; background:var(--surface-subtle); padding:8px 12px; border-radius:6px; border:1px solid var(--border-subtle); color:var(--accent-emerald);">
                             a_0: -12.72 (Selected ★) • a_1: -59.59 • a_2: -151.07 • a_3: -104.66
                         </div>
                     </div>
@@ -2023,32 +2149,75 @@
             showToast("Canvas view and node selections reset.", "info");
         }
 
-        // Optimized Chart.js Defaults for Dark Mode
-        const darkChartDefaults = {
-            responsive: true,
-            maintainAspectRatio: false,
-            animation: { duration: 250 },
-            scales: {
-                x: {
-                    grid: { color: 'rgba(255, 255, 255, 0.05)', lineWidth: 1 },
-                    ticks: { color: '#A3A3A3', font: { family: "'JetBrains Mono', monospace", size: 10 } }
-                },
-                y: {
-                    grid: { color: 'rgba(255, 255, 255, 0.05)', lineWidth: 1 },
-                    ticks: { color: '#A3A3A3', font: { family: "'JetBrains Mono', monospace", size: 10 } }
-                }
-            },
-            plugins: {
-                legend: {
-                    labels: {
-                        color: '#E5E7EB',
-                        font: { family: "'Inter', sans-serif", size: 11, weight: 600 }
-                    }
-                }
+        // Dual-Theme Chart.js Configuration
+        function getChartThemeConfig(isDark) {
+            return {
+                gridColor: isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)',
+                tickColor: isDark ? '#A3A3A3' : '#475569',
+                legendColor: isDark ? '#E5E7EB' : '#0F172A',
+                radarAngle: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)',
+                radarGrid: isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)',
+                radarLabel: isDark ? '#A3A3A3' : '#475569'
+            };
+        }
+
+        function updateChartsTheme(theme) {
+            const isDark = (theme === 'dark');
+            const cfg = getChartThemeConfig(isDark);
+
+            if (chartVersusBar) {
+                chartVersusBar.options.scales.x.grid.color = cfg.gridColor;
+                chartVersusBar.options.scales.x.ticks.color = cfg.tickColor;
+                chartVersusBar.options.scales.y.grid.color = cfg.gridColor;
+                chartVersusBar.options.scales.y.ticks.color = cfg.tickColor;
+                chartVersusBar.options.plugins.legend.labels.color = cfg.legendColor;
+                chartVersusBar.update('none');
             }
-        };
+            if (chartVersusTimeline) {
+                chartVersusTimeline.options.scales.x.grid.color = cfg.gridColor;
+                chartVersusTimeline.options.scales.x.ticks.color = cfg.tickColor;
+                chartVersusTimeline.options.scales.y.grid.color = cfg.gridColor;
+                chartVersusTimeline.options.scales.y.ticks.color = cfg.tickColor;
+                chartVersusTimeline.options.plugins.legend.labels.color = cfg.legendColor;
+                chartVersusTimeline.update('none');
+            }
+            if (chartVersusRadar) {
+                chartVersusRadar.options.scales.r.angleLines.color = cfg.radarAngle;
+                chartVersusRadar.options.scales.r.grid.color = cfg.radarGrid;
+                chartVersusRadar.options.scales.r.pointLabels.color = cfg.radarLabel;
+                chartVersusRadar.options.plugins.legend.labels.color = cfg.legendColor;
+                chartVersusRadar.update('none');
+            }
+        }
 
         function initCharts() {
+            const isDark = (document.documentElement.getAttribute('data-theme') === 'dark');
+            const cfg = getChartThemeConfig(isDark);
+
+            const baseOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: { duration: 250 },
+                scales: {
+                    x: {
+                        grid: { color: cfg.gridColor, lineWidth: 1 },
+                        ticks: { color: cfg.tickColor, font: { family: "'JetBrains Mono', monospace", size: 10 } }
+                    },
+                    y: {
+                        grid: { color: cfg.gridColor, lineWidth: 1 },
+                        ticks: { color: cfg.tickColor, font: { family: "'JetBrains Mono', monospace", size: 10 } }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: cfg.legendColor,
+                            font: { family: "'Inter', sans-serif", size: 11, weight: 600 }
+                        }
+                    }
+                }
+            };
+
             // 1. Comparison Bar Chart
             const ctxV1 = document.getElementById('chartVersusBar').getContext('2d');
             chartVersusBar = new Chart(ctxV1, {
@@ -2061,8 +2230,8 @@
                     ]
                 },
                 options: {
-                    ...darkChartDefaults,
-                    plugins: { ...darkChartDefaults.plugins, title: { display: false } }
+                    ...baseOptions,
+                    plugins: { ...baseOptions.plugins, title: { display: false } }
                 }
             });
 
@@ -2078,8 +2247,8 @@
                     ]
                 },
                 options: {
-                    ...darkChartDefaults,
-                    plugins: { ...darkChartDefaults.plugins, title: { display: false } }
+                    ...baseOptions,
+                    plugins: { ...baseOptions.plugins, title: { display: false } }
                 }
             });
 
@@ -2113,15 +2282,15 @@
                     maintainAspectRatio: false,
                     scales: {
                         r: {
-                            angleLines: { color: 'rgba(255, 255, 255, 0.08)' },
-                            grid: { color: 'rgba(255, 255, 255, 0.06)' },
-                            pointLabels: { color: '#A3A3A3', font: { family: "'Inter', sans-serif", size: 10, weight: 600 } },
+                            angleLines: { color: cfg.radarAngle },
+                            grid: { color: cfg.radarGrid },
+                            pointLabels: { color: cfg.radarLabel, font: { family: "'Inter', sans-serif", size: 10, weight: 600 } },
                             ticks: { display: false, max: 100, min: 0 }
                         }
                     },
                     plugins: {
                         legend: {
-                            labels: { color: '#E5E7EB', font: { family: "'Inter', sans-serif", size: 10, weight: 600 } }
+                            labels: { color: cfg.legendColor, font: { family: "'Inter', sans-serif", size: 10, weight: 600 } }
                         }
                     }
                 }
@@ -2293,12 +2462,13 @@
             if (!topo || !topo.nodes) return;
             lastTopoData = topo;
 
+            const isDark = (document.documentElement.getAttribute('data-theme') === 'dark');
             const srcNodeId = parseInt(document.getElementById('srcSelect')?.value || -1);
             const dstNodeId = parseInt(document.getElementById('dstSelect')?.value || -1);
             const pathStr = (predictedPathMatchup?.chosen_path || []).join('-');
 
-            // Dirty checking: Skip canvas wipes & repaints if network state is unchanged
-            const sig = `${topo.nodes.length}_${topo.links.map(l => Math.round(l.utilization || 0)).join(',')}_${selectedSrcNode}_${srcNodeId}_${dstNodeId}_${pathStr}`;
+            // Dirty checking includes theme state
+            const sig = `${topo.nodes.length}_${topo.links.map(l => Math.round(l.utilization || 0)).join(',')}_${selectedSrcNode}_${srcNodeId}_${dstNodeId}_${pathStr}_${isDark ? 'dark' : 'light'}`;
             if (!isForced && sig === lastTopoSignature) {
                 return;
             }
@@ -2359,27 +2529,27 @@
                 ctx.lineTo(t.x, t.y);
 
                 if (isDQN && isBase) {
-                    ctx.strokeStyle = '#8B5CF6';
+                    ctx.strokeStyle = isDark ? '#8B5CF6' : '#7C3AED';
                     ctx.lineWidth = 4.0;
                     ctx.setLineDash([]);
                 } else if (isDQN) {
-                    ctx.strokeStyle = '#10B981';
+                    ctx.strokeStyle = isDark ? '#10B981' : '#059669';
                     ctx.lineWidth = 4.0;
                     ctx.setLineDash([]);
                 } else if (isBase) {
-                    ctx.strokeStyle = '#F59E0B';
+                    ctx.strokeStyle = isDark ? '#F59E0B' : '#D97706';
                     ctx.lineWidth = 2.8;
                     ctx.setLineDash([5, 4]);
                 } else {
                     ctx.setLineDash([]);
                     if (util > 70) {
-                        ctx.strokeStyle = '#F43F5E';
+                        ctx.strokeStyle = isDark ? '#F43F5E' : '#E11D48';
                         ctx.lineWidth = 3.2;
                     } else if (util > 35) {
-                        ctx.strokeStyle = '#F59E0B';
+                        ctx.strokeStyle = isDark ? '#F59E0B' : '#D97706';
                         ctx.lineWidth = 2.4;
                     } else {
-                        ctx.strokeStyle = 'rgba(6, 182, 212, 0.4)';
+                        ctx.strokeStyle = isDark ? 'rgba(6, 182, 212, 0.4)' : 'rgba(2, 132, 199, 0.55)';
                         ctx.lineWidth = 1.8;
                     }
                 }
@@ -2393,8 +2563,10 @@
                 const midY = s.y + (t.y - s.y) * frac;
 
                 if (showAllTags || util > 20 || (idx % 3 === 0 && util > 5) || isDQN || isBase) {
-                    ctx.fillStyle = 'rgba(12, 12, 16, 0.9)';
-                    ctx.strokeStyle = isDQN ? '#10B981' : ((util > 70) ? '#F43F5E' : (util > 35 ? '#F59E0B' : 'rgba(255, 255, 255, 0.15)'));
+                    ctx.fillStyle = isDark ? 'rgba(12, 12, 16, 0.92)' : 'rgba(255, 255, 255, 0.96)';
+                    ctx.strokeStyle = isDQN 
+                        ? (isDark ? '#10B981' : '#059669') 
+                        : ((util > 70) ? (isDark ? '#F43F5E' : '#E11D48') : (util > 35 ? (isDark ? '#F59E0B' : '#D97706') : (isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.15)')));
                     ctx.lineWidth = 1;
 
                     ctx.beginPath();
@@ -2402,7 +2574,9 @@
                     ctx.fill();
                     ctx.stroke();
 
-                    ctx.fillStyle = isDQN ? '#10B981' : ((util > 70) ? '#F43F5E' : (util > 35 ? '#F59E0B' : '#E5E7EB'));
+                    ctx.fillStyle = isDQN 
+                        ? (isDark ? '#10B981' : '#059669') 
+                        : ((util > 70) ? (isDark ? '#F43F5E' : '#E11D48') : (util > 35 ? (isDark ? '#F59E0B' : '#D97706') : (isDark ? '#E5E7EB' : '#1E293B')));
                     ctx.font = '700 9px "JetBrains Mono", monospace';
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
@@ -2417,23 +2591,19 @@
                 const isSelectedSrc = (selectedSrcNode === id || srcNodeId === id);
                 const isSelectedDst = (dstNodeId === id);
 
-                let ringColor = 'rgba(139, 92, 246, 0.5)';
-                let glowColor = 'rgba(139, 92, 246, 0.3)';
+                let ringColor = isDark ? 'rgba(139, 92, 246, 0.6)' : 'rgba(124, 58, 237, 0.7)';
                 if (isSelectedSrc) {
-                    ringColor = '#10B981';
-                    glowColor = 'rgba(16, 185, 129, 0.6)';
+                    ringColor = isDark ? '#10B981' : '#059669';
                 } else if (isSelectedDst) {
-                    ringColor = '#EC4899';
-                    glowColor = 'rgba(236, 72, 153, 0.6)';
+                    ringColor = isDark ? '#EC4899' : '#DB2777';
                 } else if (node.type === 'leaf' || node.type === 'edge') {
-                    ringColor = 'rgba(6, 182, 212, 0.5)';
-                    glowColor = 'rgba(6, 182, 212, 0.25)';
+                    ringColor = isDark ? 'rgba(6, 182, 212, 0.6)' : 'rgba(2, 132, 199, 0.7)';
                 }
 
                 // Node Disc
                 ctx.beginPath();
                 ctx.arc(node.x, node.y, radius, 0, 2 * Math.PI);
-                ctx.fillStyle = '#08080C';
+                ctx.fillStyle = isDark ? '#08080C' : '#FFFFFF';
                 ctx.fill();
 
                 // Glowing Ring
@@ -2444,18 +2614,18 @@
                 ctx.stroke();
 
                 // Node Center Label
-                ctx.fillStyle = '#FFFFFF';
+                ctx.fillStyle = isDark ? '#FFFFFF' : '#0F172A';
                 ctx.font = '700 11px "JetBrains Mono", monospace';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.fillText(node.label, node.x, node.y);
 
                 if (isSelectedSrc) {
-                    ctx.fillStyle = '#10B981';
+                    ctx.fillStyle = isDark ? '#10B981' : '#059669';
                     ctx.font = '800 8px "Inter", sans-serif';
                     ctx.fillText('SRC', node.x, node.y - radius - 5);
                 } else if (isSelectedDst) {
-                    ctx.fillStyle = '#EC4899';
+                    ctx.fillStyle = isDark ? '#EC4899' : '#DB2777';
                     ctx.font = '800 8px "Inter", sans-serif';
                     ctx.fillText('DST', node.x, node.y - radius - 5);
                 }
@@ -3074,8 +3244,52 @@
             }
         }
 
+        // Dual-Theme Controller (Default: Light Mode)
+        function getPreferredTheme() {
+            return localStorage.getItem('synapse_theme') || 'light';
+        }
+
+        function applyTheme(theme, showToastNotification = false) {
+            document.documentElement.setAttribute('data-theme', theme);
+            try {
+                localStorage.setItem('synapse_theme', theme);
+            } catch (e) {}
+
+            const metaTheme = document.querySelector('meta[name="theme-color"]');
+            if (metaTheme) metaTheme.setAttribute('content', theme === 'dark' ? '#030303' : '#F8FAFC');
+
+            const iconEl = document.getElementById('themeToggleIcon');
+            const textEl = document.getElementById('themeToggleText');
+            if (theme === 'dark') {
+                if (iconEl) iconEl.textContent = '🌙';
+                if (textEl) textEl.textContent = 'Dark';
+            } else {
+                if (iconEl) iconEl.textContent = '☀️';
+                if (textEl) textEl.textContent = 'Light';
+            }
+
+            updateChartsTheme(theme);
+            if (typeof lastTopoData !== 'undefined' && lastTopoData) {
+                drawTopology(lastTopoData, true);
+            }
+
+            if (showToastNotification) {
+                showToast(`Switched to ${theme === 'dark' ? 'Dark' : 'Light'} Mode`, 'info');
+            }
+        }
+
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme') || 'light';
+            const next = (current === 'dark') ? 'light' : 'dark';
+            applyTheme(next, true);
+        }
+
         // Initialization
         window.addEventListener('DOMContentLoaded', () => {
+            // Apply theme preference (defaults to light mode)
+            const initialTheme = getPreferredTheme();
+            applyTheme(initialTheme, false);
+
             initCharts();
             resizeCanvas();
             fetchTelemetry();
