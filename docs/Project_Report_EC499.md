@@ -1,13 +1,13 @@
 # Project Final Technical Report: Reinforcement Learning for Adaptive Traffic Engineering in an SDN Network (EC499)
 
-**Project Title**: Reinforcement Learning for Adaptive Traffic Engineering in an SDN Network  
-**Degree**: Bachelor of Science in Computer Engineering  
-**Institution**: Department of Computer Engineering, Faculty of Engineering, University of Tripoli  
-**Author**: Maher Abdulnasir Alqadhi (Student ID: `2210249576`, Email: `ma.alqadhi@uot.edu.ly`)  
-**Project Supervisor**: Dr. Suad El-Geder  
-**Academic Term**: Spring 2026  
-**Repository**: `https://github.com/maheralqadhi/EC499-SDN-Adaptive-TE-RL`  
-**License**: MIT Open-Source License  
+**Project Title**: Reinforcement Learning for Adaptive Traffic Engineering in an SDN Network
+**Degree**: Bachelor of Science in Computer Engineering
+**Institution**: Department of Computer Engineering, Faculty of Engineering, University of Tripoli
+**Author**: Maher Abdulnasir Alqadhi (Student ID: `2210249576`, Email: `ma.alqadhi@uot.edu.ly`)
+**Project Supervisor**: Dr. Suad El-Geder
+**Academic Term**: Spring 2026
+**Repository**: `https://github.com/maheralqadhi/EC499-SDN-Adaptive-TE-RL`
+**License**: MIT Open-Source License
 
 ---
 
@@ -116,9 +116,9 @@ With weights calibrated to: $w_{\text{hop}} = 0.35$, $w_{\text{lat}} = 0.06$, $w
 
 The asymptotic congestion barrier penalty $\Phi_{\text{cong}}(U_{\max})$ enforces a non-linear barrier when bottleneck link utilization $U_{\max} = \max_{e \in \mathcal{P}_a} u(e)$ exceeds 70%:
 
-$$\Phi_{\text{cong}}(U_{\max}) = \begin{cases} 
-1.5 \cdot U_{\max} & \text{if } U_{\max} \le 0.70 \\ 
-12.0 \cdot \left( \frac{U_{\max}^{1.8}}{\max(0.01, 1.02 - U_{\max})} \right) & \text{if } U_{\max} > 0.70 
+$$\Phi_{\text{cong}}(U_{\max}) = \begin{cases}
+1.5 \cdot U_{\max} & \text{if } U_{\max} \le 0.70 \\
+12.0 \cdot \left( \frac{U_{\max}^{1.8}}{\max(0.01, 1.02 - U_{\max})} \right) & \text{if } U_{\max} > 0.70
 \end{cases}$$
 
 Under moderate traffic ($U \le 0.70$), the penalty scales linearly, encouraging the agent to prefer the shortest path. When $U > 0.70$, $\Phi_{\text{cong}}$ escalates asymptotically, forcing the neural network to proactively route incoming traffic onto alternative lateral paths before switch buffers overflow.
@@ -138,9 +138,9 @@ Under moderate traffic ($U \le 0.70$), the penalty scales linearly, encouraging 
 
 3. **Packet Loss Model (M/M/1/K Buffer Overflow)**:
    For a switch output buffer of capacity $K=100$ packets, packet loss rate percentage $P_{\text{loss}}$ is modeled as:
-   $$P_{\text{loss}}(u) = \begin{cases} 
-   0.01\% & \text{if } u \le 0.70 \\ 
-   0.01\% + 35.0 \cdot \left( \frac{u - 0.70}{0.30} \right)^3 & \text{if } u > 0.70 
+   $$P_{\text{loss}}(u) = \begin{cases}
+   0.01\% & \text{if } u \le 0.70 \\
+   0.01\% + 35.0 \cdot \left( \frac{u - 0.70}{0.30} \right)^3 & \text{if } u > 0.70
    \end{cases}$$
 
 ### 3.5 Dueling Double Deep Q-Network (D3QN) Architecture

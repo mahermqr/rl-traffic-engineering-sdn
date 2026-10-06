@@ -28,6 +28,8 @@ class StateManager:
         self.default_capacity = getattr(config, 'DEFAULT_LINK_CAPACITY', 100.0)
         self.default_delay = getattr(config, 'DEFAULT_LINK_DELAY', 2.0)
         self.default_jitter = getattr(config, 'DEFAULT_LINK_JITTER', 0.25)
+        self.core_trunk_ratio = 1.0
+        self.base_loss_pct = 0.0
         self.default_k = getattr(config, 'ACTION_SIZE', 4)
 
         # Link metric dictionaries: keyed by (src_dpid, dst_dpid)
@@ -159,7 +161,7 @@ class StateManager:
         if (src_dpid, dst_dpid) not in self.link_utilization:
             self.link_utilization[(src_dpid, dst_dpid)] = 0.0
 
-    def update_network_parameters(self, default_capacity=None, default_delay=None, default_jitter=None, loss_rate=None, core_capacity_ratio=1.0):
+    def update_network_parameters(self, default_capacity=None, default_delay=None, default_jitter=None, loss_rate=None, core_capacity_ratio=None):
         """Configures global link capacities, propagation delays, and loss rates across the active fabric."""
         if default_capacity is not None:
             self.default_capacity = float(default_capacity)
@@ -167,7 +169,11 @@ class StateManager:
             self.default_delay = float(default_delay)
         if default_jitter is not None:
             self.default_jitter = float(default_jitter)
-        core_ratio = float(core_capacity_ratio) if core_capacity_ratio is not None else 1.0
+        if loss_rate is not None:
+            self.base_loss_pct = float(loss_rate)
+        if core_capacity_ratio is not None:
+            self.core_trunk_ratio = float(core_capacity_ratio)
+        core_ratio = getattr(self, 'core_trunk_ratio', 1.0)
 
         for (u, v) in list(self.link_bandwidths.keys()):
             cap = float(self.default_capacity)
@@ -180,6 +186,8 @@ class StateManager:
             self.link_delays[(u, v)] = float(self.default_delay)
             if loss_rate is not None:
                 self.link_loss[(u, v)] = float(loss_rate)
+            if default_jitter is not None:
+                self.link_jitter[(u, v)] = float(default_jitter)
 
         self._routing_path_cache.clear()
 
@@ -588,10 +596,10 @@ class StateManager:
 
     def inject_traffic_flow(self, src_ip, dst_ip, src_dpid, dst_dpid, mbps=15.0, pps=1200.0, duration=10.0, path=None):
         """Injects a simulated flow and updates link utilization, jitter, and loss along the chosen path."""
-        duration = 10.0
-        bytes_count = int((mbps * 1e6 * duration) / 8.0)
-        packets = int(pps * duration)
-        self.update_flow_stats(src_dpid, src_ip, dst_ip, packets, bytes_count, duration)
+        flow_duration = float(duration) if duration else 10.0
+        bytes_count = int((mbps * 1e6 * flow_duration) / 8.0)
+        packets = int(pps * flow_duration)
+        self.update_flow_stats(src_dpid, src_ip, dst_ip, packets, bytes_count, flow_duration)
         key = (src_dpid, src_ip, dst_ip)
         self.flow_stats[key]['mbps'] = float(mbps)
         self.flow_stats[key]['pps'] = float(pps)
@@ -614,8 +622,8 @@ class StateManager:
                     loss_pct = min(35.0, 0.05 + 30.0 * (excess ** 2.2))
                 self.link_loss[(u, v)] = float(loss_pct)
 
-                curr_delay = self.link_delays.get((u, v), 2.0)
-                self.update_link_latency(u, v, curr_delay * (1.0 + new_u))
+                base_d = self.base_link_delays.get((u, v), self.default_delay)
+                self.update_link_latency(u, v, base_d * (1.0 + new_u))
 
                 port = self.graph[u][v].get('port', 1) if self.graph.has_edge(u, v) else 1
                 self.port_rates[(u, port)] = {
@@ -754,10 +762,10 @@ class StateManager:
             self.active_dynamic_flows.clear()
         for k in self.link_utilization:
             self.link_utilization[k] = 0.05
-            self.link_loss[k] = 0.0
-            self.link_jitter[k] = 0.25
+            self.link_loss[k] = getattr(self, 'base_loss_pct', 0.0)
+            self.link_jitter[k] = getattr(self, 'default_jitter', 0.25)
         for k in self.link_delays:
-            self.link_delays[k] = self.base_link_delays.get(k, 2.0)
+            self.link_delays[k] = self.base_link_delays.get(k, getattr(self, 'default_delay', 2.0))
         self._prev_delays.clear()
         self.port_rates.clear()
         self.flow_stats.clear()
@@ -765,6 +773,8 @@ class StateManager:
         self.raw_flow_stats.clear()
         self.raw_port_stats.clear()
         self.restore_link()
+        if hasattr(self, 'restore_degraded_links'):
+            self.restore_degraded_links()
         self.active_simulation_mode = None
 
     def inject_link_failure(self, u, v):
@@ -860,7 +870,7 @@ class StateManager:
             cap = self.link_bandwidths.get((src, dst), self.default_capacity)
             add_util = float(mbps) / max(1.0, cap)
             self.link_utilization[(src, dst)] = min(1.0, self.link_utilization.get((src, dst), 0.1) + add_util)
-            self.link_delays[(src, dst)] = self.link_delays.get((src, dst), 2.0) * 3.5
+            self.link_delays[(src, dst)] = self.base_link_delays.get((src, dst), self.default_delay) * 3.5
             self.link_loss[(src, dst)] = min(35.0, self.link_loss.get((src, dst), 0.0) + 18.0)
         self._routing_path_cache.clear()
         return len(burst_edges)

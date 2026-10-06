@@ -300,12 +300,31 @@ def build_random_topology(num_nodes=16, p_edge=0.25, seed=None):
     import random
     if seed is not None:
         random.seed(seed)
-    # Generate connected Watts-Strogatz small-world mesh
-    g_undir = nx.connected_watts_strogatz_graph(n=num_nodes, k=4, p=p_edge, seed=seed)
+    # Generate connected mesh robustly for any num_nodes >= 2
+    if num_nodes <= 3:
+        g_undir = nx.complete_graph(num_nodes)
+    else:
+        # Watts-Strogatz requires k to be an even integer strictly less than num_nodes
+        k_val = min(4, (num_nodes - 1) if (num_nodes - 1) % 2 == 0 else (num_nodes - 2))
+        k_val = max(2, k_val)
+        g_undir = nx.connected_watts_strogatz_graph(n=num_nodes, k=k_val, p=p_edge, seed=seed)
+
+    # Dynamic core vs edge node partitioning
+    if num_nodes <= 3:
+        core_nodes = [1]
+        edge_nodes = [i for i in range(1, num_nodes + 1) if i != 1]
+    elif num_nodes == 4:
+        core_nodes = [1, 2]
+        edge_nodes = [3, 4]
+    else:
+        core_count = min(4, max(1, num_nodes // 4))
+        core_nodes = list(range(1, core_count + 1))
+        edge_nodes = list(range(core_count + 1, num_nodes + 1))
+
     g = nx.DiGraph()
     for n in g_undir.nodes():
         node_id = n + 1
-        g.add_node(node_id, label=f"r{node_id}", type="core" if n < 4 else "edge")
+        g.add_node(node_id, label=f"r{node_id}", type="core" if node_id in core_nodes else "edge")
 
     positions = {}
     for n in range(num_nodes):
@@ -321,8 +340,14 @@ def build_random_topology(num_nodes=16, p_edge=0.25, seed=None):
         g.add_edge(v + 1, u + 1, capacity=bw, delay=lat, util=0.05, loss=0.0)
 
     hosts = [
-        {'id': f'h{i}', 'ip': f'10.0.{i}.1', 'mac': f'00:00:00:00:00:{i:02x}', 'switch': i, 'port': 1}
-        for i in range(5, num_nodes + 1)
+        {
+            'id': f'h{idx + 1}',
+            'ip': f'10.0.{sw}.1',
+            'mac': f'00:00:00:00:{(sw >> 8) & 0xff:02x}:{sw & 0xff:02x}',
+            'switch': sw,
+            'port': 1
+        }
+        for idx, sw in enumerate(edge_nodes)
     ]
     meta = {
         'name': f'Random Dynamic Mesh (N={num_nodes})',
@@ -331,8 +356,8 @@ def build_random_topology(num_nodes=16, p_edge=0.25, seed=None):
         'links': g_undir.number_of_edges(),
         'positions': positions,
         'hosts': hosts,
-        'core_nodes': [1, 2, 3, 4],
-        'edge_nodes': list(range(5, num_nodes + 1))
+        'core_nodes': core_nodes,
+        'edge_nodes': edge_nodes
     }
     return g, meta
 

@@ -217,13 +217,6 @@ class DQNRoutingAgent:
         self.update_target_counter += 1
         return loss_val
 
-    def get_q_values(self, state):
-        """Returns raw Q-values for all candidate actions for a given state vector."""
-        state_tensor = torch.as_tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
-        with torch.no_grad():
-            q_vals = self.model(state_tensor).squeeze(0).cpu().numpy()
-        return q_vals
-
     def save(self, filepath=None):
         """Saves model checkpoint."""
         if filepath is None:

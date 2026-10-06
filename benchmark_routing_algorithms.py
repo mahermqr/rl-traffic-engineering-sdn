@@ -41,7 +41,7 @@ except ImportError:
 
 from state_manager import StateManager
 from dqn_router import DQNRoutingAgent
-from topology_library import get_topology, build_random_topology
+from topology_library import get_topology
 from traditional_routing import (
     ospf_routing, dijkstra_spf, ecmp_routing, widest_shortest_path, least_loaded_routing, compute_path_metrics
 )

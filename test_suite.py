@@ -31,10 +31,10 @@ sys.path.append(os.path.join(BASE_DIR, 'topology'))
 from dqn_router import DQNRoutingAgent, DuelingQNetwork
 from prioritized_replay import PrioritizedReplayBuffer, SumTree
 from state_manager import StateManager
-from topology_library import get_topology, list_available_topologies, build_random_topology
+from topology_library import get_topology, build_random_topology
 from traditional_routing import (
     ospf_routing, dijkstra_spf, ecmp_routing, widest_shortest_path,
-    least_loaded_routing, random_routing, compute_path_metrics
+    least_loaded_routing, compute_path_metrics
 )
 
 
@@ -224,6 +224,22 @@ class TestStateManager(unittest.TestCase):
         self.assertIn("s4", records[0]['path'])
         self.assertIn("s3", records[0]['path'])
 
+    def test_inject_traffic_flow_duration_and_latency_scaling(self):
+        # Verify custom duration is stored and respected
+        self.sm.inject_traffic_flow("10.0.0.1", "10.0.0.2", 1, 2, mbps=10.0, pps=500.0, duration=5.0, path=[1, 2])
+        rec = self.sm.flow_stats.get((1, "10.0.0.1", "10.0.0.2"))
+        self.assertIsNotNone(rec)
+        self.assertEqual(rec['duration'], 5.0)
+
+        # Verify burst does not explode latency with exponential compounding
+        base_d = self.sm.base_link_delays.get((1, 2), 2.0)
+        self.sm.inject_traffic_burst(1, 2, mbps=20.0)
+        delay_1 = self.sm.link_delays.get((1, 2))
+        self.sm.inject_traffic_burst(1, 2, mbps=20.0)
+        delay_2 = self.sm.link_delays.get((1, 2))
+        self.assertAlmostEqual(delay_1, delay_2, places=2)
+        self.assertAlmostEqual(delay_2, base_d * 3.5, places=2)
+
 
 class TestTraditionalRoutingBaselines(unittest.TestCase):
     """Verifies OSPF, Dijkstra SPF, ECMP, WSP, LLR and path metric computations."""
@@ -311,12 +327,21 @@ class TestMultiTopologySupport(unittest.TestCase):
                 self.assertIn(h['switch'], g.nodes(), f"Host switch {h['switch']} not in {topo_id}")
 
     def test_random_topology_generation(self):
+        # Standard topology
         g, meta = build_random_topology(num_nodes=15, p_edge=0.30, seed=42)
         self.assertEqual(g.number_of_nodes(), 15)
         self.assertTrue(nx.is_strongly_connected(g))
         self.assertIn('core_nodes', meta)
         self.assertIn('edge_nodes', meta)
         self.assertGreaterEqual(len(meta['edge_nodes']), 2)
+
+        # Edge case: small topologies (N=3, N=4) must not crash and have valid hosts
+        for n in [3, 4]:
+            g_small, meta_small = build_random_topology(num_nodes=n, seed=42)
+            self.assertEqual(g_small.number_of_nodes(), n)
+            self.assertTrue(nx.is_strongly_connected(g_small))
+            self.assertGreaterEqual(len(meta_small['edge_nodes']), 1)
+            self.assertGreaterEqual(len(meta_small['hosts']), 1)
 
 
 class TestClosedLoopDynamicsAndUpgrades(unittest.TestCase):
@@ -423,6 +448,11 @@ class TestWebDashboardAndVersusAPI(unittest.TestCase):
         cls.test_port = 8111
         cls.server = DashboardServer(host="127.0.0.1", port=cls.test_port)
         time.sleep(0.5)
+
+    @classmethod
+    def tearDownClass(cls):
+        if hasattr(cls, 'server') and cls.server:
+            cls.server.stop()
 
     def _get_json(self, path):
         import urllib.request

@@ -7,7 +7,8 @@
     <title>Synapse — Adaptive SDN Traffic Engineering Console</title>
     <script>
         (function() {
-            var saved = localStorage.getItem('synapse_theme') || 'light';
+            var urlTheme = new URLSearchParams(window.location.search).get('theme');
+            var saved = urlTheme || localStorage.getItem('synapse_theme') || 'light';
             document.documentElement.setAttribute('data-theme', saved);
         })();
     </script>
@@ -18,6 +19,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 
+    <!-- Plotly.js Scientific Interactive Plotting Engine (Zoom, Pan, Box Select) -->
+    <script src="/js/plotly.min.js"></script>
+    <script>if (typeof Plotly === 'undefined') document.write('<script src="https://cdn.plot.ly/plotly-2.29.1.min.js"><\/script>');</script>
     <!-- Chart.js Engine -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
@@ -163,7 +167,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-image: 
+            background-image:
                 linear-gradient(var(--grid-dot) 1px, transparent 1px),
                 linear-gradient(90deg, var(--grid-dot) 1px, transparent 1px);
             background-size: 48px 48px;
@@ -828,23 +832,168 @@
         .protocol-chip {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
+            gap: 7px;
             padding: 6px 12px;
             border-radius: 8px;
             background: var(--btn-bg);
             border: 1px solid var(--border-subtle);
             font-size: 0.78rem;
+            font-weight: 500;
             color: var(--text-secondary);
             cursor: pointer;
-            transition: all 0.2s var(--ease-out);
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
             user-select: none;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
         }
 
-        .protocol-chip.active {
+        .protocol-chip:hover {
+            border-color: var(--border-hover);
+            background: var(--surface-subtle-hover);
+            transform: translateY(-1px);
+        }
+
+        .protocol-chip input[type="checkbox"] {
+            width: 14px;
+            height: 14px;
+            cursor: pointer;
+            margin: 0;
+            border-radius: 3px;
+        }
+
+        .chip-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #9CA3AF;
+            opacity: 0.45;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        /* 1. D3QN (Ours) - Violet */
+        .protocol-chip.chip-dqn input { accent-color: #8B5CF6; }
+        .protocol-chip.chip-dqn.active {
             background: rgba(139, 92, 246, 0.12);
-            border-color: var(--accent-violet);
-            color: var(--accent-violet);
+            border-color: #8B5CF6;
+            color: #7C3AED;
             font-weight: 600;
+            box-shadow: 0 2px 8px rgba(139, 92, 246, 0.18);
+        }
+        .protocol-chip.chip-dqn.active .chip-dot {
+            background: #8B5CF6;
+            opacity: 1;
+            box-shadow: 0 0 6px rgba(139, 92, 246, 0.8);
+        }
+        [data-theme="dark"] .protocol-chip.chip-dqn.active {
+            background: rgba(139, 92, 246, 0.18);
+            border-color: #A78BFA;
+            color: #C4B5FD;
+            box-shadow: 0 0 12px rgba(139, 92, 246, 0.25);
+        }
+
+        /* 2. OSPF (RFC 2328) - Amber */
+        .protocol-chip.chip-ospf input { accent-color: #F59E0B; }
+        .protocol-chip.chip-ospf.active {
+            background: rgba(245, 158, 11, 0.12);
+            border-color: #F59E0B;
+            color: #B45309;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.18);
+        }
+        .protocol-chip.chip-ospf.active .chip-dot {
+            background: #F59E0B;
+            opacity: 1;
+            box-shadow: 0 0 6px rgba(245, 158, 11, 0.8);
+        }
+        [data-theme="dark"] .protocol-chip.chip-ospf.active {
+            background: rgba(245, 158, 11, 0.18);
+            border-color: #FBBF24;
+            color: #FDE68A;
+            box-shadow: 0 0 12px rgba(245, 158, 11, 0.25);
+        }
+
+        /* 3. ECMP Multi-Path - Blue */
+        .protocol-chip.chip-ecmp input { accent-color: #3B82F6; }
+        .protocol-chip.chip-ecmp.active {
+            background: rgba(59, 130, 246, 0.12);
+            border-color: #3B82F6;
+            color: #1D4ED8;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.18);
+        }
+        .protocol-chip.chip-ecmp.active .chip-dot {
+            background: #3B82F6;
+            opacity: 1;
+            box-shadow: 0 0 6px rgba(59, 130, 246, 0.8);
+        }
+        [data-theme="dark"] .protocol-chip.chip-ecmp.active {
+            background: rgba(59, 130, 246, 0.18);
+            border-color: #60A5FA;
+            color: #93C5FD;
+            box-shadow: 0 0 12px rgba(59, 130, 246, 0.25);
+        }
+
+        /* 4. WSP Widest Path - Emerald */
+        .protocol-chip.chip-wsp input { accent-color: #10B981; }
+        .protocol-chip.chip-wsp.active {
+            background: rgba(16, 185, 129, 0.12);
+            border-color: #10B981;
+            color: #047857;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.18);
+        }
+        .protocol-chip.chip-wsp.active .chip-dot {
+            background: #10B981;
+            opacity: 1;
+            box-shadow: 0 0 6px rgba(16, 185, 129, 0.8);
+        }
+        [data-theme="dark"] .protocol-chip.chip-wsp.active {
+            background: rgba(16, 185, 129, 0.18);
+            border-color: #34D399;
+            color: #A7F3D0;
+            box-shadow: 0 0 12px rgba(16, 185, 129, 0.25);
+        }
+
+        /* 5. LLR Least Loaded - Pink */
+        .protocol-chip.chip-llr input { accent-color: #EC4899; }
+        .protocol-chip.chip-llr.active {
+            background: rgba(236, 72, 153, 0.12);
+            border-color: #EC4899;
+            color: #BE185D;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(236, 72, 153, 0.18);
+        }
+        .protocol-chip.chip-llr.active .chip-dot {
+            background: #EC4899;
+            opacity: 1;
+            box-shadow: 0 0 6px rgba(236, 72, 153, 0.8);
+        }
+        [data-theme="dark"] .protocol-chip.chip-llr.active {
+            background: rgba(236, 72, 153, 0.18);
+            border-color: #F472B6;
+            color: #FBCFE8;
+            box-shadow: 0 0 12px rgba(236, 72, 153, 0.25);
+        }
+
+        /* 6. Dijkstra SPF - Red */
+        .protocol-chip.chip-dijkstra input { accent-color: #EF4444; }
+        .protocol-chip.chip-dijkstra.active {
+            background: rgba(239, 68, 68, 0.12);
+            border-color: #EF4444;
+            color: #B91C1C;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.18);
+        }
+        .protocol-chip.chip-dijkstra.active .chip-dot {
+            background: #EF4444;
+            opacity: 1;
+            box-shadow: 0 0 6px rgba(239, 68, 68, 0.8);
+        }
+        [data-theme="dark"] .protocol-chip.chip-dijkstra.active {
+            background: rgba(239, 68, 68, 0.18);
+            border-color: #F87171;
+            color: #FECACA;
+            box-shadow: 0 0 12px rgba(239, 68, 68, 0.25);
         }
 
         .charts-triad-grid {
@@ -859,10 +1008,222 @@
             border: 1px solid var(--border-subtle);
             border-radius: var(--radius-inner);
             padding: 16px;
-            height: 280px;
+            height: 320px;
             position: relative;
-            contain: layout paint;
             transform: translateZ(0);
+        }
+
+        .plot-tabs-bar {
+            margin-top: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .plot-tab-btn {
+            padding: 6px 14px;
+            border-radius: 8px;
+            border: 1px solid var(--border-subtle);
+            background: var(--surface-subtle);
+            color: var(--text-dim);
+            font-size: 0.78rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            font-family: var(--font-body);
+        }
+
+        .plot-tab-btn:hover {
+            background: var(--surface-subtle-hover);
+            color: var(--text-main);
+            border-color: var(--border-hover);
+        }
+
+        .plot-tab-btn.active {
+            background: rgba(139, 92, 246, 0.15);
+            border-color: var(--accent-violet);
+            color: var(--accent-violet);
+            font-weight: 700;
+        }
+
+        .chart-actions-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-left: auto;
+        }
+
+        .chart-action-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            background: var(--btn-bg);
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            padding: 3px 8px;
+            font-size: 0.74rem;
+            font-weight: 500;
+            font-family: var(--font-sans);
+            cursor: pointer;
+            transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+            user-select: none;
+            line-height: 1.2;
+        }
+
+        .chart-action-btn:hover {
+            background: var(--surface-subtle-hover);
+            color: var(--text-main);
+            border-color: var(--border-hover);
+            transform: translateY(-1px);
+        }
+
+        .chart-action-btn.active,
+        .chart-action-btn:active {
+            background: rgba(139, 92, 246, 0.15);
+            border-color: var(--accent-violet);
+            color: var(--accent-violet);
+        }
+
+        .chart-action-btn.fullscreen-btn {
+            border-color: rgba(139, 92, 246, 0.35);
+            color: var(--accent-violet);
+            font-weight: 600;
+            background: rgba(139, 92, 246, 0.06);
+        }
+
+        .chart-action-btn.fullscreen-btn:hover {
+            background: rgba(139, 92, 246, 0.16);
+            border-color: var(--accent-violet);
+            color: var(--accent-violet);
+        }
+
+        .chart-action-btn.fullscreen-btn.active {
+            background: #EF4444 !important;
+            border-color: #DC2626 !important;
+            color: #FFFFFF !important;
+        }
+
+        .chart-single-expanded {
+            display: none;
+            margin-top: 16px;
+            background: var(--surface-subtle);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-inner);
+            padding: 18px;
+            height: 480px;
+            position: relative;
+        }
+
+        body.has-plot-fullscreen .app-header {
+            display: none !important;
+        }
+
+        body.has-plot-fullscreen {
+            overflow: hidden !important;
+        }
+
+        /* Seamless True Fullscreen Mode for Any Chart Card */
+        .chart-box.fullscreen,
+        .chart-single-expanded.fullscreen {
+            position: fixed !important;
+            inset: 0 !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            max-width: 100vw !important;
+            max-height: 100vh !important;
+            margin: 0 !important;
+            padding: 24px 32px 32px 32px !important;
+            background: var(--canvas-bg) !important;
+            backdrop-filter: blur(28px) !important;
+            -webkit-backdrop-filter: blur(28px) !important;
+            border-radius: 0 !important;
+            border: none !important;
+            box-shadow: 0 0 60px rgba(0, 0, 0, 0.6) !important;
+            display: flex !important;
+            flex-direction: column !important;
+            z-index: 2147483647 !important;
+            overflow: hidden !important;
+        }
+
+        .chart-box.fullscreen .chart-box-title,
+        .chart-single-expanded.fullscreen .chart-box-title {
+            font-size: 1.15rem !important;
+            font-weight: 700 !important;
+            margin-bottom: 16px !important;
+            padding-bottom: 12px !important;
+            border-bottom: 1px solid var(--border-divider) !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            flex-shrink: 0 !important;
+        }
+
+        .chart-box.fullscreen > div:last-child,
+        .chart-single-expanded.fullscreen > div:last-child {
+            flex: 1 1 auto !important;
+            height: calc(100vh - 100px) !important;
+            width: 100% !important;
+        }
+
+        .deep-zoom-viewport {
+            width: 100%;
+            height: 520px;
+            background: #0B0F19;
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-inner);
+            overflow: hidden;
+            position: relative;
+            cursor: grab;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+        }
+
+        .deep-zoom-stage {
+            transform-origin: center center;
+            transition: transform 0.05s ease-out;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        .deep-zoom-stage img {
+            max-width: 95%;
+            max-height: 480px;
+            width: auto;
+            height: auto;
+            min-height: 200px;
+            object-fit: contain;
+            display: block;
+            border-radius: 6px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            pointer-events: none;
+        }
+
+        .deep-zoom-indicator {
+            position: absolute;
+            bottom: 12px;
+            left: 14px;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(8px);
+            color: #E2E8F0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            padding: 4px 10px;
+            font-size: 0.75rem;
+            font-family: var(--font-mono);
+            pointer-events: none;
         }
 
         .chart-box-title {
@@ -1106,11 +1467,214 @@
             background: var(--bg-footer);
         }
 
+        /* ----------------------------------------------------
+           1-Click Demo Scenarios Strip & Quick Chaos Controls
+           ---------------------------------------------------- */
+        .demo-scenarios-strip {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-outer);
+            padding: 12px 18px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow-outer);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            transition: all 0.25s var(--ease-out);
+        }
+        .demo-scenarios-strip:hover {
+            border-color: var(--border-hover);
+        }
+        .demo-scenarios-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.76rem;
+            font-family: var(--font-mono);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-dim);
+        }
+        .scenario-buttons-cluster {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .scenario-btn {
+            background: var(--surface-subtle);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-pill);
+            padding: 6px 14px;
+            font-size: 0.76rem;
+            font-weight: 600;
+            font-family: var(--font-sans);
+            color: var(--text-main);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s var(--ease-out);
+            user-select: none;
+        }
+        .scenario-btn:hover {
+            transform: translateY(-1px);
+            background: var(--surface-subtle-hover);
+            border-color: var(--border-hover);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .scenario-btn.btn-danger:hover {
+            border-color: var(--accent-rose);
+            color: var(--accent-rose);
+            background: rgba(225, 29, 72, 0.08);
+        }
+        .scenario-btn.btn-warning:hover {
+            border-color: var(--accent-amber);
+            color: var(--accent-amber);
+            background: rgba(217, 119, 6, 0.08);
+        }
+        .scenario-btn.btn-primary:hover {
+            border-color: var(--accent-violet);
+            color: var(--accent-violet);
+            background: rgba(124, 58, 237, 0.08);
+        }
+        .scenario-btn.btn-success:hover {
+            border-color: var(--accent-emerald);
+            color: var(--accent-emerald);
+            background: rgba(5, 150, 105, 0.08);
+        }
+
+        /* Quick Chaos Toolbar on Left Workspace Column */
+        .quick-chaos-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 10px 14px;
+            background: var(--surface-subtle);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-inner);
+            margin-top: 12px;
+            margin-bottom: 8px;
+        }
+        .chaos-actions {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .chaos-btn {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-pill);
+            padding: 4px 10px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: var(--text-main);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.15s ease;
+        }
+        .chaos-btn:hover {
+            background: var(--btn-hover);
+            border-color: var(--border-hover);
+        }
+        .chaos-status-pill {
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            padding: 3px 9px;
+            border-radius: var(--radius-pill);
+            background: rgba(5, 150, 105, 0.1);
+            color: var(--accent-emerald);
+            border: 1px solid rgba(5, 150, 105, 0.2);
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .chaos-status-pill.has-faults {
+            background: rgba(225, 29, 72, 0.1);
+            color: var(--accent-rose);
+            border-color: rgba(225, 29, 72, 0.3);
+        }
+
+        /* Keyboard Shortcuts & User Guide Modal Styles */
+        .shortcuts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .shortcut-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background: var(--surface-subtle);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-inner);
+            transition: background 0.15s ease;
+        }
+        .shortcut-row:hover {
+            background: var(--surface-subtle-hover);
+        }
+        .shortcut-key {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            padding: 3px 8px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: 4px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+            color: var(--accent-violet);
+            font-weight: 700;
+        }
+        .shortcut-desc {
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+        }
+        .glossary-card {
+            background: var(--surface-subtle);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-inner);
+            padding: 14px 16px;
+            margin-bottom: 12px;
+        }
+        .glossary-term {
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+        .glossary-def {
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            line-height: 1.45;
+        }
+        .glossary-formula {
+            font-family: var(--font-mono);
+            font-size: 0.74rem;
+            color: var(--accent-cyan);
+            background: var(--bg-surface);
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid var(--border-subtle);
+        }
+
         /* Responsive breakpoints */
         @media (max-width: 1200px) {
             .kpi-grid { grid-template-columns: repeat(2, 1fr); }
             .workspace-grid { grid-template-columns: 1fr; }
             .charts-triad-grid { grid-template-columns: 1fr; }
+            .demo-scenarios-strip { flex-direction: column; align-items: flex-start; }
         }
     </style>
 </head>
@@ -1148,6 +1712,12 @@
             </button>
             <button class="neu-btn" onclick="openModelInspectModal()" title="Inspect PyTorch D3QN Neural Network">
                 <span>🧠 Model Weights</span>
+            </button>
+            <button class="neu-btn" onclick="openPlotStudioModal()" title="Inspect Publication Plots with Deep Zoom" style="color:var(--accent-violet); font-weight:600;">
+                <span>📊 Publication Plots</span>
+            </button>
+            <button class="neu-btn" id="btnUserGuide" onclick="openUserGuideModal()" title="View User Guide, Architecture & Keyboard Shortcuts (?)">
+                <span>📖 User Guide</span>
             </button>
             <button id="btnOpenNetworkSettings" class="neu-btn neu-btn-primary" onclick="openNetworkSettingsModal()">
                 <span>⚙️ Network Settings</span>
@@ -1228,6 +1798,30 @@
             </div>
         </section>
 
+        <!-- 2.5 1-Click Interactive Demonstration Scenarios Strip -->
+        <section class="demo-scenarios-strip" aria-label="Interactive Demo Scenarios">
+            <div class="demo-scenarios-label">
+                <span>🚀 1-Click Demo Scenarios:</span>
+            </div>
+            <div class="scenario-buttons-cluster">
+                <button class="scenario-btn btn-danger" onclick="triggerScenarioCongestion()" title="Saturate core links to 96% and watch D3QN offload traffic in real-time">
+                    <span>🔥 Core Congestion Surge</span>
+                </button>
+                <button class="scenario-btn btn-danger" onclick="triggerScenarioFiberCut()" title="Sever primary core backbone link and observe sub-millisecond D3QN failover">
+                    <span>⚡ Fiber Cut Failover</span>
+                </button>
+                <button class="scenario-btn btn-warning" onclick="triggerScenarioBrownout()" title="Degrade link capacity by 90% with latency penalty; D3QN diverts high-demand flows">
+                    <span>📉 Link Brownout</span>
+                </button>
+                <button class="scenario-btn btn-primary" onclick="triggerScenarioTournament()" title="Launch full head-to-head tournament against all 5 classic SDN routing protocols">
+                    <span>🏆 6-Protocol Tournament</span>
+                </button>
+                <button class="scenario-btn btn-success" onclick="triggerScenarioReset()" title="Restore all links, clear congestion bursts, and reset fabric to nominal baseline">
+                    <span>↺ Nominal Reset</span>
+                </button>
+            </div>
+        </section>
+
         <!-- 3. Two-Column Workspace -->
         <div class="workspace-grid">
 
@@ -1237,20 +1831,50 @@
                     <div class="card-title-group">
                         <div>
                             <h2 class="card-title">🌐 Live OpenFlow 1.3 Topology & Routing Fabric</h2>
-                            <p class="card-subtitle">Real-time port utilization gradients & autonomous path overlays</p>
+                            <p class="card-subtitle" id="topoStatsLabel">Real-time port utilization gradients & autonomous path overlays</p>
                         </div>
                     </div>
-                    <div style="display:flex; align-items:center; gap:8px;">
+                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                         <span class="stat-pill" style="color: var(--accent-violet);">Interactive Inspection</span>
                         <span class="stat-pill" id="canvasSwitchCount">Switches: 7</span>
                         <span class="stat-pill" id="canvasLinkCount">Links: 8</span>
-                        <button class="neu-btn" style="padding: 2px 8px; font-size: 0.72rem;" onclick="resetCanvasZoom()" id="resetZoomBtn">↺ Reset Zoom</button>
+                        <div style="display:flex; align-items:center; gap:4px; margin-left:4px;">
+                            <button class="neu-btn" style="padding: 2px 7px; font-size: 0.72rem;" onclick="zoomInTopo()" title="Zoom In (+)">➕</button>
+                            <button class="neu-btn" style="padding: 2px 7px; font-size: 0.72rem;" onclick="zoomOutTopo()" title="Zoom Out (-)">➖</button>
+                            <button class="neu-btn" style="padding: 2px 7px; font-size: 0.72rem;" onclick="resetCanvasZoom()" id="resetZoomBtn" title="Reset Zoom">↺ 100%</button>
+                            <span class="stat-pill" id="canvasZoomBadge" style="font-family:var(--font-mono); min-width:44px; text-align:center;">100%</span>
+                        </div>
                     </div>
                 </div>
 
                 <div class="canvas-container">
                     <canvas id="topoCanvas"></canvas>
                     <div class="canvas-tooltip" id="canvasTooltip"></div>
+                </div>
+
+                <!-- Quick Chaos Engineering Toolbar -->
+                <div class="quick-chaos-toolbar">
+                    <div class="chaos-actions">
+                        <span style="font-size:0.72rem; font-family:var(--font-mono); font-weight:700; text-transform:uppercase; color:var(--text-dim); margin-right:4px;">Chaos Lab:</span>
+                        <button class="chaos-btn" onclick="quickFailSelectedLink()" title="Sever candidate trunk or selected path link">
+                            <span>⚡ Sever Link</span>
+                        </button>
+                        <button class="chaos-btn" onclick="quickDegradeLink()" title="Degrade link capacity by 90% with latency penalty">
+                            <span>📉 Brownout</span>
+                        </button>
+                        <button class="chaos-btn" onclick="quickInjectBurst()" title="Inject a +50 Mbps traffic surge">
+                            <span>💥 Burst (+50M)</span>
+                        </button>
+                        <button class="chaos-btn" onclick="quickRestoreLinks()" title="Restore all severed and throttled links to full operational state">
+                            <span>🛡️ Restore Links</span>
+                        </button>
+                        <button class="chaos-btn" onclick="quickClearFlows()" title="Flush all active dynamic flows from the fabric">
+                            <span>🧹 Flush Flows</span>
+                        </button>
+                    </div>
+                    <div id="quickFaultStatusPill" class="chaos-status-pill">
+                        <span>🟢 Fabric Nominal</span>
+                    </div>
                 </div>
 
                 <div class="canvas-legend">
@@ -1260,6 +1884,8 @@
                     <div class="legend-item"><span class="legend-dot" style="background:#8B5CF6;"></span> ● D3QN Active Path</div>
                     <div class="legend-item"><span class="legend-dot" style="background:#64748B;"></span> ● Core Switch</div>
                     <div class="legend-item"><span class="legend-dot" style="background:#06B6D4;"></span> ● Edge Switch</div>
+                    <div class="legend-item"><span class="legend-dot" style="background:#EF4444; border: 1px dashed #FFFFFF;"></span> ⚡ Severed</div>
+                    <div class="legend-item"><span class="legend-dot" style="background:#F59E0B; border: 1px dotted #FFFFFF;"></span> 📉 Degraded</div>
                 </div>
 
                 <!-- Collapsible Live Active Dynamic Flows Table -->
@@ -1303,13 +1929,29 @@
                 </div>
 
                 <div class="control-row">
-                    <div class="input-group">
+                    <div class="input-group" style="flex: 1; min-width: 150px;">
                         <label>Source:</label>
-                        <select id="srcSelect" class="neu-select" onchange="runRoutePrediction()"></select>
+                        <select id="srcSelect" class="neu-select" style="min-width: 140px;" onchange="runRoutePrediction()">
+                            <option value="4" selected>Switch s4 (edge)</option>
+                            <option value="5">Switch s5 (edge)</option>
+                            <option value="6">Switch s6 (edge)</option>
+                            <option value="7">Switch s7 (edge)</option>
+                            <option value="1">Switch s1 (core)</option>
+                            <option value="2">Switch s2 (agg)</option>
+                            <option value="3">Switch s3 (agg)</option>
+                        </select>
                     </div>
-                    <div class="input-group">
+                    <div class="input-group" style="flex: 1; min-width: 150px;">
                         <label>Destination:</label>
-                        <select id="dstSelect" class="neu-select" onchange="runRoutePrediction()"></select>
+                        <select id="dstSelect" class="neu-select" style="min-width: 140px;" onchange="runRoutePrediction()">
+                            <option value="4">Switch s4 (edge)</option>
+                            <option value="5">Switch s5 (edge)</option>
+                            <option value="6">Switch s6 (edge)</option>
+                            <option value="7" selected>Switch s7 (edge)</option>
+                            <option value="1">Switch s1 (core)</option>
+                            <option value="2">Switch s2 (agg)</option>
+                            <option value="3">Switch s3 (agg)</option>
+                        </select>
                     </div>
                     <div class="input-group">
                         <label>Demand: <strong id="demandVal" style="color:var(--accent-violet);">25</strong> Mbps</label>
@@ -1420,7 +2062,54 @@
                                 </tr>
                             </thead>
                             <tbody id="candidatePathsBody">
-                                <!-- Populated dynamically -->
+                                <tr style="background: rgba(139, 92, 246, 0.08);">
+                                    <td><strong>a_0</strong></td>
+                                    <td><code style="font-family:'JetBrains Mono',monospace; font-weight:600; color:#c4b5fd;">s4 ➔ s2 ➔ s5 ➔ s7</code></td>
+                                    <td><span style="font-family:'JetBrains Mono',monospace; font-weight:700;">14.82</span></td>
+                                    <td>
+                                        <div class="metric-bar-cell">
+                                            <span style="font-family:'JetBrains Mono',monospace; min-width:38px;">88.5%</span>
+                                            <div class="metric-bar-bg">
+                                                <div class="metric-bar-fill" style="width: 88.5%; background: var(--accent-violet);"></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td><span style="font-family:'JetBrains Mono',monospace;">24.5%</span></td>
+                                    <td><span style="font-family:'JetBrains Mono',monospace;">4.82 ms</span></td>
+                                    <td><span class="rank-pill champion">⭐ Selected</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>a_1</strong></td>
+                                    <td><code style="font-family:'JetBrains Mono',monospace; font-weight:600; color:#A3A3A3;">s4 ➔ s6 ➔ s3 ➔ s7</code></td>
+                                    <td><span style="font-family:'JetBrains Mono',monospace; font-weight:700;">9.15</span></td>
+                                    <td>
+                                        <div class="metric-bar-cell">
+                                            <span style="font-family:'JetBrains Mono',monospace; min-width:38px;">8.2%</span>
+                                            <div class="metric-bar-bg">
+                                                <div class="metric-bar-fill" style="width: 8.2%; background: var(--text-muted);"></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td><span style="font-family:'JetBrains Mono',monospace;">48.0%</span></td>
+                                    <td><span style="font-family:'JetBrains Mono',monospace;">7.15 ms</span></td>
+                                    <td><span style="color:var(--text-muted); font-size:0.72rem;">Alternative</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>a_2</strong></td>
+                                    <td><code style="font-family:'JetBrains Mono',monospace; font-weight:600; color:#A3A3A3;">s4 ➔ s2 ➔ s1 ➔ s3 ➔ s7</code></td>
+                                    <td><span style="font-family:'JetBrains Mono',monospace; font-weight:700;">4.20</span></td>
+                                    <td>
+                                        <div class="metric-bar-cell">
+                                            <span style="font-family:'JetBrains Mono',monospace; min-width:38px;">3.3%</span>
+                                            <div class="metric-bar-bg">
+                                                <div class="metric-bar-fill" style="width: 3.3%; background: var(--text-muted);"></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td><span style="font-family:'JetBrains Mono',monospace;">65.0%</span></td>
+                                    <td><span style="font-family:'JetBrains Mono',monospace;">11.20 ms</span></td>
+                                    <td><span style="color:var(--text-muted); font-size:0.72rem;">Alternative</span></td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
@@ -1435,33 +2124,47 @@
                     <h2 class="card-title">⚔️ Algorithm Tournament & Head-to-Head Benchmarking</h2>
                     <p class="card-subtitle">Evaluate D3QN against classic SDN routing baselines in real-time under simulated workload stress</p>
                 </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <button class="neu-btn" onclick="exportTournamentReport('markdown')" title="Copy tournament benchmark results as Markdown table to clipboard">
+                        📋 Copy Report
+                    </button>
+                    <button class="neu-btn" onclick="exportTournamentReport('json')" title="Download tournament results as JSON">
+                        💾 Export JSON
+                    </button>
+                </div>
             </div>
 
             <!-- Protocol & Simulation Controls -->
             <div class="tournament-controls">
                 <div class="protocol-checkbox-group">
-                    <label class="protocol-chip active">
+                    <label class="protocol-chip chip-dqn active" id="chip_dqn" title="Deep Q-Network (Proposed Framework)">
                         <input type="checkbox" id="algoCheck_dqn" checked onchange="toggleProtocol('dqn', this.checked)">
+                        <span class="chip-dot"></span>
                         <strong>D3QN (Ours)</strong>
                     </label>
-                    <label class="protocol-chip active">
+                    <label class="protocol-chip chip-ospf active" id="chip_ospf" title="Open Shortest Path First (RFC 2328 Standard)">
                         <input type="checkbox" id="algoCheck_ospf" checked onchange="toggleProtocol('ospf', this.checked)">
+                        <span class="chip-dot"></span>
                         <span>OSPF (RFC 2328)</span>
                     </label>
-                    <label class="protocol-chip active">
+                    <label class="protocol-chip chip-ecmp active" id="chip_ecmp" title="Equal-Cost Multi-Path Balancing">
                         <input type="checkbox" id="algoCheck_ecmp" checked onchange="toggleProtocol('ecmp', this.checked)">
+                        <span class="chip-dot"></span>
                         <span>ECMP Multi-Path</span>
                     </label>
-                    <label class="protocol-chip">
+                    <label class="protocol-chip chip-wsp" id="chip_wsp" title="Widest-Shortest Path Metric Routing">
                         <input type="checkbox" id="algoCheck_wsp" onchange="toggleProtocol('wsp', this.checked)">
+                        <span class="chip-dot"></span>
                         <span>WSP Widest Path</span>
                     </label>
-                    <label class="protocol-chip">
+                    <label class="protocol-chip chip-llr" id="chip_llr" title="Least-Loaded Dynamic Flow Routing">
                         <input type="checkbox" id="algoCheck_llr" onchange="toggleProtocol('llr', this.checked)">
+                        <span class="chip-dot"></span>
                         <span>LLR Least Loaded</span>
                     </label>
-                    <label class="protocol-chip">
-                        <input type="checkbox" id="algoCheck_spf" onchange="toggleProtocol('spf', this.checked)">
+                    <label class="protocol-chip chip-dijkstra" id="chip_dijkstra" title="Dijkstra Shortest Path First">
+                        <input type="checkbox" id="algoCheck_dijkstra" onchange="toggleProtocol('dijkstra', this.checked)">
+                        <span class="chip-dot"></span>
                         <span>Dijkstra SPF</span>
                     </label>
                 </div>
@@ -1469,7 +2172,7 @@
                 <div style="display:flex; align-items:center; gap:12px; margin-left:auto; flex-wrap:wrap;">
                     <div style="display:flex; align-items:center; gap:6px;">
                         <span style="font-size:0.75rem; color:var(--text-dim); font-family:var(--font-mono);">Topology:</span>
-                        <select id="topoSelect" class="neu-select" style="width: auto; padding: 4px 10px;" onchange="fetchTelemetry(this.value); runRoutePrediction();">
+                        <select id="topoSelect" class="neu-select" style="width: auto; padding: 4px 10px;" onchange="fetchTelemetry(this.value); runRoutePrediction(); debouncedRunVersusMatchup();">
                             <option value="tree">7-Switch Hierarchical Tree</option>
                             <option value="geant">GEANT European Backbone (14 Nodes)</option>
                             <option value="nsfnet">NSFNET Continental Core (14 Nodes)</option>
@@ -1479,7 +2182,7 @@
 
                     <div style="display:flex; align-items:center; gap:6px;">
                         <span style="font-size:0.75rem; color:var(--text-dim); font-family:var(--font-mono);">Traffic:</span>
-                        <select id="trafficPatternSelect" class="neu-select" style="width: auto; padding: 4px 10px;">
+                        <select id="trafficPatternSelect" class="neu-select" style="width: auto; padding: 4px 10px;" onchange="debouncedRunVersusMatchup();">
                             <option value="jam">Burst Shockwave</option>
                             <option value="crowd">Flash Crowd (Core)</option>
                             <option value="pareto">Heavy-Tailed Pareto</option>
@@ -1489,7 +2192,7 @@
 
                     <div style="display:flex; align-items:center; gap:6px;">
                         <span style="font-size:0.75rem; color:var(--text-dim); font-family:var(--font-mono);">Flows:</span>
-                        <input type="number" id="matchupCount" class="neu-input" style="width: 65px; padding: 4px 8px;" value="15" min="5" max="100">
+                        <input type="number" id="matchupCount" class="neu-input" style="width: 65px; padding: 4px 8px;" value="15" min="5" max="100" onchange="debouncedRunVersusMatchup();">
                     </div>
 
                     <button class="neu-btn neu-btn-primary" id="btnRunVersus" onclick="runVersusMatchup()">
@@ -1500,41 +2203,214 @@
 
             <!-- Algorithmic Verdict Box -->
             <div class="verdict-box" id="versusVerdictBox">
-                <span>⚡</span>
-                <span>Run a tournament to view automated comparative analysis and algorithm superiority rankings.</span>
+                <span style="font-size:1.2rem;">🏆</span>
+                <div>
+                    <strong>Verdict: D3QN Achieves Superior Pareto Efficiency.</strong>
+                    <span style="color:var(--text-secondary); margin-left:6px;">Reduced bottleneck congestion by <strong>36.4%</strong> with sub-millisecond route optimization across 15 dynamic flows.</span>
+                </div>
             </div>
 
-            <!-- Visual Charts Triad -->
-            <div class="charts-triad-grid">
-                <div class="chart-box">
+            <!-- Plot View & Type Switcher Bar -->
+            <div class="plot-tabs-bar">
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                    <span style="font-size:0.75rem; color:var(--text-dim); font-family:var(--font-mono); text-transform:uppercase; font-weight:700;">Plot View:</span>
+                    <button class="plot-tab-btn active" id="btnPlotTab_triad" onclick="switchPlotView('triad')">🔲 All-in-One Triad</button>
+                    <button class="plot-tab-btn" id="btnPlotTab_bar" onclick="switchPlotView('bar')">📊 Metric Deltas (Bar)</button>
+                    <button class="plot-tab-btn" id="btnPlotTab_timeline" onclick="switchPlotView('timeline')">📈 Delay Trajectory (Timeline)</button>
+                    <button class="plot-tab-btn" id="btnPlotTab_radar" onclick="switchPlotView('radar')">🕸️ 6D Quality Radar</button>
+                    <button class="plot-tab-btn" id="btnPlotTab_cdf" onclick="switchPlotView('cdf')">📉 Latency CDF (Tail SLA)</button>
+                    <button class="plot-tab-btn" id="btnPlotTab_scaling" onclick="switchPlotView('scaling')">⚡ Load Scaling Curves</button>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <button class="neu-btn" onclick="openPlotStudioModal()" style="font-size:0.75rem; padding:4px 10px; color:var(--accent-violet); font-weight:600;">
+                        <span>🔍 Deep Zoom Plot Studio</span>
+                    </button>
+                    <button class="neu-btn" onclick="resetAllPlotZooms()" style="font-size:0.75rem; padding:4px 10px;" title="Reset all plots to full scale">
+                        <span>↺ Reset All Zooms</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- View 1: Visual Charts Triad (3-Grid with individual zoom/pan) -->
+            <div id="viewContainer_triad" class="charts-triad-grid">
+                <div class="chart-box" id="box_versusBar">
                     <div class="chart-box-title">
-                        <span>📊 Key Metric Deltas (Lower is Better)</span>
-                        <span class="stat-pill">Normalized</span>
+                        <span>📊 Key Metric Deltas</span>
+                        <div class="chart-actions-toolbar">
+                            <button class="chart-action-btn fullscreen-btn" onclick="togglePlotFullscreen('box_versusBar', 'chartVersusBar')" title="Toggle Fullscreen">⛶ Fullscreen</button>
+                            <button class="chart-action-btn" onclick="zoomPlotIn('chartVersusBar')" title="Zoom In">➕</button>
+                            <button class="chart-action-btn" onclick="zoomPlotOut('chartVersusBar')" title="Zoom Out">➖</button>
+                            <button class="chart-action-btn" onclick="resetPlotZoom('chartVersusBar')" title="Reset Zoom">↺</button>
+                            <button class="chart-action-btn" onclick="downloadPlotPng('chartVersusBar', 'metric_deltas.png')" title="Export PNG">📷</button>
+                        </div>
                     </div>
-                    <div style="height: calc(100% - 30px);"><canvas id="chartVersusBar"></canvas></div>
+                    <div id="chartVersusBar" style="width: 100%; height: calc(100% - 32px);"></div>
                 </div>
 
-                <div class="chart-box">
+                <div class="chart-box" id="box_versusTimeline">
                     <div class="chart-box-title">
-                        <span>📈 Delay Trajectory over Burst Steps</span>
-                        <span class="stat-pill">Timeline (ms)</span>
+                        <span>📈 Delay Trajectory</span>
+                        <div class="chart-actions-toolbar">
+                            <button class="chart-action-btn fullscreen-btn" onclick="togglePlotFullscreen('box_versusTimeline', 'chartVersusTimeline')" title="Toggle Fullscreen">⛶ Fullscreen</button>
+                            <button class="chart-action-btn" onclick="zoomPlotIn('chartVersusTimeline')" title="Zoom In">➕</button>
+                            <button class="chart-action-btn" onclick="zoomPlotOut('chartVersusTimeline')" title="Zoom Out">➖</button>
+                            <button class="chart-action-btn" onclick="resetPlotZoom('chartVersusTimeline')" title="Reset Zoom">↺</button>
+                            <button class="chart-action-btn" onclick="downloadPlotPng('chartVersusTimeline', 'delay_trajectory.png')" title="Export PNG">📷</button>
+                        </div>
                     </div>
-                    <div style="height: calc(100% - 30px);"><canvas id="chartVersusTimeline"></canvas></div>
+                    <div id="chartVersusTimeline" style="width: 100%; height: calc(100% - 32px);"></div>
                 </div>
 
-                <div class="chart-box">
+                <div class="chart-box" id="box_versusRadar">
                     <div class="chart-box-title">
-                        <span>🕸️ 6-Dimensional Quality Profile</span>
-                        <span class="stat-pill">Radar View</span>
+                        <span>🕸️ 6D Quality Profile</span>
+                        <div class="chart-actions-toolbar">
+                            <button class="chart-action-btn fullscreen-btn" onclick="togglePlotFullscreen('box_versusRadar', 'chartVersusRadar')" title="Toggle Fullscreen">⛶ Fullscreen</button>
+                            <button class="chart-action-btn" onclick="zoomPlotIn('chartVersusRadar')" title="Zoom In">➕</button>
+                            <button class="chart-action-btn" onclick="zoomPlotOut('chartVersusRadar')" title="Zoom Out">➖</button>
+                            <button class="chart-action-btn" onclick="resetPlotZoom('chartVersusRadar')" title="Reset Zoom">↺</button>
+                            <button class="chart-action-btn" onclick="downloadPlotPng('chartVersusRadar', 'quality_radar.png')" title="Export PNG">📷</button>
+                        </div>
                     </div>
-                    <div style="height: calc(100% - 30px);"><canvas id="chartVersusRadar"></canvas></div>
+                    <div id="chartVersusRadar" style="width: 100%; height: calc(100% - 32px);"></div>
                 </div>
+            </div>
+
+            <!-- View 2: Expanded Single Metric Deltas View -->
+            <div id="viewContainer_bar" class="chart-single-expanded">
+                <div class="chart-box-title">
+                    <span>📊 Key Metric Deltas Across All Algorithms</span>
+                    <div class="chart-actions-toolbar">
+                        <button class="chart-action-btn fullscreen-btn" onclick="togglePlotFullscreen('viewContainer_bar', 'chartVersusBarExpanded')" title="Toggle Fullscreen">⛶ Fullscreen</button>
+                        <button class="chart-action-btn" onclick="zoomPlotIn('chartVersusBarExpanded')">➕ Zoom In</button>
+                        <button class="chart-action-btn" onclick="zoomPlotOut('chartVersusBarExpanded')">➖ Zoom Out</button>
+                        <button class="chart-action-btn" onclick="resetPlotZoom('chartVersusBarExpanded')">↺ Reset</button>
+                        <button class="chart-action-btn" onclick="downloadPlotPng('chartVersusBarExpanded', 'metric_deltas_highres.png')">📷 Export PNG</button>
+                    </div>
+                </div>
+                <div id="chartVersusBarExpanded" style="width: 100%; height: calc(100% - 36px);"></div>
+            </div>
+
+            <!-- View 3: Expanded Single Delay Trajectory View -->
+            <div id="viewContainer_timeline" class="chart-single-expanded">
+                <div class="chart-box-title">
+                    <span>📈 Delay Trajectory Over Flow Steps</span>
+                    <div class="chart-actions-toolbar">
+                        <button class="chart-action-btn fullscreen-btn" onclick="togglePlotFullscreen('viewContainer_timeline', 'chartVersusTimelineExpanded')" title="Toggle Fullscreen">⛶ Fullscreen</button>
+                        <button class="chart-action-btn" onclick="zoomPlotIn('chartVersusTimelineExpanded')">➕ Zoom In</button>
+                        <button class="chart-action-btn" onclick="zoomPlotOut('chartVersusTimelineExpanded')">➖ Zoom Out</button>
+                        <button class="chart-action-btn" onclick="resetPlotZoom('chartVersusTimelineExpanded')">↺ Reset</button>
+                        <button class="chart-action-btn" onclick="downloadPlotPng('chartVersusTimelineExpanded', 'delay_trajectory_highres.png')">📷 Export PNG</button>
+                    </div>
+                </div>
+                <div id="chartVersusTimelineExpanded" style="width: 100%; height: calc(100% - 36px);"></div>
+            </div>
+
+            <!-- View 4: Expanded Single Radar Profile View -->
+            <div id="viewContainer_radar" class="chart-single-expanded">
+                <div class="chart-box-title">
+                    <span>🕸️ 6-Dimensional Quality Profile (Polar Radar View)</span>
+                    <div class="chart-actions-toolbar">
+                        <button class="chart-action-btn fullscreen-btn" onclick="togglePlotFullscreen('viewContainer_radar', 'chartVersusRadarExpanded')" title="Toggle Fullscreen">⛶ Fullscreen</button>
+                        <button class="chart-action-btn" onclick="zoomPlotIn('chartVersusRadarExpanded')">➕ Zoom In</button>
+                        <button class="chart-action-btn" onclick="zoomPlotOut('chartVersusRadarExpanded')">➖ Zoom Out</button>
+                        <button class="chart-action-btn" onclick="resetPlotZoom('chartVersusRadarExpanded')">↺ Reset</button>
+                        <button class="chart-action-btn" onclick="downloadPlotPng('chartVersusRadarExpanded', 'quality_radar_highres.png')">📷 Export PNG</button>
+                    </div>
+                </div>
+                <div id="chartVersusRadarExpanded" style="width: 100%; height: calc(100% - 36px);"></div>
+            </div>
+
+            <!-- View 5: Expanded Single CDF View -->
+            <div id="viewContainer_cdf" class="chart-single-expanded">
+                <div class="chart-box-title">
+                    <span>📉 Empirical Latency Cumulative Distribution Function (Tail SLA S-Curves)</span>
+                    <div class="chart-actions-toolbar">
+                        <button class="chart-action-btn fullscreen-btn" onclick="togglePlotFullscreen('viewContainer_cdf', 'chartVersusCdfExpanded')" title="Toggle Fullscreen">⛶ Fullscreen</button>
+                        <button class="chart-action-btn" onclick="zoomPlotIn('chartVersusCdfExpanded')">➕ Zoom In</button>
+                        <button class="chart-action-btn" onclick="zoomPlotOut('chartVersusCdfExpanded')">➖ Zoom Out</button>
+                        <button class="chart-action-btn" onclick="resetPlotZoom('chartVersusCdfExpanded')">↺ Reset</button>
+                        <button class="chart-action-btn" onclick="downloadPlotPng('chartVersusCdfExpanded', 'latency_cdf_highres.png')">📷 Export PNG</button>
+                    </div>
+                </div>
+                <div id="chartVersusCdfExpanded" style="width: 100%; height: calc(100% - 36px);"></div>
+            </div>
+
+            <!-- View 6: Expanded Single Load Scaling View -->
+            <div id="viewContainer_scaling" class="chart-single-expanded">
+                <div class="chart-box-title">
+                    <span>⚡ Traffic Load Scaling Curves (20% to 100% Link Capacity Stress)</span>
+                    <div class="chart-actions-toolbar">
+                        <button class="chart-action-btn fullscreen-btn" onclick="togglePlotFullscreen('viewContainer_scaling', 'chartVersusScalingExpanded')" title="Toggle Fullscreen">⛶ Fullscreen</button>
+                        <button class="chart-action-btn" onclick="zoomPlotIn('chartVersusScalingExpanded')">➕ Zoom In</button>
+                        <button class="chart-action-btn" onclick="zoomPlotOut('chartVersusScalingExpanded')">➖ Zoom Out</button>
+                        <button class="chart-action-btn" onclick="resetPlotZoom('chartVersusScalingExpanded')">↺ Reset</button>
+                        <button class="chart-action-btn" onclick="downloadPlotPng('chartVersusScalingExpanded', 'load_scaling_highres.png')">📷 Export PNG</button>
+                    </div>
+                </div>
+                <div id="chartVersusScalingExpanded" style="width: 100%; height: calc(100% - 36px);"></div>
             </div>
         </section>
 
     </main>
 
     <!-- Modals -->
+    <!-- 8a. Publication Plot Studio & Deep Zoom Inspector Modal -->
+    <div id="plotStudioModal" class="modal-backdrop" onclick="if(event.target === this) closePlotStudioModal()">
+        <div class="modal-dialog" style="max-width: 1200px; width: 95vw;" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <div>
+                    <h3 class="modal-title" style="display:flex; align-items:center; gap:8px;">
+                        <span>📊</span> Publication Plot Studio & Deep Zoom Inspector
+                    </h3>
+                    <p class="modal-subtitle">High-fidelity 300-DPI publication figures • Pan & Zoom to inspect tail distributions, radar profiles & convergence curves</p>
+                </div>
+                <button class="modal-close" onclick="closePlotStudioModal()">✕</button>
+            </div>
+            <div class="modal-body" style="padding: 16px 24px; max-height: 82vh; overflow-y: auto;">
+                <!-- Plot Selector Strip -->
+                <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom: 14px;">
+                    <label style="font-size:0.75rem; color:var(--text-dim); font-family:var(--font-mono); text-transform:uppercase; font-weight:700;">Figure:</label>
+                    <select id="plotStudioSelect" class="neu-select" style="min-width: 380px; flex: 1;" onchange="onPlotStudioSelect(this.value)">
+                        <!-- Populated dynamically via /api/plot_list -->
+                    </select>
+                    <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                        <button class="neu-btn" onclick="zoomPlotStudio(1.25)" title="Zoom In (+)">➕ In</button>
+                        <button class="neu-btn" onclick="zoomPlotStudio(0.8)" title="Zoom Out (-)">➖ Out</button>
+                        <button class="neu-btn" onclick="setPlotStudioZoom(1.0)" title="100% Zoom">100%</button>
+                        <button class="neu-btn" onclick="setPlotStudioZoom(1.5)" title="150% Zoom">150%</button>
+                        <button class="neu-btn" onclick="setPlotStudioZoom(2.0)" title="200% Zoom">200%</button>
+                        <button class="neu-btn" onclick="fitPlotStudioToScreen()" title="Fit Screen">Fit</button>
+                        <button class="neu-btn" onclick="resetPlotStudioZoom()" title="Reset View">↺ Reset</button>
+                        <a id="btnDownloadCurrentPlot" class="neu-btn neu-btn-primary" href="#" download style="text-decoration:none; display:inline-flex; align-items:center; gap:4px;">
+                            <span>⬇️ Download PNG</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Deep Zoom Interactive Viewport -->
+                <div id="plotStudioViewport" class="deep-zoom-viewport">
+                    <div id="plotStudioStage" class="deep-zoom-stage">
+                        <img id="plotStudioImg" src="/api/plots/proposal_benchmarks_all_metrics.png" alt="Publication Plot" draggable="false">
+                    </div>
+                    <div class="deep-zoom-indicator" id="plotStudioZoomIndicator">Zoom: 100% (Scroll or Drag to Pan)</div>
+                </div>
+
+                <!-- Caption & Analytical Breakdown Card -->
+                <div class="settings-subcard" style="margin-top: 14px;">
+                    <div class="settings-section-title" id="plotStudioCaptionTitle">Figure Breakdown & Research Findings</div>
+                    <div id="plotStudioCaptionDesc" style="font-size:0.82rem; color:var(--text-secondary); line-height:1.6; margin-top:4px;">
+                        Description will load here.
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:0.75rem; color:var(--text-dim); font-family:var(--font-mono);">Use Mouse Wheel to zoom at cursor • Drag to pan</span>
+                <button class="neu-btn neu-btn-primary" onclick="closePlotStudioModal()">Close Studio</button>
+            </div>
+        </div>
+    </div>
+
 <!-- 8b. Model Architecture & PyTorch Weights Inspector Modal -->
     <div id="modelInspectModal" class="modal-backdrop" onclick="if(event.target === this) closeModelInspectModal()">
         <div class="modal-dialog" style="max-width: 820px;" onclick="event.stopPropagation()">
@@ -1967,17 +2843,177 @@
         </div>
     </div>
 
-    <!-- Toast Notification Container -->
+    <!-- 5. User Guide & Architecture Documentation Modal -->
+    <div id="userGuideModal" class="modal-backdrop" onclick="if(event.target === this) closeUserGuideModal()">
+        <div class="modal-card" style="max-width: 900px; width: 95vw;" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <div>
+                    <h2 class="modal-title"><span>📖</span> Synapse SDN User Guide & Architecture Console</h2>
+                    <div class="modal-subtitle">Interactive operator manual, keyboard shortcuts, canvas navigation, and QoS metrics glossary</div>
+                </div>
+                <button class="modal-close-btn" onclick="closeUserGuideModal()" title="Close Guide (Esc)">✕</button>
+            </div>
 
-    <!-- Toast Notification Container -->
+            <div class="modal-tabs-bar">
+                <button class="modal-tab active" id="tabBtn_ug-overview" onclick="switchGuideTab('ug-overview')">🚀 Overview</button>
+                <button class="modal-tab" id="tabBtn_ug-shortcuts" onclick="switchGuideTab('ug-shortcuts')">⌨️ Shortcuts</button>
+                <button class="modal-tab" id="tabBtn_ug-canvas" onclick="switchGuideTab('ug-canvas')">🖱️ Canvas & Topology</button>
+                <button class="modal-tab" id="tabBtn_ug-glossary" onclick="switchGuideTab('ug-glossary')">📊 Metrics Glossary</button>
+                <button class="modal-tab" id="tabBtn_ug-chaos" onclick="switchGuideTab('ug-chaos')">🧪 Chaos & Scenarios</button>
+            </div>
 
-    <!-- Toast Notification Container -->
+            <div class="modal-body" style="max-height: 65vh; overflow-y: auto;">
+                <!-- Tab 1: Overview -->
+                <div class="modal-tab-content active" id="ug-overview">
+                    <div class="settings-subcard">
+                        <div class="settings-section-title">🧠 Autonomous D3QN Traffic Engineering</div>
+                        <p style="font-size:0.82rem; line-height:1.55; color:var(--text-secondary); margin-bottom:10px;">
+                            Synapse is a carrier-grade closed-loop SDN Traffic Engineering system driven by a <strong>Dueling Double Deep Q-Network (D3QN)</strong> policy engine running directly in a Ryu OpenFlow 1.3 controller.
+                        </p>
+                        <p style="font-size:0.82rem; line-height:1.55; color:var(--text-secondary); margin-bottom:10px;">
+                            Unlike static shortest-path protocols (OSPF RFC 2328, Dijkstra) or stateless hashing (ECMP) which cause severe hot-spot congestion and buffer drops during asymmetric traffic surges, Synapse observes live port statistics, link delays, and queue depths to proactively steer flows onto high-bandwidth, low-jitter detour paths.
+                        </p>
+                    </div>
 
-    <!-- Toast Notification Container -->
+                    <div class="settings-subcard">
+                        <div class="settings-section-title">🏗️ System Architecture & Dataflow</div>
+                        <div style="font-family:var(--font-mono); font-size:0.75rem; background:var(--bg-base); border:1px solid var(--border-subtle); border-radius:6px; padding:12px; color:var(--text-main); line-height:1.5;">
+                            [OpenFlow 1.3 vSwitches] ──(OFPT_STATS_REPLY)──▶ [Ryu Controller (State Manager)]<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;▼ Live Telemetry (s_t)<br>
+                            [OpenFlow vSwitch FIB] ◀──(OFPFlowMod: Path a*)─── [PyTorch D3QN Policy Engine]<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;▼ JSON / REST Polling<br>
+                            [Synapse Interactive Web Console] (Real-time Canvas, Tournament Arena & Scientific Plots)
+                        </div>
+                    </div>
+                </div>
 
-    <!-- Toast Notification Container -->
+                <!-- Tab 2: Keyboard Shortcuts -->
+                <div class="modal-tab-content" id="ug-shortcuts">
+                    <p style="font-size:0.8rem; color:var(--text-dim); margin-bottom:12px;">Global keyboard shortcuts work everywhere on the dashboard except when typing in input fields:</p>
+                    <div class="shortcuts-grid">
+                        <div class="shortcut-row">
+                            <span class="shortcut-desc">Pause / Resume live auto-refresh</span>
+                            <kbd class="shortcut-key">Space</kbd>
+                        </div>
+                        <div class="shortcut-row">
+                            <span class="shortcut-desc">Open User Guide & Help</span>
+                            <kbd class="shortcut-key">? or H</kbd>
+                        </div>
+                        <div class="shortcut-row">
+                            <span class="shortcut-desc">Execute Algorithm Tournament</span>
+                            <kbd class="shortcut-key">T</kbd>
+                        </div>
+                        <div class="shortcut-row">
+                            <span class="shortcut-desc">Run D3QN Route Prediction</span>
+                            <kbd class="shortcut-key">P</kbd>
+                        </div>
+                        <div class="shortcut-row">
+                            <span class="shortcut-desc">Reset Canvas Zoom & Pan (100%)</span>
+                            <kbd class="shortcut-key">R</kbd>
+                        </div>
+                        <div class="shortcut-row">
+                            <span class="shortcut-desc">Zoom In / Zoom Out Canvas</span>
+                            <kbd class="shortcut-key">+ / -</kbd>
+                        </div>
+                        <div class="shortcut-row">
+                            <span class="shortcut-desc">Inspect Neural Network Model</span>
+                            <kbd class="shortcut-key">M</kbd>
+                        </div>
+                        <div class="shortcut-row">
+                            <span class="shortcut-desc">Open Network Architecture Settings</span>
+                            <kbd class="shortcut-key">S</kbd>
+                        </div>
+                        <div class="shortcut-row">
+                            <span class="shortcut-desc">Open Publication Plots Studio</span>
+                            <kbd class="shortcut-key">F</kbd>
+                        </div>
+                        <div class="shortcut-row">
+                            <span class="shortcut-desc">Close Active Modal / Exit Fullscreen</span>
+                            <kbd class="shortcut-key">Esc</kbd>
+                        </div>
+                    </div>
+                </div>
 
-    <!-- Toast Notification Container -->
+                <!-- Tab 3: Canvas & Topology -->
+                <div class="modal-tab-content" id="ug-canvas">
+                    <div class="settings-subcard">
+                        <div class="settings-section-title">🖱️ Interacting with the Topology Canvas</div>
+                        <ul style="font-size:0.8rem; line-height:1.6; color:var(--text-secondary); margin-left:18px;">
+                            <li><strong>Zoom:</strong> Scroll your mouse wheel over the canvas or use the ➕ / ➖ buttons in the header to zoom from 40% to 400%.</li>
+                            <li><strong>Pan:</strong> Click and drag anywhere on the canvas to inspect large topologies (e.g. 14-node GEANT, NSFNET Continental core).</li>
+                            <li><strong>Switch Selection:</strong> Click on any switch node on the canvas to set it as the <em>Source</em>, then click another switch to set it as the <em>Destination</em>. Route prediction triggers automatically!</li>
+                            <li><strong>Live Link Badges:</strong> Each link displays its real-time bandwidth utilization percentage pill (green &lt; 50%, amber 50-80%, red &gt; 80%).</li>
+                            <li><strong>Fault Overlays:</strong> Severed links are rendered with red dashed lines and ⚡ CUT markers; degraded links are marked in amber.</li>
+                            <li><strong>Overlay Trails:</strong> Active D3QN calculated routes are highlighted with violet/emerald path lines. OSPF shortest paths are shown with dashed amber lines.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Tab 4: Metrics Glossary -->
+                <div class="modal-tab-content" id="ug-glossary">
+                    <div class="glossary-card">
+                        <div class="glossary-term">
+                            <span>Peak Bottleneck Utilization (U_max)</span>
+                            <span class="glossary-formula">max_{(u,v)} (Load / Capacity)</span>
+                        </div>
+                        <div class="glossary-def">
+                            The highest single link utilization in the entire SDN graph. Lower bottleneck load is the primary objective of Traffic Engineering, preventing buffer overflows and packet drops.
+                        </div>
+                    </div>
+                    <div class="glossary-card">
+                        <div class="glossary-term">
+                            <span>Jitter (Delay Variance)</span>
+                            <span class="glossary-formula">σ(Delay) = sqrt(E[(D - μ)^2])</span>
+                        </div>
+                        <div class="glossary-def">
+                            Standard deviation of packet transit times across all active flow paths. Critical for real-time video streaming, VoIP, and financial low-latency protocols.
+                        </div>
+                    </div>
+                    <div class="glossary-card">
+                        <div class="glossary-term">
+                            <span>Jain's Fairness Index</span>
+                            <span class="glossary-formula">(Σ x_i)^2 / (N * Σ x_i^2)</span>
+                        </div>
+                        <div class="glossary-def">
+                            Evaluates whether fabric capacity is distributed equitably across all competing edge flows (ranges from 1/N to 1.0, where 1.0 indicates perfect fairness).
+                        </div>
+                    </div>
+                    <div class="glossary-card">
+                        <div class="glossary-term">
+                            <span>QoS SLA Compliance Score</span>
+                            <span class="glossary-formula">100 - (Loss% * 500) - (Delay_excess * 10)</span>
+                        </div>
+                        <div class="glossary-def">
+                            Compound metric measuring the percentage of active dynamic flows strictly meeting carrier-grade service level agreements (latency &lt; 15 ms, loss &lt; 0.1%).
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 5: Chaos & Scenarios -->
+                <div class="modal-tab-content" id="ug-chaos">
+                    <div class="settings-subcard">
+                        <div class="settings-section-title">🧪 Chaos Engineering & Fault Scenarios</div>
+                        <p style="font-size:0.8rem; line-height:1.55; color:var(--text-secondary); margin-bottom:10px;">
+                            You can stress-test the D3QN agent's resilience and dynamic self-healing directly using the <strong>1-Click Scenarios strip</strong> or the <strong>Chaos Lab toolbar</strong>:
+                        </p>
+                        <ul style="font-size:0.8rem; line-height:1.6; color:var(--text-secondary); margin-left:18px;">
+                            <li><strong>🔥 Core Congestion Surge:</strong> Saturates trunk core links to 96%. D3QN immediately detects the overload and detours traffic across underutilized aggregation links.</li>
+                            <li><strong>⚡ Fiber Cut Failover:</strong> Simulates an instant physical fiber severance. The controller recalculates paths avoiding the broken link in sub-millisecond time.</li>
+                            <li><strong>📉 Link Brownout:</strong> Throttles a selected link to 10% capacity and injects 55ms propagation delay. D3QN QoS rewards penalize the degraded route and reroute flows.</li>
+                            <li><strong>🏆 6-Protocol Tournament:</strong> Executes an automated benchmark across D3QN vs OSPF vs ECMP vs WSP vs LLR vs Dijkstra.</li>
+                            <li><strong>↺ Nominal Reset:</strong> Fully restores severed and degraded links, flushes temporary bursts, and resets baseline.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="neu-btn neu-btn-primary" onclick="closeUserGuideModal()">Got it, back to console</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Toast Notifications Container -->
     <div id="toastContainer"></div>
@@ -2004,10 +3040,45 @@
         let chartVersusTimeline = null;
         let chartVersusRadar = null;
 
-        // Canvas References
+        // Canvas References & Interactive Zoom/Pan Engine
         const canvas = document.getElementById('topoCanvas');
         const ctx = canvas.getContext('2d');
         const tooltip = document.getElementById('canvasTooltip');
+
+        let topoScale = 1.0;
+        let topoPanX = 0;
+        let topoPanY = 0;
+        let isTopoDragging = false;
+        let topoDragStartX = 0;
+        let topoDragStartY = 0;
+        let topoHasMoved = false;
+
+        function updateTopoZoomBadge() {
+            const badge = document.getElementById('canvasZoomBadge');
+            if (badge) badge.textContent = `${Math.round(topoScale * 100)}%`;
+        }
+
+        function zoomInTopo() {
+            topoScale = Math.min(4.0, topoScale * 1.25);
+            updateTopoZoomBadge();
+            if (lastTopoData) drawTopology(lastTopoData, true);
+        }
+
+        function zoomOutTopo() {
+            topoScale = Math.max(0.4, topoScale * 0.8);
+            updateTopoZoomBadge();
+            if (lastTopoData) drawTopology(lastTopoData, true);
+        }
+
+        function resetCanvasZoom() {
+            topoScale = 1.0;
+            topoPanX = 0;
+            topoPanY = 0;
+            selectedSrcNode = null;
+            updateTopoZoomBadge();
+            if (lastTopoData) drawTopology(lastTopoData, true);
+            showToast("Canvas centered & zoom reset to 100%.", "info");
+        }
 
         // Initial Canvas Resizing
         function resizeCanvas() {
@@ -2032,6 +3103,54 @@
             return Math.hypot(px - (x1 + t * (x2 - x1)), py - (y1 + t * (y2 - y1)));
         }
 
+        // Canvas Wheel Zoom (Mouse Centered)
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            const factor = e.deltaY < 0 ? 1.15 : 0.87;
+            const newScale = Math.max(0.4, Math.min(4.0, topoScale * factor));
+
+            topoPanX = mouseX - (mouseX - topoPanX) * (newScale / topoScale);
+            topoPanY = mouseY - (mouseY - topoPanY) * (newScale / topoScale);
+            topoScale = newScale;
+
+            updateTopoZoomBadge();
+            if (lastTopoData) drawTopology(lastTopoData, true);
+        }, { passive: false });
+
+        // Canvas Drag to Pan
+        canvas.addEventListener('mousedown', (e) => {
+            if (e.button === 0) {
+                isTopoDragging = true;
+                topoHasMoved = false;
+                topoDragStartX = e.clientX - topoPanX;
+                topoDragStartY = e.clientY - topoPanY;
+            }
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isTopoDragging) return;
+            const dx = e.clientX - topoDragStartX;
+            const dy = e.clientY - topoDragStartY;
+            if (Math.hypot(dx - topoPanX, dy - topoPanY) > 4) {
+                topoHasMoved = true;
+                canvas.style.cursor = 'grabbing';
+            }
+            topoPanX = dx;
+            topoPanY = dy;
+            if (lastTopoData) drawTopology(lastTopoData, true);
+        });
+
+        window.addEventListener('mouseup', () => {
+            if (isTopoDragging) {
+                isTopoDragging = false;
+                canvas.style.cursor = 'default';
+            }
+        });
+
         // Throttled Canvas Tooltip & Hit-testing via requestAnimationFrame (Zero Lag)
         let mouseMoveScheduled = false;
         let lastMouseEvent = null;
@@ -2048,12 +3167,14 @@
         });
 
         function handleCanvasMouseMove(e) {
-            if (!lastTopoData || !lastNodeCoords || !tooltip || !e) return;
+            if (!lastTopoData || !lastNodeCoords || !tooltip || !e || isTopoDragging) return;
             const rect = canvas.getBoundingClientRect();
-            const scaleX = canvas.width / rect.width;
-            const scaleY = canvas.height / rect.height;
-            const mx = (e.clientX - rect.left) * scaleX;
-            const my = (e.clientY - rect.top) * scaleY;
+            const w = canvas.parentElement?.clientWidth || 1000;
+            const h = 450;
+            const cssX = (e.clientX - rect.left) * (w / rect.width);
+            const cssY = (e.clientY - rect.top) * (h / rect.height);
+            const mx = (cssX - topoPanX) / topoScale;
+            const my = (cssY - topoPanY) / topoScale;
 
             // Check Node
             for (const [id, node] of Object.entries(lastNodeCoords)) {
@@ -2081,7 +3202,7 @@
                 const s = lastNodeCoords[link.source];
                 const t = lastNodeCoords[link.target];
                 if (!s || !t) continue;
-                if (pointToSegmentDist(mx, my, s.x, s.y, t.x, t.y) <= 8) {
+                if (pointToSegmentDist(mx, my, s.x, s.y, t.x, t.y) <= (8 / Math.min(topoScale, 2))) {
                     canvas.style.cursor = 'pointer';
                     const util = (link.utilization || 0);
                     const bw = link.capacity || 100;
@@ -2114,12 +3235,15 @@
 
         // Click on Canvas Node to select Source / Destination for Route Predictor
         canvas.addEventListener('click', (e) => {
+            if (topoHasMoved) return;
             if (!lastTopoData || !lastNodeCoords) return;
             const rect = canvas.getBoundingClientRect();
-            const scaleX = canvas.width / rect.width;
-            const scaleY = canvas.height / rect.height;
-            const mx = (e.clientX - rect.left) * scaleX;
-            const my = (e.clientY - rect.top) * scaleY;
+            const w = canvas.parentElement?.clientWidth || 1000;
+            const h = 450;
+            const cssX = (e.clientX - rect.left) * (w / rect.width);
+            const cssY = (e.clientY - rect.top) * (h / rect.height);
+            const mx = (cssX - topoPanX) / topoScale;
+            const my = (cssY - topoPanY) / topoScale;
 
             for (const [id, node] of Object.entries(lastNodeCoords)) {
                 if (Math.hypot(mx - node.x, my - node.y) <= 22) {
@@ -2143,158 +3267,695 @@
             }
         });
 
-        function resetCanvasZoom() {
-            selectedSrcNode = null;
-            if (lastTopoData) drawTopology(lastTopoData);
-            showToast("Canvas view and node selections reset.", "info");
-        }
+        // ---------------------------------------------------------------------
+        // Plotly Scientific Interactive Plotting Engine (Zoom, Pan, Box Select)
+        // ---------------------------------------------------------------------
+        let currentVerseResult = null;
+        let currentPlotView = 'triad';
 
-        // Dual-Theme Chart.js Configuration
-        function getChartThemeConfig(isDark) {
+        const ALGO_COLORS = {
+            'DQN (Ours)': '#8B5CF6',
+            'OSPF (RFC 2328)': '#F59E0B',
+            'ECMP Multi-Path': '#3B82F6',
+            'WSP Widest Path': '#10B981',
+            'LLR Least Loaded': '#EC4899',
+            'Dijkstra SPF': '#EF4444'
+        };
+
+        function getPlotlyTheme() {
+            const isDark = (document.documentElement.getAttribute('data-theme') === 'dark');
             return {
-                gridColor: isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)',
-                tickColor: isDark ? '#A3A3A3' : '#475569',
-                legendColor: isDark ? '#E5E7EB' : '#0F172A',
-                radarAngle: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)',
-                radarGrid: isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)',
-                radarLabel: isDark ? '#A3A3A3' : '#475569'
+                isDark: isDark,
+                paper_bgcolor: isDark ? 'rgba(17, 24, 39, 0.4)' : '#FFFFFF',
+                plot_bgcolor: isDark ? 'rgba(17, 24, 39, 0.4)' : '#FFFFFF',
+                fontColor: isDark ? '#E5E7EB' : '#1F2937',
+                gridColor: isDark ? 'rgba(255, 255, 255, 0.07)' : 'rgba(0, 0, 0, 0.06)',
+                zeroLineColor: isDark ? 'rgba(255, 255, 255, 0.14)' : 'rgba(0, 0, 0, 0.12)',
+                tickFont: { family: "'JetBrains Mono', monospace", size: 10, color: isDark ? '#9CA3AF' : '#4B5563' },
+                titleFont: { family: "'Inter', sans-serif", size: 11, color: isDark ? '#F3F4F6' : '#111827', weight: 600 }
             };
         }
 
-        function updateChartsTheme(theme) {
-            const isDark = (theme === 'dark');
-            const cfg = getChartThemeConfig(isDark);
+        function switchPlotView(viewName) {
+            currentPlotView = viewName;
 
-            if (chartVersusBar) {
-                chartVersusBar.options.scales.x.grid.color = cfg.gridColor;
-                chartVersusBar.options.scales.x.ticks.color = cfg.tickColor;
-                chartVersusBar.options.scales.y.grid.color = cfg.gridColor;
-                chartVersusBar.options.scales.y.ticks.color = cfg.tickColor;
-                chartVersusBar.options.plugins.legend.labels.color = cfg.legendColor;
-                chartVersusBar.update('none');
+            const allTabs = ['triad', 'bar', 'timeline', 'radar', 'cdf', 'scaling'];
+            allTabs.forEach(t => {
+                const btn = document.getElementById(`btnPlotTab_${t}`);
+                if (btn) btn.classList.toggle('active', t === viewName);
+            });
+
+            const triadEl = document.getElementById('viewContainer_triad');
+            if (triadEl) triadEl.style.display = (viewName === 'triad') ? 'grid' : 'none';
+
+            allTabs.filter(t => t !== 'triad').forEach(t => {
+                const cont = document.getElementById(`viewContainer_${t}`);
+                if (cont) cont.style.display = (viewName === t) ? 'block' : 'none';
+            });
+
+            if (currentVerseResult) {
+                renderAllPlots(currentVerseResult);
             }
-            if (chartVersusTimeline) {
-                chartVersusTimeline.options.scales.x.grid.color = cfg.gridColor;
-                chartVersusTimeline.options.scales.x.ticks.color = cfg.tickColor;
-                chartVersusTimeline.options.scales.y.grid.color = cfg.gridColor;
-                chartVersusTimeline.options.scales.y.ticks.color = cfg.tickColor;
-                chartVersusTimeline.options.plugins.legend.labels.color = cfg.legendColor;
-                chartVersusTimeline.update('none');
+        }
+
+        function renderBarPlot(res, containerId) {
+            const el = document.getElementById(containerId);
+            if (!el || typeof Plotly === 'undefined') return;
+            const theme = getPlotlyTheme();
+            const algos = res.algorithms || ['DQN (Ours)', 'OSPF (RFC 2328)'];
+            const metrics = res.metrics || {};
+            const categories = ['Peak Util (%)', 'Latency (ms)', 'Jitter (ms)', 'Loss (%)', 'SLA Score (0-100)'];
+
+            const data = algos.map(algo => {
+                const m = metrics[algo] || {};
+                return {
+                    x: categories,
+                    y: [
+                        m.bottleneck_util || 0,
+                        m.latency_ms || 0,
+                        m.jitter_ms || 0,
+                        m.packet_loss_pct || 0,
+                        m.qos_sla_score || 0
+                    ],
+                    name: algo,
+                    type: 'bar',
+                    marker: { color: ALGO_COLORS[algo] || '#6366F1' },
+                    hovertemplate: '<b>%{data.name}</b><br>%{x}: <b>%{y:.2f}</b><extra></extra>'
+                };
+            });
+
+            const layout = {
+                barmode: 'group',
+                margin: { t: 25, b: 35, l: 45, r: 20 },
+                paper_bgcolor: theme.paper_bgcolor,
+                plot_bgcolor: theme.plot_bgcolor,
+                font: { family: "'Inter', sans-serif", color: theme.fontColor, size: 11 },
+                legend: { orientation: 'h', y: 1.15, x: 0.5, xanchor: 'center', font: { size: 10, color: theme.fontColor } },
+                xaxis: { gridcolor: theme.gridColor, tickfont: theme.tickFont },
+                yaxis: { gridcolor: theme.gridColor, zerolinecolor: theme.zeroLineColor, tickfont: theme.tickFont }
+            };
+
+            const config = {
+                responsive: true,
+                scrollZoom: true,
+                displayModeBar: false
+            };
+
+            Plotly.react(containerId, data, layout, config);
+        }
+
+        function renderTimelinePlot(res, containerId) {
+            const el = document.getElementById(containerId);
+            if (!el || typeof Plotly === 'undefined') return;
+            const theme = getPlotlyTheme();
+            const algos = res.algorithms || ['DQN (Ours)', 'OSPF (RFC 2328)'];
+            const tl = res.timeline || {};
+            const steps = tl.steps || [1, 2, 3, 4, 5];
+            const latencyMap = tl.latency || {};
+
+            const data = algos.map(algo => {
+                const yVals = latencyMap[algo] || [];
+                return {
+                    x: steps,
+                    y: yVals,
+                    name: algo,
+                    type: 'scatter',
+                    mode: 'lines+markers',
+                    line: {
+                        color: ALGO_COLORS[algo] || '#6366F1',
+                        shape: 'spline',
+                        width: algo.includes('DQN') ? 3 : 2
+                    },
+                    marker: { size: 6 },
+                    hovertemplate: '<b>%{data.name}</b><br>Step %{x}: <b>%{y:.2f} ms</b><extra></extra>'
+                };
+            });
+
+            const layout = {
+                margin: { t: 25, b: 35, l: 45, r: 20 },
+                paper_bgcolor: theme.paper_bgcolor,
+                plot_bgcolor: theme.plot_bgcolor,
+                font: { family: "'Inter', sans-serif", color: theme.fontColor, size: 11 },
+                legend: { orientation: 'h', y: 1.15, x: 0.5, xanchor: 'center', font: { size: 10, color: theme.fontColor } },
+                xaxis: { title: 'Flow Burst Steps', gridcolor: theme.gridColor, tickfont: theme.tickFont },
+                yaxis: { title: 'Latency (ms)', gridcolor: theme.gridColor, zerolinecolor: theme.zeroLineColor, tickfont: theme.tickFont }
+            };
+
+            const config = {
+                responsive: true,
+                scrollZoom: true,
+                displayModeBar: false
+            };
+
+            Plotly.react(containerId, data, layout, config);
+        }
+
+        function renderRadarPlot(res, containerId) {
+            const el = document.getElementById(containerId);
+            if (!el || typeof Plotly === 'undefined') return;
+            const theme = getPlotlyTheme();
+            const radar = res.radar || {};
+            const categories = radar.categories || ["Congestion Relief", "Low Latency", "Jitter Stability", "Zero Loss", "Fairness", "Decision Speed"];
+            const datasets = radar.datasets || [];
+            const catsClosed = [...categories, categories[0]];
+
+            const data = datasets.map(ds => {
+                const valsClosed = [...ds.data, ds.data[0]];
+                return {
+                    type: 'scatterpolar',
+                    r: valsClosed,
+                    theta: catsClosed,
+                    fill: 'toself',
+                    name: ds.label,
+                    line: { color: ds.borderColor || ALGO_COLORS[ds.label] || '#6366F1', width: 2 },
+                    marker: { size: 4 },
+                    hovertemplate: '<b>%{data.name}</b><br>%{theta}: <b>%{r:.1f}/100</b><extra></extra>'
+                };
+            });
+
+            const layout = {
+                margin: { t: 40, b: 30, l: 40, r: 40 },
+                paper_bgcolor: theme.paper_bgcolor,
+                plot_bgcolor: theme.plot_bgcolor,
+                font: { family: "'Inter', sans-serif", color: theme.fontColor, size: 10 },
+                legend: { orientation: 'h', y: 1.18, x: 0.5, xanchor: 'center', font: { size: 10, color: theme.fontColor } },
+                polar: {
+                    domain: { x: [0.05, 0.95], y: [0.05, 0.95] },
+                    bgcolor: theme.plot_bgcolor,
+                    radialaxis: {
+                        visible: true,
+                        range: [0, 100],
+                        gridcolor: theme.gridColor,
+                        tickfont: theme.tickFont
+                    },
+                    angularaxis: {
+                        gridcolor: theme.gridColor,
+                        tickfont: { family: "'Inter', sans-serif", size: 10, color: theme.fontColor }
+                    }
+                }
+            };
+
+            const config = {
+                responsive: true,
+                scrollZoom: true,
+                displayModeBar: false
+            };
+
+            Plotly.react(containerId, data, layout, config);
+        }
+
+        function renderCdfPlot(res, containerId) {
+            const el = document.getElementById(containerId);
+            if (!el || typeof Plotly === 'undefined') return;
+            const theme = getPlotlyTheme();
+            const cdfs = res.cdfs || {};
+            const algos = Object.keys(cdfs);
+
+            const data = algos.map(algo => {
+                const item = cdfs[algo];
+                return {
+                    x: item.latency_x,
+                    y: item.latency_y,
+                    name: algo,
+                    type: 'scatter',
+                    mode: 'lines',
+                    line: {
+                        color: ALGO_COLORS[algo] || '#6366F1',
+                        shape: 'spline',
+                        width: algo.includes('DQN') ? 3 : 2
+                    },
+                    hovertemplate: '<b>%{data.name}</b><br>Latency: <b>%{x:.2f} ms</b><br>Cumulative P(L ≤ x): <b>%{y:.3f}</b><extra></extra>'
+                };
+            });
+
+            const layout = {
+                margin: { t: 25, b: 35, l: 45, r: 20 },
+                paper_bgcolor: theme.paper_bgcolor,
+                plot_bgcolor: theme.plot_bgcolor,
+                font: { family: "'Inter', sans-serif", color: theme.fontColor, size: 11 },
+                legend: { orientation: 'h', y: 1.15, x: 0.5, xanchor: 'center', font: { size: 10, color: theme.fontColor } },
+                xaxis: { title: 'End-to-End Latency (ms)', gridcolor: theme.gridColor, tickfont: theme.tickFont },
+                yaxis: { title: 'Cumulative Probability P(L ≤ x)', range: [0, 1.05], gridcolor: theme.gridColor, tickfont: theme.tickFont }
+            };
+
+            const config = {
+                responsive: true,
+                scrollZoom: true,
+                displayModeBar: false
+            };
+
+            Plotly.react(containerId, data, layout, config);
+        }
+
+        function renderScalingPlot(res, containerId) {
+            const el = document.getElementById(containerId);
+            if (!el || typeof Plotly === 'undefined') return;
+            const theme = getPlotlyTheme();
+            const scaling = res.scaling || {};
+            const levels = scaling.load_levels || [20, 40, 60, 80, 100];
+            const curves = scaling.curves || {};
+            const algos = Object.keys(curves);
+
+            const data = algos.map(algo => {
+                return {
+                    x: levels,
+                    y: curves[algo],
+                    name: algo,
+                    type: 'scatter',
+                    mode: 'lines+markers',
+                    line: {
+                        color: ALGO_COLORS[algo] || '#6366F1',
+                        shape: 'spline',
+                        width: algo.includes('DQN') ? 3 : 2
+                    },
+                    marker: { size: 6 },
+                    hovertemplate: '<b>%{data.name}</b><br>Traffic Load: <b>%{x}%</b><br>Latency: <b>%{y:.2f} ms</b><extra></extra>'
+                };
+            });
+
+            const layout = {
+                margin: { t: 25, b: 35, l: 45, r: 20 },
+                paper_bgcolor: theme.paper_bgcolor,
+                plot_bgcolor: theme.plot_bgcolor,
+                font: { family: "'Inter', sans-serif", color: theme.fontColor, size: 11 },
+                legend: { orientation: 'h', y: 1.15, x: 0.5, xanchor: 'center', font: { size: 10, color: theme.fontColor } },
+                xaxis: { title: 'Offered Traffic Load (% Fabric Capacity)', gridcolor: theme.gridColor, tickfont: theme.tickFont },
+                yaxis: { title: 'Mean Flow Latency (ms)', gridcolor: theme.gridColor, tickfont: theme.tickFont }
+            };
+
+            const config = {
+                responsive: true,
+                scrollZoom: true,
+                displayModeBar: false
+            };
+
+            Plotly.react(containerId, data, layout, config);
+        }
+
+        function renderAllPlots(res) {
+            if (!res) return;
+            currentVerseResult = res;
+
+            if (currentPlotView === 'triad') {
+                renderBarPlot(res, 'chartVersusBar');
+                renderTimelinePlot(res, 'chartVersusTimeline');
+                renderRadarPlot(res, 'chartVersusRadar');
+            } else if (currentPlotView === 'bar') {
+                renderBarPlot(res, 'chartVersusBarExpanded');
+            } else if (currentPlotView === 'timeline') {
+                renderTimelinePlot(res, 'chartVersusTimelineExpanded');
+            } else if (currentPlotView === 'radar') {
+                renderRadarPlot(res, 'chartVersusRadarExpanded');
+            } else if (currentPlotView === 'cdf') {
+                renderCdfPlot(res, 'chartVersusCdfExpanded');
+            } else if (currentPlotView === 'scaling') {
+                renderScalingPlot(res, 'chartVersusScalingExpanded');
             }
-            if (chartVersusRadar) {
-                chartVersusRadar.options.scales.r.angleLines.color = cfg.radarAngle;
-                chartVersusRadar.options.scales.r.grid.color = cfg.radarGrid;
-                chartVersusRadar.options.scales.r.pointLabels.color = cfg.radarLabel;
-                chartVersusRadar.options.plugins.legend.labels.color = cfg.legendColor;
-                chartVersusRadar.update('none');
+
+            const urlFs = new URLSearchParams(window.location.search).get('fs');
+            if (urlFs && !window._hasHandledFs) {
+                window._hasHandledFs = true;
+                togglePlotFullscreen(urlFs);
             }
+        }
+
+        let activeFullscreenPlot = null;
+
+        function togglePlotFullscreen(boxId, containerId) {
+            const aliasMap = {
+                'bar': 'box_versusBar',
+                'timeline': 'box_versusTimeline',
+                'radar': 'box_versusRadar',
+                'cdf': 'viewContainer_cdf',
+                'scaling': 'viewContainer_scaling'
+            };
+            if (aliasMap[boxId]) boxId = aliasMap[boxId];
+
+            const box = document.getElementById(boxId);
+            if (!box) return;
+
+            const isCurrentlyFullscreen = box.classList.contains('fullscreen');
+            const fsBtn = box.querySelector('.fullscreen-btn');
+
+            if (isCurrentlyFullscreen) {
+                // Exit fullscreen
+                box.classList.remove('fullscreen');
+                document.body.classList.remove('has-plot-fullscreen');
+                if (fsBtn) {
+                    fsBtn.innerHTML = '⛶ Fullscreen';
+                    fsBtn.classList.remove('active');
+                }
+                activeFullscreenPlot = null;
+                if (document.fullscreenElement) {
+                    document.exitFullscreen().catch(() => {});
+                }
+                showToast("Exited fullscreen mode.", "info");
+            } else {
+                // Close any previously open fullscreen box
+                if (activeFullscreenPlot && activeFullscreenPlot !== boxId) {
+                    const prevBox = document.getElementById(activeFullscreenPlot);
+                    if (prevBox) {
+                        prevBox.classList.remove('fullscreen');
+                        const prevBtn = prevBox.querySelector('.fullscreen-btn');
+                        if (prevBtn) {
+                            prevBtn.innerHTML = '⛶ Fullscreen';
+                            prevBtn.classList.remove('active');
+                        }
+                    }
+                }
+
+                // Enter fullscreen
+                box.classList.add('fullscreen');
+                document.body.classList.add('has-plot-fullscreen');
+                if (fsBtn) {
+                    fsBtn.innerHTML = '✕ Exit Fullscreen (Esc)';
+                    fsBtn.classList.add('active');
+                }
+                activeFullscreenPlot = boxId;
+
+                // Attempt native HTML5 requestFullscreen if supported
+                if (box.requestFullscreen && !document.fullscreenElement) {
+                    box.requestFullscreen().catch(() => {});
+                }
+
+                showToast("Entered fullscreen mode. Press Esc to exit.", "info");
+            }
+
+            // High-resolution plot resize (dual trigger to handle animations)
+            const targetContainerId = containerId || box.querySelector('[id^="chartVersus"]')?.id;
+            const resizePlot = () => {
+                if (targetContainerId) {
+                    const el = document.getElementById(targetContainerId);
+                    if (el && typeof Plotly !== 'undefined') {
+                        try { Plotly.relayout(el, { autosize: true }); } catch(e) {}
+                        Plotly.Plots.resize(el);
+                    }
+                }
+            };
+            resizePlot();
+            setTimeout(resizePlot, 50);
+            setTimeout(resizePlot, 250);
+        }
+
+        // Global Keyboard Event Listener (Operator Ergonomics)
+        document.addEventListener('keydown', (e) => {
+            const tag = (e.target && e.target.tagName) ? e.target.tagName.toUpperCase() : '';
+            const isEditing = (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (e.target && e.target.isContentEditable));
+
+            // Escape closes modals or fullscreen plots regardless of input focus
+            if (e.key === 'Escape') {
+                if (activeFullscreenPlot) {
+                    togglePlotFullscreen(activeFullscreenPlot);
+                    return;
+                }
+                const guideModal = document.getElementById('userGuideModal');
+                if (guideModal && guideModal.classList.contains('active')) {
+                    closeUserGuideModal();
+                    return;
+                }
+                const netModal = document.getElementById('networkSettingsModal');
+                if (netModal && netModal.classList.contains('active')) {
+                    closeNetworkSettingsModal();
+                    return;
+                }
+                const modelModal = document.getElementById('modelInspectModal');
+                if (modelModal && modelModal.classList.contains('active')) {
+                    closeModelInspectModal();
+                    return;
+                }
+                const plotModal = document.getElementById('plotStudioModal');
+                if (plotModal && plotModal.classList.contains('active')) {
+                    closePlotStudioModal();
+                    return;
+                }
+                return;
+            }
+
+            if (isEditing || e.ctrlKey || e.metaKey || e.altKey) {
+                return;
+            }
+
+            const key = e.key.toLowerCase();
+            if (e.key === ' ') {
+                e.preventDefault();
+                toggleAutoRefresh();
+            } else if (key === '?' || key === 'h') {
+                e.preventDefault();
+                const m = document.getElementById('userGuideModal');
+                if (m && m.classList.contains('active')) closeUserGuideModal();
+                else openUserGuideModal();
+            } else if (key === 't') {
+                e.preventDefault();
+                runVersusMatchup();
+            } else if (key === 'p') {
+                e.preventDefault();
+                runRoutePrediction();
+            } else if (key === 'r') {
+                e.preventDefault();
+                resetCanvasZoom();
+            } else if (e.key === '+' || e.key === '=') {
+                e.preventDefault();
+                zoomInTopo();
+            } else if (e.key === '-' || e.key === '_') {
+                e.preventDefault();
+                zoomOutTopo();
+            } else if (key === 'm') {
+                e.preventDefault();
+                openModelInspectModal();
+            } else if (key === 's') {
+                e.preventDefault();
+                openNetworkSettingsModal();
+            } else if (key === 'f') {
+                e.preventDefault();
+                openPlotStudioModal();
+            }
+        });
+
+        // Sync with browser fullscreen state (e.g. if user presses native ESC)
+        document.addEventListener('fullscreenchange', () => {
+            if (!document.fullscreenElement && activeFullscreenPlot) {
+                const box = document.getElementById(activeFullscreenPlot);
+                if (box && box.classList.contains('fullscreen')) {
+                    box.classList.remove('fullscreen');
+                    document.body.classList.remove('has-plot-fullscreen');
+                    const fsBtn = box.querySelector('.fullscreen-btn');
+                    if (fsBtn) {
+                        fsBtn.innerHTML = '⛶ Fullscreen';
+                        fsBtn.classList.remove('active');
+                    }
+                    const targetEl = box.querySelector('[id^="chartVersus"]');
+                    if (targetEl && typeof Plotly !== 'undefined') {
+                        setTimeout(() => Plotly.Plots.resize(targetEl), 60);
+                    }
+                    activeFullscreenPlot = null;
+                }
+            }
+        });
+
+        function zoomPlotIn(containerId) {
+            const el = document.getElementById(containerId);
+            if (!el || typeof Plotly === 'undefined') return;
+            const full = el._fullLayout || el.layout;
+            if (!full) return;
+
+            // Handle polar/radar chart zoom
+            if (full.polar) {
+                const curRange = full.polar.radialaxis?.range || [0, 100];
+                const span = curRange[1] - curRange[0];
+                Plotly.relayout(el, { 'polar.radialaxis.range': [curRange[0], Math.max(20, curRange[1] - span * 0.2)] });
+                return;
+            }
+
+            if (full.xaxis && full.xaxis.range) {
+                const xr = [...full.xaxis.range];
+                const xspan = xr[1] - xr[0];
+                const update = {
+                    'xaxis.range[0]': xr[0] + xspan * 0.15,
+                    'xaxis.range[1]': xr[1] - xspan * 0.15
+                };
+                if (full.yaxis && full.yaxis.range) {
+                    const yr = [...full.yaxis.range];
+                    const yspan = yr[1] - yr[0];
+                    update['yaxis.range[0]'] = yr[0] + yspan * 0.15;
+                    update['yaxis.range[1]'] = yr[1] - yspan * 0.15;
+                }
+                Plotly.relayout(el, update);
+            }
+        }
+
+        function zoomPlotOut(containerId) {
+            const el = document.getElementById(containerId);
+            if (!el || typeof Plotly === 'undefined') return;
+            const full = el._fullLayout || el.layout;
+            if (!full) return;
+
+            // Handle polar/radar chart zoom
+            if (full.polar) {
+                const curRange = full.polar.radialaxis?.range || [0, 100];
+                const span = curRange[1] - curRange[0];
+                Plotly.relayout(el, { 'polar.radialaxis.range': [0, Math.min(150, curRange[1] + span * 0.25)] });
+                return;
+            }
+
+            if (full.xaxis && full.xaxis.range) {
+                const xr = [...full.xaxis.range];
+                const xspan = xr[1] - xr[0];
+                const update = {
+                    'xaxis.range[0]': xr[0] - xspan * 0.2,
+                    'xaxis.range[1]': xr[1] + xspan * 0.2
+                };
+                if (full.yaxis && full.yaxis.range) {
+                    const yr = [...full.yaxis.range];
+                    const yspan = yr[1] - yr[0];
+                    update['yaxis.range[0]'] = yr[0] - yspan * 0.2;
+                    update['yaxis.range[1]'] = yr[1] + yspan * 0.2;
+                }
+                Plotly.relayout(el, update);
+            }
+        }
+
+        function resetPlotZoom(containerId) {
+            const el = document.getElementById(containerId);
+            if (!el || typeof Plotly === 'undefined') return;
+            const full = el._fullLayout || el.layout;
+            if (full && full.polar) {
+                Plotly.relayout(el, { 'polar.radialaxis.range': [0, 100] });
+            } else {
+                Plotly.relayout(el, {
+                    'xaxis.autorange': true,
+                    'yaxis.autorange': true
+                });
+            }
+            showToast("Plot zoom reset to 100%.", "info");
+        }
+
+        function resetAllPlotZooms() {
+            if (typeof Plotly === 'undefined') return;
+            const ids = ['chartVersusBar', 'chartVersusTimeline', 'chartVersusRadar', 'chartVersusBarExpanded', 'chartVersusTimelineExpanded', 'chartVersusRadarExpanded', 'chartVersusCdfExpanded', 'chartVersusScalingExpanded'];
+            ids.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    const full = el._fullLayout || el.layout;
+                    if (full && full.polar) {
+                        Plotly.relayout(el, { 'polar.radialaxis.range': [0, 100] });
+                    } else if (full) {
+                        Plotly.relayout(el, { 'xaxis.autorange': true, 'yaxis.autorange': true });
+                    }
+                }
+            });
+            showToast("All plot zooms reset to 100%.", "info");
+        }
+
+        function downloadPlotPng(containerId, filename) {
+            const el = document.getElementById(containerId);
+            if (!el || typeof Plotly === 'undefined') return;
+            Plotly.downloadImage(el, { format: 'png', width: 1400, height: 800, filename: filename || 'sdn_te_plot' });
+            showToast(`Exported plot: ${filename || 'sdn_te_plot.png'}`, "success");
         }
 
         function initCharts() {
-            const isDark = (document.documentElement.getAttribute('data-theme') === 'dark');
-            const cfg = getChartThemeConfig(isDark);
-
-            const baseOptions = {
-                responsive: true,
-                maintainAspectRatio: false,
-                animation: { duration: 250 },
-                scales: {
-                    x: {
-                        grid: { color: cfg.gridColor, lineWidth: 1 },
-                        ticks: { color: cfg.tickColor, font: { family: "'JetBrains Mono', monospace", size: 10 } }
-                    },
-                    y: {
-                        grid: { color: cfg.gridColor, lineWidth: 1 },
-                        ticks: { color: cfg.tickColor, font: { family: "'JetBrains Mono', monospace", size: 10 } }
-                    }
-                },
-                plugins: {
-                    legend: {
-                        labels: {
-                            color: cfg.legendColor,
-                            font: { family: "'Inter', sans-serif", size: 11, weight: 600 }
-                        }
-                    }
-                }
+            const protoKeyMap = {
+                'dqn': 'DQN (Ours)',
+                'ospf': 'OSPF (RFC 2328)',
+                'ecmp': 'ECMP Multi-Path',
+                'wsp': 'WSP Widest Path',
+                'llr': 'LLR Least Loaded',
+                'dijkstra': 'Dijkstra SPF',
+                'spf': 'Dijkstra SPF'
             };
 
-            // 1. Comparison Bar Chart
-            const ctxV1 = document.getElementById('chartVersusBar').getContext('2d');
-            chartVersusBar = new Chart(ctxV1, {
-                type: 'bar',
-                data: {
-                    labels: ['Peak Util (%)', 'Mean Latency (ms)', 'Jitter (ms)', 'Packet Loss (%)', 'QoS SLA (0-100)'],
-                    datasets: [
-                        { label: 'DQN (Ours)', data: [32.0, 17.8, 2.5, 0.02, 94.5], backgroundColor: '#8B5CF6', borderRadius: 4, normalized: true },
-                        { label: 'OSPF (RFC 2328)', data: [68.4, 58.2, 28.3, 4.8, 68.3], backgroundColor: '#F59E0B', borderRadius: 4, normalized: true }
-                    ]
-                },
-                options: {
-                    ...baseOptions,
-                    plugins: { ...baseOptions.plugins, title: { display: false } }
+            const allPresetMetrics = {
+                'DQN (Ours)': { bottleneck_util: 32.0, latency_ms: 17.81, jitter_ms: 2.57, packet_loss_pct: 0.02, qos_sla_score: 99.9 },
+                'OSPF (RFC 2328)': { bottleneck_util: 68.4, latency_ms: 58.2, jitter_ms: 28.3, packet_loss_pct: 4.8, qos_sla_score: 68.3 },
+                'ECMP Multi-Path': { bottleneck_util: 45.2, latency_ms: 24.5, jitter_ms: 8.2, packet_loss_pct: 0.8, qos_sla_score: 91.0 },
+                'WSP Widest Path': { bottleneck_util: 48.6, latency_ms: 26.8, jitter_ms: 9.5, packet_loss_pct: 0.95, qos_sla_score: 89.2 },
+                'LLR Least Loaded': { bottleneck_util: 42.1, latency_ms: 22.9, jitter_ms: 7.4, packet_loss_pct: 0.6, qos_sla_score: 92.5 },
+                'Dijkstra SPF': { bottleneck_util: 62.5, latency_ms: 51.0, jitter_ms: 22.4, packet_loss_pct: 3.5, qos_sla_score: 74.0 }
+            };
+
+            const allPresetTimelines = {
+                'DQN (Ours)': [15.2, 17.8, 16.5, 18.2, 16.9, 17.8],
+                'OSPF (RFC 2328)': [20.5, 38.4, 55.2, 78.6, 92.4, 110.5],
+                'ECMP Multi-Path': [18.2, 22.4, 28.6, 32.1, 35.8, 41.2],
+                'WSP Widest Path': [19.0, 23.5, 29.8, 34.0, 38.2, 44.5],
+                'LLR Least Loaded': [17.5, 21.0, 26.5, 30.2, 33.9, 39.0],
+                'Dijkstra SPF': [19.8, 34.2, 48.6, 68.0, 82.5, 98.0]
+            };
+
+            const allPresetRadars = {
+                'DQN (Ours)': { data: [95, 92, 96, 99, 94, 91], borderColor: '#8B5CF6' },
+                'OSPF (RFC 2328)': { data: [35, 55, 45, 75, 60, 85], borderColor: '#F59E0B' },
+                'ECMP Multi-Path': { data: [70, 80, 82, 92, 85, 90], borderColor: '#3B82F6' },
+                'WSP Widest Path': { data: [68, 78, 80, 90, 82, 88], borderColor: '#10B981' },
+                'LLR Least Loaded': { data: [75, 82, 85, 94, 88, 92], borderColor: '#EC4899' },
+                'Dijkstra SPF': { data: [42, 60, 52, 80, 65, 86], borderColor: '#EF4444' }
+            };
+
+            const allPresetCdfs = {
+                'DQN (Ours)': { latency_x: [10, 12, 14, 16, 18, 20, 22], latency_y: [0.1, 0.25, 0.5, 0.75, 0.9, 0.98, 1.0] },
+                'OSPF (RFC 2328)': { latency_x: [15, 25, 40, 65, 90, 120, 160], latency_y: [0.05, 0.15, 0.35, 0.6, 0.8, 0.92, 1.0] },
+                'ECMP Multi-Path': { latency_x: [12, 18, 24, 30, 38, 48, 60], latency_y: [0.08, 0.2, 0.45, 0.7, 0.85, 0.95, 1.0] },
+                'WSP Widest Path': { latency_x: [13, 19, 26, 33, 42, 52, 65], latency_y: [0.07, 0.19, 0.42, 0.68, 0.84, 0.94, 1.0] },
+                'LLR Least Loaded': { latency_x: [11, 16, 22, 28, 35, 45, 55], latency_y: [0.09, 0.22, 0.48, 0.73, 0.88, 0.96, 1.0] },
+                'Dijkstra SPF': { latency_x: [14, 23, 36, 58, 82, 110, 145], latency_y: [0.06, 0.16, 0.38, 0.63, 0.82, 0.93, 1.0] }
+            };
+
+            const allPresetScaling = {
+                'DQN (Ours)': [12.5, 14.2, 15.8, 17.1, 18.2],
+                'OSPF (RFC 2328)': [15.2, 28.4, 48.6, 76.2, 112.5],
+                'ECMP Multi-Path': [13.8, 18.5, 26.2, 36.4, 49.8],
+                'WSP Widest Path': [14.2, 19.8, 28.0, 39.5, 53.2],
+                'LLR Least Loaded': [13.2, 17.6, 24.8, 34.2, 46.5],
+                'Dijkstra SPF': [14.8, 26.0, 43.5, 68.2, 98.4]
+            };
+
+            const activeAlgos = [];
+            ['dqn', 'ospf', 'ecmp', 'wsp', 'llr', 'dijkstra'].forEach(p => {
+                if (selectedProtocols.has(p) || (p === 'dijkstra' && selectedProtocols.has('spf'))) {
+                    activeAlgos.push(protoKeyMap[p]);
                 }
+            });
+            if (activeAlgos.length === 0) activeAlgos.push('DQN (Ours)', 'OSPF (RFC 2328)');
+
+            const activeMetrics = {};
+            const activeTimeline = {};
+            const activeRadars = [];
+            const activeCdfs = {};
+            const activeScaling = {};
+
+            activeAlgos.forEach(a => {
+                if (allPresetMetrics[a]) activeMetrics[a] = allPresetMetrics[a];
+                if (allPresetTimelines[a]) activeTimeline[a] = allPresetTimelines[a];
+                if (allPresetRadars[a]) activeRadars.push({ label: a, data: allPresetRadars[a].data, borderColor: allPresetRadars[a].borderColor });
+                if (allPresetCdfs[a]) activeCdfs[a] = allPresetCdfs[a];
+                if (allPresetScaling[a]) activeScaling[a] = allPresetScaling[a];
             });
 
-            // 2. Timeline Chart
-            const ctxV2 = document.getElementById('chartVersusTimeline').getContext('2d');
-            chartVersusTimeline = new Chart(ctxV2, {
-                type: 'line',
-                data: {
-                    labels: [1, 5, 10, 15, 20, 25],
-                    datasets: [
-                        { label: 'DQN (ms)', data: [15, 18, 17, 19, 16, 18], borderColor: '#8B5CF6', backgroundColor: 'transparent', tension: 0.3, borderWidth: 2.2 },
-                        { label: 'OSPF (ms)', data: [20, 35, 55, 78, 92, 110], borderColor: '#F59E0B', borderDash: [4, 4], backgroundColor: 'transparent', tension: 0.3, borderWidth: 2 }
-                    ]
+            const initialData = {
+                algorithms: activeAlgos,
+                metrics: activeMetrics,
+                timeline: {
+                    steps: [1, 5, 10, 15, 20, 25],
+                    latency: activeTimeline
                 },
-                options: {
-                    ...baseOptions,
-                    plugins: { ...baseOptions.plugins, title: { display: false } }
+                radar: {
+                    categories: ["Congestion Relief", "Low Latency", "Jitter Stability", "Zero Loss", "Fairness", "Decision Speed"],
+                    datasets: activeRadars
+                },
+                cdfs: activeCdfs,
+                scaling: {
+                    load_levels: [20, 40, 60, 80, 100],
+                    curves: activeScaling
                 }
-            });
+            };
+            currentVerseResult = initialData;
+            renderAllPlots(initialData);
+        }
 
-            // 3. Radar Quality Profile Chart
-            const ctxV3 = document.getElementById('chartVersusRadar').getContext('2d');
-            chartVersusRadar = new Chart(ctxV3, {
-                type: 'radar',
-                data: {
-                    labels: ["Congestion Relief", "Low Latency", "Jitter Stability", "Zero Loss", "Fairness", "Decision Speed"],
-                    datasets: [
-                        {
-                            label: 'DQN (Ours)',
-                            data: [95, 92, 96, 99, 94, 91],
-                            borderColor: '#8B5CF6',
-                            backgroundColor: 'rgba(139, 92, 246, 0.25)',
-                            borderWidth: 2,
-                            pointBackgroundColor: '#8B5CF6'
-                        },
-                        {
-                            label: 'OSPF (RFC 2328)',
-                            data: [35, 55, 45, 75, 60, 85],
-                            borderColor: '#F59E0B',
-                            backgroundColor: 'rgba(245, 158, 11, 0.18)',
-                            borderWidth: 1.8,
-                            pointBackgroundColor: '#F59E0B'
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        r: {
-                            angleLines: { color: cfg.radarAngle },
-                            grid: { color: cfg.radarGrid },
-                            pointLabels: { color: cfg.radarLabel, font: { family: "'Inter', sans-serif", size: 10, weight: 600 } },
-                            ticks: { display: false, max: 100, min: 0 }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            labels: { color: cfg.legendColor, font: { family: "'Inter', sans-serif", size: 10, weight: 600 } }
-                        }
-                    }
-                }
-            });
+        function updateChartsTheme(theme) {
+            if (currentVerseResult) {
+                renderAllPlots(currentVerseResult);
+            }
         }
 
         // Fast Unified Telemetry Fetch (Single Round-Trip)
@@ -2467,8 +4128,8 @@
             const dstNodeId = parseInt(document.getElementById('dstSelect')?.value || -1);
             const pathStr = (predictedPathMatchup?.chosen_path || []).join('-');
 
-            // Dirty checking includes theme state
-            const sig = `${topo.nodes.length}_${topo.links.map(l => Math.round(l.utilization || 0)).join(',')}_${selectedSrcNode}_${srcNodeId}_${dstNodeId}_${pathStr}_${isDark ? 'dark' : 'light'}`;
+            // Dirty checking includes theme state, scale and pan
+            const sig = `${topo.nodes.length}_${topo.links.map(l => Math.round(l.utilization || 0)).join(',')}_${selectedSrcNode}_${srcNodeId}_${dstNodeId}_${pathStr}_${isDark ? 'dark' : 'light'}_${topoScale.toFixed(2)}_${topoPanX.toFixed(0)}_${topoPanY.toFixed(0)}`;
             if (!isForced && sig === lastTopoSignature) {
                 return;
             }
@@ -2485,6 +4146,10 @@
             ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
             ctx.clearRect(0, 0, w, h);
+
+            ctx.save();
+            ctx.translate(topoPanX, topoPanY);
+            ctx.scale(topoScale, topoScale);
 
             const nodeCoords = {};
 
@@ -2564,8 +4229,8 @@
 
                 if (showAllTags || util > 20 || (idx % 3 === 0 && util > 5) || isDQN || isBase) {
                     ctx.fillStyle = isDark ? 'rgba(12, 12, 16, 0.92)' : 'rgba(255, 255, 255, 0.96)';
-                    ctx.strokeStyle = isDQN 
-                        ? (isDark ? '#10B981' : '#059669') 
+                    ctx.strokeStyle = isDQN
+                        ? (isDark ? '#10B981' : '#059669')
                         : ((util > 70) ? (isDark ? '#F43F5E' : '#E11D48') : (util > 35 ? (isDark ? '#F59E0B' : '#D97706') : (isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.15)')));
                     ctx.lineWidth = 1;
 
@@ -2574,8 +4239,8 @@
                     ctx.fill();
                     ctx.stroke();
 
-                    ctx.fillStyle = isDQN 
-                        ? (isDark ? '#10B981' : '#059669') 
+                    ctx.fillStyle = isDQN
+                        ? (isDark ? '#10B981' : '#059669')
                         : ((util > 70) ? (isDark ? '#F43F5E' : '#E11D48') : (util > 35 ? (isDark ? '#F59E0B' : '#D97706') : (isDark ? '#E5E7EB' : '#1E293B')));
                     ctx.font = '700 9px "JetBrains Mono", monospace';
                     ctx.textAlign = 'center';
@@ -2583,6 +4248,42 @@
                     ctx.fillText(`${util.toFixed(0)}%`, midX, midY + 0.5);
                 }
             });
+
+            // Draw Severed Links (Physical cut / broken fiber overlay)
+            if (Array.isArray(topo.severed_links)) {
+                topo.severed_links.forEach(pair => {
+                    const su = pair[0], sv = pair[1];
+                    const s = nodeCoords[su];
+                    const t = nodeCoords[sv];
+                    if (!s || !t) return;
+
+                    ctx.beginPath();
+                    ctx.moveTo(s.x, s.y);
+                    ctx.lineTo(t.x, t.y);
+                    ctx.strokeStyle = '#EF4444';
+                    ctx.lineWidth = 2.4;
+                    ctx.setLineDash([6, 5]);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+
+                    // Midpoint ⚡ CUT badge
+                    const midX = (s.x + t.x) / 2;
+                    const midY = (s.y + t.y) / 2;
+                    ctx.fillStyle = isDark ? 'rgba(239, 68, 68, 0.2)' : 'rgba(239, 68, 68, 0.12)';
+                    ctx.strokeStyle = '#EF4444';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.roundRect(midX - 22, midY - 9, 44, 18, 4);
+                    ctx.fill();
+                    ctx.stroke();
+
+                    ctx.fillStyle = '#EF4444';
+                    ctx.font = '700 9px "JetBrains Mono", monospace';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('⚡ CUT', midX, midY + 0.5);
+                });
+            }
 
             // Draw Switches
             Object.entries(nodeCoords).forEach(([idStr, node]) => {
@@ -2631,6 +4332,8 @@
                 }
             });
 
+            ctx.restore();
+
             const topoName = (topo.meta && topo.meta.name) ? topo.meta.name : 'Fabric';
             const statsLabel = document.getElementById('topoStatsLabel');
             if (statsLabel) statsLabel.textContent = `${topo.nodes.length} switches, ${topo.links.length} links • ${topoName}`;
@@ -2638,10 +4341,14 @@
             if (swCount) swCount.textContent = `Switches: ${topo.nodes.length}`;
             const lkCount = document.getElementById('canvasLinkCount');
             if (lkCount) lkCount.textContent = `Links: ${topo.links.length}`;
+            updateQuickChaosStatus(topo);
         }
 
         // Run Algorithm Tournament (Versus Simulation)
+        let isVersusRunning = false;
         async function runVersusMatchup() {
+            if (isVersusRunning) return;
+            isVersusRunning = true;
             const btn = document.getElementById('btnRunVersus');
             if (btn) {
                 btn.disabled = true;
@@ -2665,6 +4372,7 @@
                 console.error("Versus error:", err);
                 showToast("Simulation API request failed.", "error");
             } finally {
+                isVersusRunning = false;
                 if (btn) {
                     btn.disabled = false;
                     btn.textContent = "⚔️ Execute Head-to-Head Tournament";
@@ -2673,73 +4381,259 @@
         }
 
         function updateVersusVisualizations(res) {
-            const m = res.metrics || {};
-            const dqn = m.dqn || m['DQN (Ours)'] || {};
-            const ospf = m.ospf || m['OSPF (RFC 2328)'] || {};
+            if (!res) return;
+            renderAllPlots(res);
 
-            // 1. Update Bar Chart
-            if (chartVersusBar) {
-                chartVersusBar.data.datasets[0].data = [
-                    dqn.bottleneck_util || 30.0,
-                    dqn.mean_latency || 18.2,
-                    dqn.jitter || 2.4,
-                    dqn.loss || 0.0,
-                    dqn.qos_compliance || 96.0
-                ];
-                chartVersusBar.data.datasets[1].data = [
-                    ospf.bottleneck_util || 65.0,
-                    ospf.mean_latency || 48.5,
-                    ospf.jitter || 14.8,
-                    ospf.loss || 3.5,
-                    ospf.qos_compliance || 72.0
-                ];
-                chartVersusBar.update('none');
-            }
-
-            // 2. Update Timeline Chart
-            if (chartVersusTimeline && res.timeline) {
-                chartVersusTimeline.data.labels = res.timeline.steps || [1, 5, 10, 15, 20];
-                chartVersusTimeline.data.datasets[0].data = res.timeline.dqn || [14, 16, 17, 18, 17];
-                chartVersusTimeline.data.datasets[1].data = res.timeline.ospf || [22, 38, 62, 85, 105];
-                chartVersusTimeline.update('none');
-            }
-
-            // 3. Update Radar Chart
-            if (chartVersusRadar) {
-                const dqnRelief = Math.max(10, Math.min(100, Math.round(100 - (dqn.bottleneck_util || 30))));
-                const ospfRelief = Math.max(10, Math.min(100, Math.round(100 - (ospf.bottleneck_util || 65))));
-                chartVersusRadar.data.datasets[0].data = [dqnRelief, 94, 95, 99, 92, 98];
-                chartVersusRadar.data.datasets[1].data = [ospfRelief, 58, 48, 70, 62, 75];
-                chartVersusRadar.update('none');
-            }
-
-            // 4. Update Verdict Box
+            // Update Verdict Box
             const vBox = document.getElementById('versusVerdictBox');
             if (vBox) {
-                const relief = Math.round((ospf.bottleneck_util || 65) - (dqn.bottleneck_util || 30));
+                const verdictMsg = res.verdict || `D3QN outperforms baselines: Reduced bottleneck congestion with sub-millisecond route optimization across ${res.flow_count || 15} dynamic flows.`;
                 vBox.innerHTML = `
                     <span style="font-size:1.2rem;">🏆</span>
                     <div>
                         <strong>Verdict: D3QN Achieves Superior Pareto Efficiency.</strong>
-                        <span style="color:var(--text-secondary); margin-left:6px;">Reduced bottleneck congestion by <strong>${relief}%</strong> with sub-millisecond route optimization across ${res.flow_count || 15} dynamic flows.</span>
+                        <span style="color:var(--text-secondary); margin-left:6px;">${verdictMsg}</span>
                     </div>
                 `;
             }
         }
 
-        // Protocol Chip Selector Toggle
-        function toggleProtocol(proto, isChecked) {
-            if (isChecked) {
-                selectedProtocols.add(proto);
-            } else {
-                if (selectedProtocols.size > 1) {
-                    selectedProtocols.delete(proto);
-                } else {
-                    showToast("At least one protocol must be selected.", "warning");
-                    const cb = document.getElementById(`algoCheck_${proto}`);
-                    if (cb) cb.checked = true;
+        // =====================================================================
+        // Publication Plot Studio & Deep Zoom Inspector Engine
+        // =====================================================================
+        let studioPlotsList = [];
+        let currentStudioPlot = null;
+        let studioScale = 1.0;
+        let studioPanX = 0;
+        let studioPanY = 0;
+        let isStudioDragging = false;
+        let studioDragStartX = 0;
+        let studioDragStartY = 0;
+        let studioViewportInitialized = false;
+
+        async function openPlotStudioModal(defaultPlotId = null) {
+            const modal = document.getElementById('plotStudioModal');
+            if (!modal) return;
+            modal.classList.add('active');
+
+            if (!studioViewportInitialized) {
+                initPlotStudioViewport();
+                studioViewportInitialized = true;
+            }
+
+            if (studioPlotsList.length === 0) {
+                try {
+                    const res = await fetch('/api/plot_list').then(r => r.json());
+                    if (res && res.status === 'success' && Array.isArray(res.plots)) {
+                        studioPlotsList = res.plots;
+                    }
+                } catch (e) {
+                    console.warn("Failed to load /api/plot_list", e);
                 }
             }
+
+            populatePlotStudioSelector();
+
+            if (studioPlotsList.length > 0) {
+                let target = studioPlotsList[0];
+                if (defaultPlotId) {
+                    const found = studioPlotsList.find(p => p.id === defaultPlotId);
+                    if (found) target = found;
+                }
+                const sel = document.getElementById('plotStudioSelect');
+                if (sel) sel.value = target.id;
+                loadStudioPlot(target);
+            }
+        }
+
+        function closePlotStudioModal() {
+            const modal = document.getElementById('plotStudioModal');
+            if (modal) modal.classList.remove('active');
+        }
+
+        function populatePlotStudioSelector() {
+            const sel = document.getElementById('plotStudioSelect');
+            if (!sel || studioPlotsList.length === 0) return;
+            sel.innerHTML = studioPlotsList.map(p =>
+                `<option value="${p.id}">[${p.category || 'Benchmark'}] ${p.title || p.filename}</option>`
+            ).join('');
+        }
+
+        function onPlotStudioSelect(plotId) {
+            const plot = studioPlotsList.find(p => p.id === plotId);
+            if (plot) {
+                loadStudioPlot(plot);
+            }
+        }
+
+        function loadStudioPlot(plot) {
+            if (!plot) return;
+            currentStudioPlot = plot;
+
+            const img = document.getElementById('plotStudioImg');
+            const titleEl = document.getElementById('plotStudioCaptionTitle');
+            const descEl = document.getElementById('plotStudioCaptionDesc');
+            const dlBtn = document.getElementById('btnDownloadCurrentPlot');
+
+            if (img) {
+                img.src = plot.url;
+            }
+
+            if (titleEl) titleEl.textContent = `${plot.title || plot.id} • ${plot.category || 'Publication Figure'}`;
+            if (descEl) descEl.textContent = plot.description || "High-resolution research benchmark graphic.";
+            if (dlBtn) {
+                dlBtn.href = plot.url;
+                dlBtn.download = plot.filename || `${plot.id}.png`;
+            }
+
+            resetPlotStudioZoom();
+        }
+
+        function initPlotStudioViewport() {
+            const viewport = document.getElementById('plotStudioViewport');
+            if (!viewport) return;
+
+            viewport.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const rect = viewport.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+
+                const factor = e.deltaY < 0 ? 1.15 : 0.87;
+                const newScale = Math.max(0.4, Math.min(6.0, studioScale * factor));
+
+                studioPanX = mouseX - (mouseX - studioPanX) * (newScale / studioScale);
+                studioPanY = mouseY - (mouseY - studioPanY) * (newScale / studioScale);
+                studioScale = newScale;
+
+                applyStudioTransform();
+            }, { passive: false });
+
+            viewport.addEventListener('mousedown', (e) => {
+                if (e.button === 0) {
+                    isStudioDragging = true;
+                    studioDragStartX = e.clientX - studioPanX;
+                    studioDragStartY = e.clientY - studioPanY;
+                    viewport.style.cursor = 'grabbing';
+                }
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!isStudioDragging) return;
+                studioPanX = e.clientX - studioDragStartX;
+                studioPanY = e.clientY - studioDragStartY;
+                applyStudioTransform();
+            });
+
+            window.addEventListener('mouseup', () => {
+                if (isStudioDragging) {
+                    isStudioDragging = false;
+                    const viewport = document.getElementById('plotStudioViewport');
+                    if (viewport) viewport.style.cursor = 'grab';
+                }
+            });
+        }
+
+        function applyStudioTransform() {
+            const stage = document.getElementById('plotStudioStage');
+            const ind = document.getElementById('plotStudioZoomIndicator');
+            if (stage) {
+                stage.style.transform = `translate(${studioPanX}px, ${studioPanY}px) scale(${studioScale})`;
+            }
+            if (ind) {
+                ind.textContent = `Zoom: ${Math.round(studioScale * 100)}% (Scroll or Drag to Pan)`;
+            }
+        }
+
+        function zoomPlotStudio(factor) {
+            studioScale = Math.max(0.4, Math.min(6.0, studioScale * factor));
+            applyStudioTransform();
+        }
+
+        function setPlotStudioZoom(level) {
+            studioScale = level;
+            studioPanX = 0;
+            studioPanY = 0;
+            applyStudioTransform();
+        }
+
+        function resetPlotStudioZoom() {
+            studioScale = 1.0;
+            studioPanX = 0;
+            studioPanY = 0;
+            applyStudioTransform();
+        }
+
+        function fitPlotStudioToScreen() {
+            resetPlotStudioZoom();
+        }
+
+        // Protocol Chip Selector Toggle & Auto-Refresh
+        let versusDebounceTimer = null;
+        function debouncedRunVersusMatchup(delay = 180) {
+            if (versusDebounceTimer) clearTimeout(versusDebounceTimer);
+            versusDebounceTimer = setTimeout(() => {
+                runVersusMatchup();
+            }, delay);
+        }
+
+        function syncProtocolChipsUI() {
+            const protoList = ['dqn', 'ospf', 'ecmp', 'wsp', 'llr', 'dijkstra'];
+            protoList.forEach(p => {
+                const cb = document.getElementById(`algoCheck_${p}`) || (p === 'dijkstra' ? document.getElementById('algoCheck_spf') : null);
+                const chip = document.getElementById(`chip_${p}`);
+                const isSelected = selectedProtocols.has(p) || (p === 'dijkstra' && selectedProtocols.has('spf'));
+                if (cb) cb.checked = isSelected;
+                if (chip) {
+                    if (isSelected) {
+                        chip.classList.add('active');
+                    } else {
+                        chip.classList.remove('active');
+                    }
+                }
+            });
+        }
+
+        function toggleProtocol(proto, isChecked) {
+            if (proto === 'spf') proto = 'dijkstra';
+
+            const chip = document.getElementById(`chip_${proto}`);
+            const cb = document.getElementById(`algoCheck_${proto}`) || (proto === 'dijkstra' ? document.getElementById('algoCheck_spf') : null);
+
+            // D3QN is the core proposal model under test; must always stay enabled
+            if (proto === 'dqn') {
+                if (!isChecked) {
+                    showToast("D3QN (Ours) is the primary model under test and must remain active.", "info");
+                    if (cb) cb.checked = true;
+                    if (chip) chip.classList.add('active');
+                    selectedProtocols.add('dqn');
+                    return;
+                }
+                selectedProtocols.add('dqn');
+                if (chip) chip.classList.add('active');
+                debouncedRunVersusMatchup();
+                return;
+            }
+
+            if (isChecked) {
+                selectedProtocols.add(proto);
+                if (chip) chip.classList.add('active');
+            } else {
+                // Ensure at least one baseline competitor remains active
+                const activeBaselines = Array.from(selectedProtocols).filter(p => p !== 'dqn' && p !== proto && p !== 'spf');
+                if (activeBaselines.length === 0) {
+                    showToast("At least one baseline protocol must remain selected for head-to-head comparison.", "warning");
+                    if (cb) cb.checked = true;
+                    if (chip) chip.classList.add('active');
+                    return;
+                }
+                selectedProtocols.delete(proto);
+                selectedProtocols.delete('spf');
+                if (chip) chip.classList.remove('active');
+            }
+
+            // Immediately simulate new tournament matchup
+            debouncedRunVersusMatchup();
         }
 
         // Route Prediction Call (Connected to Real Model)
@@ -2950,7 +4844,7 @@
         function switchModalTab(tabId) {
             document.querySelectorAll('.modal-tab').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.modal-tab-content').forEach(c => c.classList.remove('active'));
-            
+
             const btn = document.getElementById(`tabBtn_${tabId}`);
             const pane = document.getElementById(tabId);
             if (btn) btn.classList.add('active');
@@ -2960,10 +4854,11 @@
         async function openNetworkSettingsModal() {
             const modal = document.getElementById('networkSettingsModal');
             if (!modal) return;
-            
+
             try {
                 const res = await fetch('/api/network_settings').then(r => r.json());
                 if (res && res.status === 'success') {
+                    // Tab 1: Fabric
                     if (res.topology_id) {
                         const sel = document.getElementById('modalTopoSelect');
                         if (sel) sel.value = res.topology_id;
@@ -2972,33 +4867,111 @@
                         const sel = document.getElementById('modalCapacitySelect');
                         if (sel) sel.value = String(Math.round(res.default_capacity_mbps));
                     }
+                    if (res.core_trunk_ratio) {
+                        const sel = document.getElementById('modalCoreRatio');
+                        if (sel) sel.value = String(res.core_trunk_ratio.toFixed(1));
+                    }
+                    if (res.switch_mtu) {
+                        const sel = document.getElementById('modalSwitchMtu');
+                        if (sel) sel.value = String(res.switch_mtu);
+                    }
+                    if (typeof res.switch_queue_depth === 'number') {
+                        const sl = document.getElementById('modalQueueDepth');
+                        if (sl) { sl.value = res.switch_queue_depth; document.getElementById('modalQueueVal').textContent = res.switch_queue_depth + ' pkts'; }
+                    }
+                    if (typeof res.default_delay_ms === 'number') {
+                        const sl = document.getElementById('modalDelaySlider');
+                        if (sl) { sl.value = res.default_delay_ms; document.getElementById('modalDelayVal').textContent = res.default_delay_ms.toFixed(1) + ' ms'; }
+                    }
+                    if (typeof res.default_jitter_ms === 'number') {
+                        const sl = document.getElementById('modalJitterSlider');
+                        if (sl) { sl.value = res.default_jitter_ms; document.getElementById('modalJitterVal').textContent = res.default_jitter_ms.toFixed(2) + ' ms'; }
+                    }
+                    if (typeof res.base_loss_pct === 'number') {
+                        const sl = document.getElementById('modalLossSlider');
+                        if (sl) { sl.value = res.base_loss_pct; document.getElementById('modalLossVal').textContent = res.base_loss_pct.toFixed(1) + '%'; }
+                    }
+
+                    // Tab 3: D3QN Agent
+                    if (typeof res.w_hops === 'number') {
+                        const sl = document.getElementById('modalWeightHops');
+                        if (sl) { sl.value = res.w_hops; document.getElementById('modalWeightHopsVal').textContent = res.w_hops.toFixed(2); }
+                    }
+                    if (typeof res.w_delay === 'number') {
+                        const sl = document.getElementById('modalWeightDelay');
+                        if (sl) { sl.value = res.w_delay; document.getElementById('modalWeightDelayVal').textContent = res.w_delay.toFixed(2); }
+                    }
+                    if (typeof res.w_congestion === 'number') {
+                        const sl = document.getElementById('modalWeightCongestion');
+                        if (sl) { sl.value = res.w_congestion; document.getElementById('modalWeightCongestionVal').textContent = res.w_congestion.toFixed(1) + '×'; }
+                    }
+                    if (typeof res.w_jitter === 'number') {
+                        const sl = document.getElementById('modalWeightJitter');
+                        if (sl) { sl.value = res.w_jitter; document.getElementById('modalWeightJitterVal').textContent = res.w_jitter.toFixed(2); }
+                    }
+                    if (typeof res.w_loss === 'number') {
+                        const sl = document.getElementById('modalWeightLoss');
+                        if (sl) { sl.value = res.w_loss; document.getElementById('modalWeightLossVal').textContent = res.w_loss.toFixed(2); }
+                    }
+                    if (typeof res.congestion_barrier_pct === 'number') {
+                        const sl = document.getElementById('modalBarrierSlider');
+                        if (sl) { sl.value = res.congestion_barrier_pct; document.getElementById('modalBarrierVal').textContent = Math.round(res.congestion_barrier_pct) + '%'; }
+                    }
+                    if (typeof res.exploration_epsilon === 'number') {
+                        const sl = document.getElementById('modalEpsilonSlider');
+                        if (sl) { sl.value = res.exploration_epsilon; document.getElementById('modalEpsilonVal').textContent = res.exploration_epsilon.toFixed(3); }
+                    }
                     if (res.learning_rate) {
                         const sel = document.getElementById('modalLearningRate');
                         if (sel) sel.value = String(res.learning_rate);
+                    }
+                    if (typeof res.discount_gamma === 'number') {
+                        const sl = document.getElementById('modalDiscountGamma');
+                        if (sl) { sl.value = res.discount_gamma; document.getElementById('modalDiscountVal').textContent = res.discount_gamma.toFixed(2); }
+                    }
+                    if (typeof res.use_per === 'boolean') {
+                        const sel = document.getElementById('modalUsePerSelect');
+                        if (sel) sel.value = String(res.use_per);
+                    }
+
+                    // Tab 4: OpenFlow
+                    if (typeof res.flow_timeout_sec === 'number') {
+                        const sl = document.getElementById('modalFlowTimeout');
+                        if (sl) { sl.value = res.flow_timeout_sec; document.getElementById('modalFlowTimeoutVal').textContent = res.flow_timeout_sec + ' s'; }
                     }
                     if (res.max_flow_rules) {
                         const sel = document.getElementById('modalMaxRules');
                         if (sel) sel.value = String(res.max_flow_rules);
                     }
+                    if (res.poll_interval_sec) {
+                        const sel = document.getElementById('modalPollInterval');
+                        if (sel) sel.value = String(res.poll_interval_sec.toFixed(1));
+                    }
+                    if (res.k_candidate_paths) {
+                        const sel = document.getElementById('modalKPaths');
+                        if (sel) sel.value = String(res.k_candidate_paths);
+                    }
+                    if (res.lldp_interval_sec) {
+                        const sel = document.getElementById('modalLldpInterval');
+                        if (sel) sel.value = String(res.lldp_interval_sec.toFixed(1));
+                    }
+                    if (res.control_channel_mode) {
+                        const sel = document.getElementById('modalControlChannel');
+                        if (sel) sel.value = res.control_channel_mode;
+                    }
+
+                    // Tab 5: Traffic
                     if (res.traffic_pattern) {
                         const sel = document.getElementById('modalTrafficPattern');
                         if (sel) sel.value = res.traffic_pattern;
                     }
+                    if (res.traffic_flow_rate_mbps) {
+                        const sel = document.getElementById('modalFlowRate');
+                        if (sel) sel.value = String(res.traffic_flow_rate_mbps.toFixed(1));
+                    }
                     if (res.diffserv_dscp) {
                         const sel = document.getElementById('modalDscpClass');
                         if (sel) sel.value = res.diffserv_dscp;
-                    }
-                    if (typeof res.w_hops === 'number') {
-                        const sl = document.getElementById('modalWeightHops');
-                        if (sl) { sl.value = res.w_hops; document.getElementById('modalWeightHopsVal').textContent = res.w_hops.toFixed(2); }
-                    }
-                    if (typeof res.w_congestion === 'number') {
-                        const sl = document.getElementById('modalWeightCongestion');
-                        if (sl) { sl.value = res.w_congestion; document.getElementById('modalWeightCongestionVal').textContent = res.w_congestion.toFixed(2); }
-                    }
-                    if (typeof res.exploration_epsilon === 'number') {
-                        const sl = document.getElementById('modalEpsilonSlider');
-                        if (sl) { sl.value = res.exploration_epsilon; document.getElementById('modalEpsilonVal').textContent = res.exploration_epsilon.toFixed(3); }
                     }
                 }
             } catch (e) {
@@ -3041,7 +5014,7 @@
         function populateModalLinkList() {
             const sel = document.getElementById('modalLinkSelect');
             if (!sel || !lastTopoData || !lastTopoData.links) return;
-            sel.innerHTML = lastTopoData.links.map(l => 
+            sel.innerHTML = lastTopoData.links.map(l =>
                 `<option value="${l.source}-${l.target}">Link s${l.source} ↔ s${l.target} (${l.capacity || 100} Mbps)</option>`
             ).join('');
         }
@@ -3131,6 +5104,269 @@
             }
         }
 
+        // ---------------------------------------------------------------------
+        // Quick Chaos Toolbar & Live Fault Indicators
+        // ---------------------------------------------------------------------
+        function updateQuickChaosStatus(topo) {
+            const pill = document.getElementById('quickFaultStatusPill');
+            if (!pill) return;
+            const severedCount = (topo && Array.isArray(topo.severed_links)) ? topo.severed_links.length : 0;
+            const degradedCount = (topo && Array.isArray(topo.degraded_links)) ? topo.degraded_links.length : 0;
+
+            if (severedCount > 0 || degradedCount > 0) {
+                pill.className = 'chaos-status-pill has-faults';
+                let msg = '⚠️ ';
+                if (severedCount > 0) msg += `${severedCount} Cut `;
+                if (degradedCount > 0) msg += `${degradedCount} Throttled`;
+                pill.innerHTML = `<span>${msg.trim()}</span>`;
+            } else {
+                pill.className = 'chaos-status-pill';
+                pill.innerHTML = `<span>🟢 Fabric Nominal</span>`;
+            }
+        }
+
+        async function quickFailSelectedLink() {
+            let u = null, v = null;
+            const srcSel = document.getElementById('srcSelect');
+            const dstSel = document.getElementById('dstSelect');
+            if (srcSel && dstSel) {
+                u = parseInt(srcSel.value);
+                v = parseInt(dstSel.value);
+            }
+            try {
+                let url = '/api/simulate/link_fail';
+                if (u && v && lastTopoData && lastTopoData.links && lastTopoData.links.some(l => (l.source === u && l.target === v) || (l.source === v && l.target === u))) {
+                    url += `?u=${u}&v=${v}`;
+                }
+                const res = await fetch(url, { method: 'POST' }).then(r => r.json());
+                if (res.status === 'success') {
+                    showToast(res.message || "⚡ Physical link severed! D3QN failover triggered.", "error");
+                } else {
+                    showToast(res.message || "No link to sever", "warning");
+                }
+                await fetchTelemetry(null, true);
+                runRoutePrediction();
+            } catch (err) {
+                showToast("Link severance failed: " + err.message, "error");
+            }
+        }
+
+        async function quickDegradeLink() {
+            let u = 2, v = 4;
+            const srcSel = document.getElementById('srcSelect');
+            const dstSel = document.getElementById('dstSelect');
+            if (srcSel && dstSel) {
+                const su = parseInt(srcSel.value);
+                const sv = parseInt(dstSel.value);
+                if (lastTopoData && lastTopoData.links && lastTopoData.links.some(l => (l.source === su && l.target === sv) || (l.source === sv && l.target === su))) {
+                    u = su;
+                    v = sv;
+                }
+            }
+            try {
+                const res = await fetch(`/api/simulate/link_degrade?u=${u}&v=${v}`, { method: 'POST' }).then(r => r.json());
+                showToast(res.message || `⚠️ Link s${u} ↔ s${v} throttled to 10% (brownout simulated).`, "warning");
+                await fetchTelemetry(null, true);
+                runRoutePrediction();
+            } catch (err) {
+                showToast("Degrade failed: " + err.message, "error");
+            }
+        }
+
+        async function quickInjectBurst() {
+            const srcSel = document.getElementById('srcSelect');
+            const u = srcSel ? parseInt(srcSel.value) : 1;
+            try {
+                const res = await fetch(`/api/simulate/inject_burst?u=${u}&mbps=50`, { method: 'POST' }).then(r => r.json());
+                showToast(res.message || "⚡ Injected 50 Mbps flash surge.", "warning");
+                await fetchTelemetry(null, true);
+            } catch (err) {
+                showToast("Burst failed: " + err.message, "error");
+            }
+        }
+
+        async function quickRestoreLinks() {
+            try {
+                const res = await fetch('/api/simulate/link_restore', { method: 'POST' }).then(r => r.json());
+                showToast("✅ All severed and degraded links restored to full capacity.", "success");
+                await fetchTelemetry(null, true);
+                runRoutePrediction();
+            } catch (err) {
+                showToast("Restore failed: " + err.message, "error");
+            }
+        }
+
+        async function quickClearFlows() {
+            try {
+                const res = await fetch('/api/simulate/clear_flows', { method: 'POST' }).then(r => r.json());
+                showToast("🧹 All dynamic flows cleared from the fabric.", "info");
+                await fetchTelemetry(null, true);
+            } catch (err) {
+                showToast("Clear flows failed: " + err.message, "error");
+            }
+        }
+
+        // ---------------------------------------------------------------------
+        // 1-Click Interactive Demonstration Scenarios
+        // ---------------------------------------------------------------------
+        async function triggerScenarioCongestion() {
+            showToast("🔥 Saturating core links (96% load)...", "warning");
+            try {
+                const res = await fetch('/api/simulate/core_jamming', { method: 'POST' }).then(r => r.json());
+                showToast(res.message || "Core links congested. D3QN offload activated.", "warning");
+                await fetchTelemetry(null, true);
+                runRoutePrediction();
+            } catch (e) {
+                showToast("Core congestion failed: " + e.message, "error");
+            }
+        }
+
+        async function triggerScenarioFiberCut() {
+            showToast("⚡ Simulating physical fiber severance on backbone...", "error");
+            try {
+                const res = await fetch('/api/simulate/link_fail', { method: 'POST' }).then(r => r.json());
+                if (res.status === 'success') {
+                    showToast(res.message || "⚡ Link severed! D3QN dynamic failover triggered.", "error");
+                } else {
+                    showToast(res.message || "Could not cut link", "warning");
+                }
+                await fetchTelemetry(null, true);
+                runRoutePrediction();
+            } catch (e) {
+                showToast("Fiber cut error: " + e.message, "error");
+            }
+        }
+
+        async function triggerScenarioBrownout() {
+            showToast("📉 Simulating link brownout (10% capacity, high jitter)...", "warning");
+            try {
+                const u = 2, v = 4;
+                const res = await fetch(`/api/simulate/link_degrade?u=${u}&v=${v}`, { method: 'POST' }).then(r => r.json());
+                showToast(res.message || `Link s${u} ↔ s${v} throttled to 10% capacity.`, "warning");
+                await fetchTelemetry(null, true);
+                runRoutePrediction();
+            } catch (e) {
+                showToast("Brownout error: " + e.message, "error");
+            }
+        }
+
+        function triggerScenarioTournament() {
+            const algos = ['dqn', 'ospf', 'ecmp', 'wsp', 'llr', 'dijkstra'];
+            algos.forEach(a => {
+                selectedProtocols.add(a);
+                const chk = document.getElementById(`algoCheck_${a}`);
+                if (chk) chk.checked = true;
+                const chip = document.getElementById(`chip_${a}`);
+                if (chip) chip.classList.add('active');
+            });
+            showToast("🏆 Launching 6-Protocol Head-to-Head Tournament...", "info");
+            const section = document.querySelector('.tournament-section');
+            if (section) section.scrollIntoView({ behavior: 'smooth' });
+            runVersusMatchup();
+        }
+
+        async function triggerScenarioReset() {
+            showToast("↺ Restoring fabric to nominal baseline...", "info");
+            try {
+                await fetch('/api/simulate/reset', { method: 'POST' });
+                await fetch('/api/simulate/link_restore', { method: 'POST' });
+                showToast("✅ Fabric restored: all links nominal, bursts cleared.", "success");
+                await fetchTelemetry(null, true);
+                runRoutePrediction();
+            } catch (e) {
+                showToast("Reset error: " + e.message, "error");
+            }
+        }
+
+        // ---------------------------------------------------------------------
+        // User Guide Modal & Architecture Controls
+        // ---------------------------------------------------------------------
+        function openUserGuideModal() {
+            const m = document.getElementById('userGuideModal');
+            if (m) m.classList.add('active');
+        }
+
+        function closeUserGuideModal() {
+            const m = document.getElementById('userGuideModal');
+            if (m) m.classList.remove('active');
+        }
+
+        function switchGuideTab(tabId) {
+            document.querySelectorAll('#userGuideModal .modal-tab').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('#userGuideModal .modal-tab-content').forEach(c => c.classList.remove('active'));
+            const btn = document.getElementById(`tabBtn_${tabId}`);
+            if (btn) btn.classList.add('active');
+            const content = document.getElementById(tabId);
+            if (content) content.classList.add('active');
+        }
+
+        // ---------------------------------------------------------------------
+        // Tournament Export Reports (Markdown & JSON)
+        // ---------------------------------------------------------------------
+        function exportTournamentReport(format = 'markdown') {
+            const metricsObj = (currentVerseResult && (currentVerseResult.metrics || currentVerseResult.results)) ? (currentVerseResult.metrics || currentVerseResult.results) : null;
+            if (!metricsObj) {
+                showToast("⚠️ Please execute a tournament first before exporting.", "warning");
+                return;
+            }
+            const r = currentVerseResult;
+            const topo = r.topology_name || (document.getElementById('topoSelect')?.value || 'tree');
+            const pattern = document.getElementById('trafficPatternSelect')?.value || 'jam';
+            const flows = document.getElementById('matchupCount')?.value || '15';
+            const date = new Date().toISOString().replace('T', ' ').substring(0, 19);
+
+            if (format === 'markdown') {
+                let md = `# ⚔️ Synapse SDN D3QN Algorithm Tournament Report\n\n`;
+                md += `- **Generated:** ${date} UTC\n`;
+                md += `- **Topology Fabric:** ${topo}\n`;
+                md += `- **Workload Pattern:** ${pattern}\n`;
+                md += `- **Active Dynamic Flows:** ${flows}\n`;
+                md += `- **Comparative Verdict:** ${r.verdict || 'D3QN Pareto Dominance'}\n\n`;
+                md += `| Protocol | Bottleneck Load (%) | Mean Delay (ms) | Jitter (ms) | Packet Loss (%) | QoS SLA Score | Jain's Fairness |\n`;
+                md += `|:---|:---:|:---:|:---:|:---:|:---:|:---:|\n`;
+
+                for (const [algo, data] of Object.entries(metricsObj)) {
+                    const name = (data.name || algo).replace(/\|/g, '-');
+                    const bLoad = ((data.bottleneck_util ?? data.bottleneck_load ?? 0)).toFixed(1) + '%';
+                    const lat = ((data.latency_ms ?? data.mean_latency ?? 0)).toFixed(2) + ' ms';
+                    const jit = ((data.jitter_ms ?? data.jitter ?? 0)).toFixed(2) + ' ms';
+                    const loss = ((data.packet_loss_pct ?? data.loss_rate ?? 0)).toFixed(2) + '%';
+                    const qos = ((data.qos_sla_score ?? 0)).toFixed(1);
+                    const fair = ((data.jains_fairness ?? data.fairness_index ?? 0)).toFixed(3);
+                    md += `| ${name} | ${bLoad} | ${lat} | ${jit} | ${loss} | ${qos} | ${fair} |\n`;
+                }
+
+                navigator.clipboard.writeText(md).then(() => {
+                    showToast("📋 Tournament report copied to clipboard in Markdown format!", "success");
+                }).catch(() => {
+                    const ta = document.createElement('textarea');
+                    ta.value = md;
+                    document.body.appendChild(ta);
+                    ta.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(ta);
+                    showToast("📋 Tournament report copied to clipboard!", "success");
+                });
+            } else if (format === 'json') {
+                const payload = {
+                    timestamp: date,
+                    topology: topo,
+                    traffic_pattern: pattern,
+                    flow_count: parseInt(flows),
+                    verdict: r.verdict,
+                    metrics: metricsObj
+                };
+                const str = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(payload, null, 2));
+                const a = document.createElement('a');
+                a.setAttribute('href', str);
+                a.setAttribute('download', `sdn_tournament_report_${Date.now()}.json`);
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                showToast("💾 Tournament report downloaded as JSON file!", "success");
+            }
+        }
+
         function resetNetworkSettingsDefaults() {
             document.getElementById('modalCapacitySelect').value = "100";
             document.getElementById('modalCoreRatio').value = "1.0";
@@ -3147,33 +5383,35 @@
             document.getElementById('modalWeightHops').value = 0.35;
             document.getElementById('modalWeightHopsVal').textContent = "0.35";
             document.getElementById('modalWeightCongestion').value = 1.0;
-            document.getElementById('modalWeightCongestionVal').textContent = "1.00";
-            document.getElementById('modalWeightDelay').value = 0.30;
-            document.getElementById('modalWeightDelayVal').textContent = "0.30";
-            document.getElementById('modalWeightJitter').value = 0.15;
-            document.getElementById('modalWeightJitterVal').textContent = "0.15";
-            document.getElementById('modalWeightLoss').value = 0.20;
-            document.getElementById('modalWeightLossVal').textContent = "0.20";
+            document.getElementById('modalWeightCongestionVal').textContent = "1.0×";
+            document.getElementById('modalWeightDelay').value = 0.06;
+            document.getElementById('modalWeightDelayVal').textContent = "0.06";
+            document.getElementById('modalWeightJitter').value = 0.25;
+            document.getElementById('modalWeightJitterVal').textContent = "0.25";
+            document.getElementById('modalWeightLoss').value = 0.50;
+            document.getElementById('modalWeightLossVal').textContent = "0.50";
 
             document.getElementById('modalLearningRate').value = "0.001";
             document.getElementById('modalDiscountGamma').value = "0.95";
             document.getElementById('modalDiscountVal').textContent = "0.95";
-            document.getElementById('modalEpsilonSlider').value = "0.05";
-            document.getElementById('modalEpsilonVal').textContent = "0.050";
+            document.getElementById('modalEpsilonSlider').value = "0.010";
+            document.getElementById('modalEpsilonVal').textContent = "0.010";
             document.getElementById('modalUsePerSelect').value = "true";
 
             document.getElementById('modalMaxRules').value = "1000";
             document.getElementById('modalLldpInterval').value = "2.0";
             document.getElementById('modalFlowTimeout').value = 30;
-            document.getElementById('modalFlowTimeoutVal').textContent = "30s";
-            document.getElementById('modalControlChannel').value = "inband";
-            document.getElementById('modalBarrierSlider').value = 100;
-            document.getElementById('modalBarrierVal').textContent = "100ms";
+            document.getElementById('modalFlowTimeoutVal').textContent = "30 s";
+            document.getElementById('modalPollInterval').value = "2.5";
+            document.getElementById('modalKPaths').value = "4";
+            document.getElementById('modalControlChannel').value = "oob";
+            document.getElementById('modalBarrierSlider').value = 70;
+            document.getElementById('modalBarrierVal').textContent = "70%";
 
-            document.getElementById('modalTrafficPattern').value = "poisson";
-            document.getElementById('modalDscpClass').value = "CS0";
-            document.getElementById('modalFlowRate').value = "15";
-            document.getElementById('modalFlowDuration').value = "25";
+            document.getElementById('modalTrafficPattern').value = "uniform";
+            document.getElementById('modalDscpClass').value = "BE";
+            document.getElementById('modalFlowRate').value = "15.0";
+            document.getElementById('modalFlowDuration').value = "closed_loop";
 
             showToast("Network parameters reset to baseline proposal defaults.", "info");
         }
@@ -3191,31 +5429,38 @@
                 core_trunk_ratio: parseFloat(document.getElementById('modalCoreRatio')?.value || 1.0),
                 switch_mtu: parseInt(document.getElementById('modalSwitchMtu')?.value || 1500),
                 switch_queue_depth: parseInt(document.getElementById('modalQueueDepth')?.value || 256),
+                default_delay_ms: parseFloat(document.getElementById('modalDelaySlider')?.value || 2.0),
                 nominal_delay_ms: parseFloat(document.getElementById('modalDelaySlider')?.value || 2.0),
+                default_jitter_ms: parseFloat(document.getElementById('modalJitterSlider')?.value || 0.25),
                 nominal_jitter_ms: parseFloat(document.getElementById('modalJitterSlider')?.value || 0.25),
+                base_loss_pct: parseFloat(document.getElementById('modalLossSlider')?.value || 0.0),
                 nominal_loss_pct: parseFloat(document.getElementById('modalLossSlider')?.value || 0.0),
 
                 w_hops: parseFloat(document.getElementById('modalWeightHops')?.value || 0.35),
                 w_congestion: parseFloat(document.getElementById('modalWeightCongestion')?.value || 1.0),
-                w_delay: parseFloat(document.getElementById('modalWeightDelay')?.value || 0.30),
-                w_jitter: parseFloat(document.getElementById('modalWeightJitter')?.value || 0.15),
-                w_loss: parseFloat(document.getElementById('modalWeightLoss')?.value || 0.20),
+                w_delay: parseFloat(document.getElementById('modalWeightDelay')?.value || 0.06),
+                w_jitter: parseFloat(document.getElementById('modalWeightJitter')?.value || 0.25),
+                w_loss: parseFloat(document.getElementById('modalWeightLoss')?.value || 0.50),
+                congestion_barrier_pct: parseFloat(document.getElementById('modalBarrierSlider')?.value || 70),
 
                 learning_rate: parseFloat(document.getElementById('modalLearningRate')?.value || 0.001),
                 discount_gamma: parseFloat(document.getElementById('modalDiscountGamma')?.value || 0.95),
-                exploration_epsilon: parseFloat(document.getElementById('modalEpsilonSlider')?.value || 0.05),
+                exploration_epsilon: parseFloat(document.getElementById('modalEpsilonSlider')?.value || 0.010),
                 use_per: document.getElementById('modalUsePerSelect')?.value === "true",
 
                 max_flow_rules: parseInt(document.getElementById('modalMaxRules')?.value || 1000),
                 lldp_interval_sec: parseFloat(document.getElementById('modalLldpInterval')?.value || 2.0),
+                flow_timeout_sec: parseInt(document.getElementById('modalFlowTimeout')?.value || 30),
                 flow_idle_timeout_sec: parseInt(document.getElementById('modalFlowTimeout')?.value || 30),
-                control_channel_mode: document.getElementById('modalControlChannel')?.value || "inband",
-                barrier_interval_ms: parseInt(document.getElementById('modalBarrierSlider')?.value || 100),
+                poll_interval_sec: parseFloat(document.getElementById('modalPollInterval')?.value || 2.5),
+                k_candidate_paths: parseInt(document.getElementById('modalKPaths')?.value || 4),
+                control_channel_mode: document.getElementById('modalControlChannel')?.value || "oob",
 
-                traffic_pattern: document.getElementById('modalTrafficPattern')?.value || "poisson",
-                diffserv_dscp: document.getElementById('modalDscpClass')?.value || "CS0",
+                traffic_pattern: document.getElementById('modalTrafficPattern')?.value || "uniform",
+                diffserv_dscp: document.getElementById('modalDscpClass')?.value || "BE",
+                traffic_flow_rate_mbps: parseFloat(document.getElementById('modalFlowRate')?.value || 15.0),
                 test_flow_rate_mbps: parseFloat(document.getElementById('modalFlowRate')?.value || 15.0),
-                test_flow_duration_sec: parseFloat(document.getElementById('modalFlowDuration')?.value || 25.0)
+                test_flow_duration_sec: 25.0
             };
 
             try {
@@ -3246,7 +5491,7 @@
 
         // Dual-Theme Controller (Default: Light Mode)
         function getPreferredTheme() {
-            return localStorage.getItem('synapse_theme') || 'light';
+            return new URLSearchParams(window.location.search).get('theme') || localStorage.getItem('synapse_theme') || 'light';
         }
 
         function applyTheme(theme, showToastNotification = false) {
@@ -3290,14 +5535,46 @@
             const initialTheme = getPreferredTheme();
             applyTheme(initialTheme, false);
 
+            const urlProtocols = new URLSearchParams(window.location.search).get('protocols');
+            if (urlProtocols) {
+                const pList = urlProtocols.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+                if (pList.length > 0) {
+                    selectedProtocols.clear();
+                    pList.forEach(p => selectedProtocols.add(p === 'spf' ? 'dijkstra' : p));
+                    selectedProtocols.add('dqn');
+                }
+            }
+            syncProtocolChipsUI();
+
             initCharts();
             resizeCanvas();
+            initPlotStudioViewport();
+
+            const urlPlot = new URLSearchParams(window.location.search).get('plot');
+            if (urlPlot) {
+                switchPlotView(urlPlot);
+            }
+
+            const urlFs = new URLSearchParams(window.location.search).get('fs');
+            if (urlFs) {
+                setTimeout(() => {
+                    togglePlotFullscreen(urlFs);
+                }, 400);
+            }
+
             fetchTelemetry();
 
+            if (new URLSearchParams(window.location.search).has('studio')) {
+                openPlotStudioModal();
+            }
+
             setTimeout(() => {
-                runVersusMatchup();
-                runRoutePrediction();
-            }, 400);
+                if (!window._hasInitiallyRun) {
+                    window._hasInitiallyRun = true;
+                    runVersusMatchup();
+                    runRoutePrediction();
+                }
+            }, 50);
 
             // 2.5s Auto-Refresh Telemetry Loop
             autoRefreshInterval = setInterval(() => {

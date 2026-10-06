@@ -51,3 +51,7 @@ Thumbs.db
 !.vscode/launch.json
 .idea/
 *.sublime-workspace
+
+# Archive & Test Artifacts
+archive/
+.fx_profile/

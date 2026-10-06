@@ -10,9 +10,7 @@ import sys
 import time
 import random
 import argparse
-import itertools
 import numpy as np
-import networkx as nx
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(BASE_DIR, 'agent'))
@@ -25,8 +23,6 @@ from config import (
     STATE_SIZE,
     ACTION_SIZE,
     K_CANDIDATE_PATHS,
-    DEFAULT_LINK_CAPACITY_MBPS,
-    DEFAULT_LINK_DELAY_MS,
     TORCH_DEVICE,
 )
 from dqn_router import DQNRoutingAgent

@@ -1,10 +1,10 @@
 # Reinforcement Learning for Adaptive Traffic Engineering in an SDN Network (EC499)
 
-**Course**: EC499 — Graduation Project in Computer Engineering  
-**Institution**: Department of Computer Engineering, Faculty of Engineering, University of Tripoli  
-**Student**: Maher Abdulnasir Alqadhi (ID: 2210249576, `ma.alqadhi@uot.edu.ly`)  
-**Supervisor**: Dr. Suad El-Geder  
-**Term**: Spring 2026  
+**Course**: EC499 — Graduation Project in Computer Engineering
+**Institution**: Department of Computer Engineering, Faculty of Engineering, University of Tripoli
+**Student**: Maher Abdulnasir Alqadhi (ID: 2210249576, `ma.alqadhi@uot.edu.ly`)
+**Supervisor**: Dr. Suad El-Geder
+**Term**: Spring 2026
 
 ---
 
