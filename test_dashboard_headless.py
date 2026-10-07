@@ -15,9 +15,31 @@ Validates all aspects of the Web Dashboard and Telemetry Console:
 import sys
 import os
 import json
+import time
 import urllib.request
 
 BASE_URL = os.environ.get("SDN_DASHBOARD_URL", "http://localhost:8080")
+
+
+def ensure_server():
+    global BASE_URL
+    try:
+        req = urllib.request.Request(f"{BASE_URL}/api/health", method='GET')
+        with urllib.request.urlopen(req, timeout=1.0) as resp:
+            if resp.status == 200:
+                return None
+    except Exception:
+        pass
+
+    test_port = 8112
+    BASE_URL = f"http://127.0.0.1:{test_port}"
+    ctrl_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'controller')
+    if ctrl_dir not in sys.path:
+        sys.path.insert(0, ctrl_dir)
+    from web_dashboard import DashboardServer
+    server = DashboardServer(host="127.0.0.1", port=test_port)
+    time.sleep(0.6)
+    return server
 
 
 def http_req(path, method='GET', data=None):
@@ -34,6 +56,15 @@ def http_req(path, method='GET', data=None):
 
 
 def run_all_tests():
+    server = ensure_server()
+    try:
+        return _execute_suite()
+    finally:
+        if server:
+            server.stop()
+
+
+def _execute_suite():
     print("=" * 80)
     print(" 🚀 RUNNING COMPREHENSIVE HEADLESS DASHBOARD VALIDATION SUITE (EC499)")
     print(f" Target Server: {BASE_URL}")

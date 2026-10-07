@@ -194,7 +194,10 @@ def evaluate_random_blind_topology(
     t3_savings = np.mean(t3_spf_l) - np.mean(t3_dqn_l)
     print(f" • Double DQN Mean Latency:              {np.mean(t3_dqn_l):.2f} ms")
     print(f" • Dijkstra SPF Mean Latency:            {np.mean(t3_spf_l):.2f} ms")
-    print(f" • End-to-End Latency Improvement:       +{t3_savings:.2f} ms (Faster via low-delay bypass!)")
+    if t3_savings >= 0:
+        print(f" • End-to-End Latency Improvement:       +{t3_savings:.2f} ms (Faster via low-delay bypass!)")
+    else:
+        print(f" • End-to-End Latency Trade-Off:         {t3_savings:.2f} ms (Detour prioritized low-congestion)")
 
     # -------------------------------------------------------------------------
     # TEST 4: Network Jitter & Packet Loss Resilience (RFC 3393)

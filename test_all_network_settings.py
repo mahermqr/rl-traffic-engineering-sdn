@@ -20,6 +20,27 @@ import urllib.request
 BASE_URL = os.environ.get("SDN_DASHBOARD_URL", "http://localhost:8080")
 
 
+def ensure_server():
+    global BASE_URL
+    try:
+        req = urllib.request.Request(f"{BASE_URL}/api/health", method='GET')
+        with urllib.request.urlopen(req, timeout=1.0) as resp:
+            if resp.status == 200:
+                return None
+    except Exception:
+        pass
+
+    test_port = 8113
+    BASE_URL = f"http://127.0.0.1:{test_port}"
+    ctrl_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'controller')
+    if ctrl_dir not in sys.path:
+        sys.path.insert(0, ctrl_dir)
+    from web_dashboard import DashboardServer
+    server = DashboardServer(host="127.0.0.1", port=test_port)
+    time.sleep(0.6)
+    return server
+
+
 def http_req(path, method='GET', data=None):
     url = f"{BASE_URL}{path}"
     body = json.dumps(data).encode('utf-8') if data is not None else None
@@ -481,5 +502,12 @@ class NetworkSettingsTester:
 
 
 if __name__ == '__main__':
-    tester = NetworkSettingsTester()
-    sys.exit(tester.run_all())
+    server = ensure_server()
+    try:
+        tester = NetworkSettingsTester()
+        exit_code = tester.run_all()
+    finally:
+        if server:
+            server.stop()
+    sys.exit(exit_code)
+
