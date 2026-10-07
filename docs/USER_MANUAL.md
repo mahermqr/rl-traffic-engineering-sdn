@@ -1,4 +1,4 @@
-# 📘 Synapse SDN Console — User Manual & Operations Guide
+# 📘 Adaptive SDN TE Console — User Manual & Operations Guide
 ### Reinforcement Learning for Adaptive Traffic Engineering in Software-Defined Networks (EC499)
 
 ---
@@ -21,7 +21,7 @@
 
 ## 1. Introduction & System Overview
 
-**Synapse** is a carrier-grade Software-Defined Networking (SDN) Traffic Engineering platform powered by a **Dueling Double Deep Q-Network (D3QN)** with **Prioritized Experience Replay (PER)**.
+This platform is a carrier-grade Software-Defined Networking (SDN) Traffic Engineering system powered by a **Dueling Double Deep Q-Network (D3QN)** with **Prioritized Experience Replay (PER)**.
 
 ### Core Architecture Components:
 1. **Ryu OpenFlow 1.3 Controller (`controller/main_controller.py`)**:
@@ -31,12 +31,12 @@
 3. **D3QN Neural Routing Engine (`agent/dqn_router.py`)**:
    - Evaluates a 10-dimensional network state vector for any source-destination switch pair.
    - Decouples state value $V(s)$ from path advantages $A(s, a)$ to dynamically select the optimal route among $K$-candidate shortest paths.
-4. **Interactive Synapse Web Console (`controller/web_dashboard.py` + `controller/static/index.html`)**:
+4. **Interactive Web Console (`controller/web_dashboard.py` + `controller/static/index.html`)**:
    - A dual-theme (Light/Dark) dashboard delivering real-time telemetry, interactive HTML5 canvas topology rendering, protocol tournament benchmarking, and live chaos injection.
 
 ```
        ┌────────────────────────────────────────────────────────┐
-       │             Synapse Web Dashboard (Port 8080)          │
+       │             Web Dashboard (Port 8080)                  │
        │   HTML5 Canvas Graph  •  Chart.js  •  Versus Engine    │
        └───────────────────────────┬────────────────────────────┘
                                    │ REST API / JSON Telemetry
@@ -77,7 +77,7 @@ Start the unified SDN controller, telemetry engine, and dashboard with a single 
 ### What Happens at Startup:
 1. Automatically detects virtual environments (`ec499_env`, `.venv`, `venv`).
 2. Starts the **Ryu OpenFlow 1.3 Controller** on port `6633`.
-3. Launches the **Synapse Web Dashboard HTTP Server** on `http://localhost:8080`.
+3. Launches the **Web Dashboard HTTP Server** on `http://localhost:8080`.
 4. If run without `sudo`, starts the **Autonomous Simulation Driver** (`simulate_live_traffic.py`) to inject realistic dynamic workloads and drive the live telemetry charts.
 5. If run with `sudo`, launches the full **Mininet physical network emulation**.
 
@@ -105,7 +105,7 @@ Navigate your browser to **`http://localhost:8080`**.
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────┐
-│ 🧠 SYNAPSE   [🌳 Tree ▼]   [⚡ Burst] [💥 Cut] [🔄 Restore]  [☀️ Light] [⚙️] [❓]  │
+│ 🧠 SDN-TE   [🌳 Tree ▼]   [⚡ Burst] [💥 Cut] [🔄 Restore]  [☀️ Light] [⚙️] [❓]  │
 ├──────────────────────────────────────────────────────────────────────────────────┤
 │ [ 148.5 Mbps ]  [ 16.4% Peak ]  [ 1.8 ms Lat ]  [ 0.25 ms Jit ]  [ 0.0% Loss ]   │
 ├────────────────────────────────────────┬─────────────────────────────────────────┤
@@ -421,4 +421,4 @@ All 64 tests pass with **100% success rate**.
 
 ---
 
-*Synapse Adaptive SDN Platform — Developed for EC499 Final Project.*
+*Adaptive SDN Traffic Engineering Platform — Developed for EC499 Final Project.*

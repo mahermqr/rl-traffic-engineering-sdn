@@ -4,11 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#F8FAFC">
-    <title>Synapse — Adaptive SDN Traffic Engineering Console</title>
+    <title>Adaptive SDN Traffic Engineering Console</title>
     <script>
         (function() {
             var urlTheme = new URLSearchParams(window.location.search).get('theme');
-            var saved = urlTheme || localStorage.getItem('synapse_theme') || 'light';
+            var saved = urlTheme || localStorage.getItem('sdn_te_theme') || 'light';
             document.documentElement.setAttribute('data-theme', saved);
         })();
     </script>
@@ -1685,7 +1685,7 @@
         <div class="brand-cluster">
             <a href="/" class="brand-logo">
                 <span class="dot"></span>
-                <span>Synapse</span>
+                <span>Adaptive SDN</span>
                 <span style="font-family:var(--font-mono); font-size:0.65rem; color:var(--text-dim); letter-spacing:0.15em; margin-left:4px;">// D3QN TE</span>
             </a>
             <div class="status-badge-strip">
@@ -2848,7 +2848,7 @@
         <div class="modal-card" style="max-width: 900px; width: 95vw;" onclick="event.stopPropagation()">
             <div class="modal-header">
                 <div>
-                    <h2 class="modal-title"><span>📖</span> Synapse SDN User Guide & Architecture Console</h2>
+                    <h2 class="modal-title"><span>📖</span> SDN Traffic Engineering User Guide & Architecture Console</h2>
                     <div class="modal-subtitle">Interactive operator manual, keyboard shortcuts, canvas navigation, and QoS metrics glossary</div>
                 </div>
                 <button class="modal-close-btn" onclick="closeUserGuideModal()" title="Close Guide (Esc)">✕</button>
@@ -2868,10 +2868,10 @@
                     <div class="settings-subcard">
                         <div class="settings-section-title">🧠 Autonomous D3QN Traffic Engineering</div>
                         <p style="font-size:0.82rem; line-height:1.55; color:var(--text-secondary); margin-bottom:10px;">
-                            Synapse is a carrier-grade closed-loop SDN Traffic Engineering system driven by a <strong>Dueling Double Deep Q-Network (D3QN)</strong> policy engine running directly in a Ryu OpenFlow 1.3 controller.
+                            This platform is a carrier-grade closed-loop SDN Traffic Engineering system driven by a <strong>Dueling Double Deep Q-Network (D3QN)</strong> policy engine running directly in a Ryu OpenFlow 1.3 controller.
                         </p>
                         <p style="font-size:0.82rem; line-height:1.55; color:var(--text-secondary); margin-bottom:10px;">
-                            Unlike static shortest-path protocols (OSPF RFC 2328, Dijkstra) or stateless hashing (ECMP) which cause severe hot-spot congestion and buffer drops during asymmetric traffic surges, Synapse observes live port statistics, link delays, and queue depths to proactively steer flows onto high-bandwidth, low-jitter detour paths.
+                            Unlike static shortest-path protocols (OSPF RFC 2328, Dijkstra) or stateless hashing (ECMP) which cause severe hot-spot congestion and buffer drops during asymmetric traffic surges, the D3QN agent observes live port statistics, link delays, and queue depths to proactively steer flows onto high-bandwidth, low-jitter detour paths.
                         </p>
                     </div>
 
@@ -2884,7 +2884,7 @@
                             [OpenFlow vSwitch FIB] ◀──(OFPFlowMod: Path a*)─── [PyTorch D3QN Policy Engine]<br>
                             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│<br>
                             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;▼ JSON / REST Polling<br>
-                            [Synapse Interactive Web Console] (Real-time Canvas, Tournament Arena & Scientific Plots)
+                            [Interactive Web Console] (Real-time Canvas, Tournament Arena & Scientific Plots)
                         </div>
                     </div>
                 </div>
@@ -3020,7 +3020,7 @@
 
     <!-- Footer -->
     <footer class="app-footer">
-        <p>SYNAPSE D3QN SDN Adaptive Traffic Engineering Controller • OpenFlow 1.3 Compliant • Autonomous Closed-Loop AI Control</p>
+        <p>Adaptive D3QN SDN Traffic Engineering Controller • OpenFlow 1.3 Compliant • Autonomous Closed-Loop AI Control</p>
     </footer>
 
     <!-- Client Application Logic -->
@@ -5316,7 +5316,7 @@
             const date = new Date().toISOString().replace('T', ' ').substring(0, 19);
 
             if (format === 'markdown') {
-                let md = `# ⚔️ Synapse SDN D3QN Algorithm Tournament Report\n\n`;
+                let md = `# ⚔️ Adaptive SDN D3QN Algorithm Tournament Report\n\n`;
                 md += `- **Generated:** ${date} UTC\n`;
                 md += `- **Topology Fabric:** ${topo}\n`;
                 md += `- **Workload Pattern:** ${pattern}\n`;
@@ -5491,13 +5491,13 @@
 
         // Dual-Theme Controller (Default: Light Mode)
         function getPreferredTheme() {
-            return new URLSearchParams(window.location.search).get('theme') || localStorage.getItem('synapse_theme') || 'light';
+            return new URLSearchParams(window.location.search).get('theme') || localStorage.getItem('sdn_te_theme') || 'light';
         }
 
         function applyTheme(theme, showToastNotification = false) {
             document.documentElement.setAttribute('data-theme', theme);
             try {
-                localStorage.setItem('synapse_theme', theme);
+                localStorage.setItem('sdn_te_theme', theme);
             } catch (e) {}
 
             const metaTheme = document.querySelector('meta[name="theme-color"]');

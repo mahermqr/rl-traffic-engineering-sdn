@@ -13,13 +13,13 @@
 
 Traditional IP network routing protocols—such as Dijkstra Shortest Path First (SPF), Open Shortest Path First (OSPF, RFC 2328), and Equal-Cost Multi-Path (ECMP)—rely on static link metrics (hop counts or inverse administrative bandwidth weights). Under dynamic, bursty, or localized traffic surges, these static protocols inevitably induce core switch bottlenecks, extreme queuing delays, severe packet jitter, and buffer-overflow packet dropouts.
 
-The **EC499 Graduation Project** develops, verifies, and benchmarks **Synapse**: a closed-loop carrier-grade Software-Defined Networking (SDN) Traffic Engineering (TE) platform powered by a **Dueling Double Deep Q-Network (D3QN)** with **Prioritized Experience Replay (PER)** and **Layer Normalization**. 
+The **EC499 Graduation Project** develops, verifies, and benchmarks an adaptive closed-loop carrier-grade Software-Defined Networking (SDN) Traffic Engineering (TE) platform powered by a **Dueling Double Deep Q-Network (D3QN)** with **Prioritized Experience Replay (PER)** and **Layer Normalization**. 
 
 The system operates atop a **Ryu OpenFlow 1.3 controller**, continuously tracking real-time data plane telemetry (per-port differential bitrates, RFC 3393 delay variation, and $M/M/1/K$ analytical packet loss) and dynamically steering unicast traffic across lateral underutilized links to maximize network throughput, minimize latency, suppress jitter, and eliminate packet loss.
 
 ```
        ┌────────────────────────────────────────────────────────┐
-       │             Synapse Web Dashboard (Port 8080)          │
+       │             Web Dashboard (Port 8080)                  │
        │   HTML5 Canvas Graph  •  Chart.js  •  Versus Engine    │
        └───────────────────────────┬────────────────────────────┘
                                    │ REST API / JSON Telemetry
@@ -155,7 +155,7 @@ $$\theta^- \leftarrow \tau \theta + (1 - \tau) \theta^-, \quad \tau = 0.005$$
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                            SYNAPSE PLATFORM                                │
+│                    ADAPTIVE SDN TE PLATFORM                                 │
 ├──────────────────────┬──────────────────────────────────────────────────────┤
 │ Module               │ Description & Role                                   │
 ├──────────────────────┼──────────────────────────────────────────────────────┤

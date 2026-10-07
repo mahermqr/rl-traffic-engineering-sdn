@@ -80,7 +80,7 @@ def _execute_suite():
     # TEST 1: Root HTML Serving
     try:
         status, raw = http_req('/')
-        has_title = b"Synapse \xe2\x80\x94 Adaptive SDN Traffic Engineering Console" in raw or b"Synapse" in raw
+        has_title = b"Adaptive SDN Traffic Engineering Console" in raw or b"Adaptive SDN" in raw
         has_canvas = b"id=\"topoCanvas\"" in raw
         has_kpi = b"id=\"kpiThroughput\"" in raw
         record_test("1. Root HTML Asset Delivery", status == 200 and has_title and has_canvas and has_kpi, f"HTTP {status}, {len(raw):,} bytes")

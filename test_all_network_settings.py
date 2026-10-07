@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Comprehensive Automated Network Settings Test Suite (EC499).
-Exhaustively validates all 5 categories of Network Settings in the Synapse SDN Console:
+Exhaustively validates all 5 categories of Network Settings in the Adaptive SDN Console:
   Category 1: Fabric Architecture (Capacities, Delays, Core Ratio, MTU, Queue, Jitter, Loss, Topologies)
   Category 2: Fault Injection & Chaos (Sever link, Degrade link, Inject burst, Link restore)
   Category 3: D3QN Agent Hyperparameters (Reward Weights, Epsilon, Learning Rate, Gamma, PER)
@@ -65,7 +65,7 @@ class NetworkSettingsTester:
 
     def run_all(self):
         print("=" * 105)
-        print(" 🧪 SYNAPSE COMPREHENSIVE NETWORK SETTINGS VALIDATION SUITE (EC499)")
+        print(" 🧪 COMPREHENSIVE NETWORK SETTINGS VALIDATION SUITE (EC499)")
         print(f" Target Endpoint: {BASE_URL}")
         print("=" * 105)
 
