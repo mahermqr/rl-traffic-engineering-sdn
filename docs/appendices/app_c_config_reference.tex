@@ -1,0 +1,60 @@
+% ======================================================================
+% APPENDIX C: COMPLETE SYSTEM CONFIGURATION REFERENCE
+% ======================================================================
+\chapter{System Configuration Reference}
+\label{app:config}
+
+\section{Centralized Configuration Architecture}
+The system's operational parameters are managed centrally by \texttt{config.py}. Configuration resolution follows strict four-tier hierarchical precedence:
+\begin{enumerate}
+    \item \textbf{CLI Arguments}: Explicit command-line arguments override all other layers.
+    \item \textbf{Environment Variables}: System environment variables (prefixed with \texttt{SDN\_} or \texttt{RL\_}).
+    \item \textbf{Configuration File}: Optional JSON file (\texttt{config.json}) in the workspace root.
+    \item \textbf{Production Defaults}: Calibrated hardcoded defaults.
+\end{enumerate}
+
+\section{Complete Parameter Dictionary}
+Table~\ref{tab:full_config_dictionary} provides the exhaustive specification for all runtime configuration parameters.
+
+\begin{table}[htbp]
+\centering
+\caption{Complete System Configuration and Hyperparameter Dictionary (\texttt{config.py})}
+\label{tab:full_config_dictionary}
+\scriptsize
+\begin{tabularx}{\textwidth}{l c c c X}
+\toprule
+\textbf{Configuration Key} & \textbf{CLI Argument} & \textbf{Environment Variable} & \textbf{Default} & \textbf{Description \& Valid Range} \\
+\midrule
+\texttt{model\_path} & \texttt{--model-path} & \texttt{SDN\_MODEL\_PATH} & \texttt{models/dqn\_router.pth} & File path to serialized PyTorch neural network weights. \\
+\texttt{controller\_ip} & \texttt{--controller-ip} & \texttt{SDN\_CONTROLLER\_IP} & \texttt{127.0.0.1} & IPv4 listening interface for OpenFlow connections. \\
+\texttt{controller\_port} & \texttt{--controller-port} & \texttt{SDN\_CONTROLLER\_PORT} & \texttt{6633} & TCP socket port for OpenFlow 1.3 control channel. \\
+\texttt{rest\_port} & \texttt{--rest-port} & \texttt{SDN\_REST\_PORT} & \texttt{8080} & HTTP port for REST telemetry and Web Dashboard. \\
+\texttt{poll\_interval} & \texttt{--poll-interval} & \texttt{SDN\_POLL\_INTERVAL} & \texttt{3.0} & Frequency in seconds of periodic statistics polling ($[1.0, 10.0]$). \\
+\texttt{flow\_idle\_timeout} & \texttt{--idle-timeout} & \texttt{SDN\_FLOW\_IDLE\_TIMEOUT} & \texttt{60} & Seconds before inactive switch TCAM flow rule is purged. \\
+\texttt{flow\_hard\_timeout} & \texttt{--hard-timeout} & \texttt{SDN\_FLOW\_HARD\_TIMEOUT} & \texttt{120} & Seconds before flow rule is unconditionally purged. \\
+\addlinespace
+\texttt{state\_size} & \texttt{--state-size} & \texttt{RL\_STATE\_SIZE} & \texttt{10} & Dimension of normalized network state representation vector. \\
+\texttt{action\_size} & \texttt{--action-size} & \texttt{RL\_ACTION\_SIZE} & \texttt{4} & Cardinality of candidate routing path action space ($K=4$). \\
+\texttt{learning\_rate} & \texttt{--lr} & \texttt{RL\_LR} & \texttt{0.001} & Adam optimizer learning rate ($\alpha \in [10^{-4}, 10^{-2}]$). \\
+\texttt{gamma} & \texttt{--gamma} & \texttt{RL\_GAMMA} & \texttt{0.95} & MDP temporal discount factor ($\gamma \in [0.80, 0.99]$). \\
+\texttt{memory\_size} & \texttt{--memory-size} & \texttt{RL\_MEMORY\_SIZE} & \texttt{5000} & Capacity of binary SumTree Prioritized Replay buffer. \\
+\texttt{batch\_size} & \texttt{--batch-size} & \texttt{RL\_BATCH\_SIZE} & \texttt{32} & Number of transitions sampled per gradient backpropagation. \\
+\texttt{tau} & \texttt{--tau} & \texttt{RL\_TAU} & \texttt{0.005} & Polyak soft target network tracking parameter ($\tau \in (0, 1)$). \\
+\texttt{epsilon\_start} & \texttt{--eps-start} & \texttt{RL\_EPS_START} & \texttt{1.0} & Initial exploration rate for $\epsilon$-greedy curriculum. \\
+\texttt{epsilon\_end} & \texttt{--eps-end} & \texttt{RL\_EPS_END} & \texttt{0.01} & Minimum exploration rate floor for pure exploitation. \\
+\texttt{epsilon\_decay} & \texttt{--eps-decay} & \texttt{RL\_EPS_DECAY} & \texttt{750} & Episode threshold where exploration reaches minimum floor. \\
+\texttt{per\_alpha} & \texttt{--per-alpha} & \texttt{RL\_PER_ALPHA} & \texttt{0.6} & Prioritization exponent in PER ($P(i) \propto p_i^\alpha$). \\
+\texttt{per\_beta\_start} & \texttt{--per-beta-start} & \texttt{RL\_PER_BETA_START} & \texttt{0.4} & Initial importance sampling bias correction exponent. \\
+\texttt{per\_beta\_end} & \texttt{--per-beta-end} & \texttt{RL\_PER_BETA_END} & \texttt{1.0} & Final importance sampling exponent at convergence. \\
+\addlinespace
+\texttt{wcmp\_beta} & \texttt{--wcmp-beta} & \texttt{SDN\_WCMP\_BETA} & \texttt{4.0} & Softmax exponent for inverse load multi-path weighting. \\
+\texttt{weight\_hop} & \texttt{--weight-hop} & \texttt{RL\_WEIGHT_HOP} & \texttt{0.35} & Multi-objective penalty weight for candidate path hop count. \\
+\texttt{weight\_latency} & \texttt{--weight-lat} & \texttt{RL\_WEIGHT_LAT} & \texttt{0.06} & Multi-objective penalty weight for cumulative path latency. \\
+\texttt{weight\_jitter} & \texttt{--weight-jit} & \texttt{RL\_WEIGHT_JIT} & \texttt{0.25} & Multi-objective penalty weight for packet delay variation. \\
+\texttt{weight\_loss} & \texttt{--weight-loss} & \texttt{RL\_WEIGHT_LOSS} & \texttt{0.50} & Multi-objective penalty weight for buffer drop probability. \\
+\texttt{cong\_thresh} & \texttt{--cong-thresh} & \texttt{RL\_CONG_THRESH} & \texttt{0.70} & Utilization threshold where barrier penalty activates ($70\%$). \\
+\texttt{barrier\_scale} & \texttt{--barrier-scale} & \texttt{RL\_BARRIER_SCALE} & \texttt{12.0} & Scaling constant for asymptotic congestion penalty. \\
+\texttt{barrier\_power} & \texttt{--barrier-power} & \texttt{RL\_BARRIER_POWER} & \texttt{1.8} & Exponent of link utilization in barrier numerator. \\
+\bottomrule
+\end{tabularx}
+\end{table}

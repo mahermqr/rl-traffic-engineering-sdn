@@ -400,77 +400,112 @@ def run_blind_topology_stress_tests(model_path=None, json_path=None, plots_dir=N
             }
         }
 
-    # Generate 4-Panel Dashboard
-    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(16, 11))
-    labels = [topo_labels[t] for t in topo_order]
-    x = np.arange(len(labels))
-    width = 0.35
-
-    # 1. Core Jamming
-    spf_b = [results_summary[t]["scenario_1_core_jamming"]["dijkstra_spf_bottleneck_pct"] for t in topo_order]
-    dqn_b = [results_summary[t]["scenario_1_core_jamming"]["double_dqn_bottleneck_pct"] for t in topo_order]
-    ax1.bar(x - width/2, spf_b, width, label='Dijkstra SPF', color='#e74c3c', alpha=0.85)
-    ax1.bar(x + width/2, dqn_b, width, label='Double DQN (Ours)', color='#2ecc71', alpha=0.85)
-    ax1.set_title('Scenario 1: Core Jamming Bottleneck Load (%)', fontsize=11, fontweight='bold')
-    ax1.set_ylabel('Bottleneck Utilization (%)')
-    ax1.set_xticks(x)
-    ax1.set_xticklabels(labels, rotation=15, ha='right', fontweight='bold')
-    ax1.legend()
-    ax1.grid(True, linestyle=':', alpha=0.6)
-
-    # 2. Decision Throughput
-    dec_speeds = [results_summary[t]["scenario_2_concurrency_burst"]["decisions_per_sec"] for t in topo_order]
-    ax2.bar(x, dec_speeds, color='#3498db', alpha=0.85, width=0.5)
-    ax2.set_title('Scenario 2: Decision Throughput (decisions/sec)', fontsize=11, fontweight='bold')
-    ax2.set_ylabel('Decisions / Second')
-    ax2.set_xticks(x)
-    ax2.set_xticklabels(labels, rotation=15, ha='right', fontweight='bold')
-    ax2.grid(True, linestyle=':', alpha=0.6)
-
-    # 3. Hotspot Relief & Bypass Rate
-    hotspot_relief = [results_summary[t]["scenario_3_hotspot_surge"]["bottleneck_reduction_pct"] for t in topo_order]
-    hotspot_bypass = [results_summary[t]["scenario_3_hotspot_surge"]["diversion_rate_pct"] for t in topo_order]
-    bars3 = ax3.bar(x, hotspot_relief, color='#9b59b6', alpha=0.85, width=0.5)
-    ax3.set_title('Scenario 3: Asymmetric Hotspot Relief & Bypass', fontsize=11, fontweight='bold')
-    ax3.set_ylabel('Load Reduction (%)')
-    ax3.set_ylim(0, max(85, max(hotspot_relief) * 1.35 if max(hotspot_relief) > 0 else 100))
-    for i, b in enumerate(bars3):
-        h = b.get_height()
-        bp = hotspot_bypass[i]
-        ax3.text(b.get_x() + b.get_width()/2., h + 1.5, f"+{h:.1f}%\n({bp:.0f}% bypass)", ha='center', va='bottom', fontsize=8, fontweight='bold')
-    ax3.set_xticks(x)
-    ax3.set_xticklabels(labels, rotation=15, ha='right', fontweight='bold')
-    ax3.grid(True, linestyle=':', alpha=0.6)
-
-    # 4. Latency
-    spf_lats = [results_summary[t]["scenario_4_latency_degradation"]["spf_latency_ms"] for t in topo_order]
-    dqn_lats = [results_summary[t]["scenario_4_latency_degradation"]["dqn_latency_ms"] for t in topo_order]
-    ax4.bar(x - width/2, spf_lats, width, label='Dijkstra SPF', color='#e67e22', alpha=0.85)
-    ax4.bar(x + width/2, dqn_lats, width, label='Double DQN (Ours)', color='#1abc9c', alpha=0.85)
-    ax4.set_title('Scenario 4: Latency under Core Link Delay Degradation', fontsize=11, fontweight='bold')
-    ax4.set_ylabel('End-to-End Latency (ms)')
-    ax4.set_xticks(x)
-    ax4.set_xticklabels(labels, rotation=15, ha='right', fontweight='bold')
-    ax4.legend()
-    ax4.grid(True, linestyle=':', alpha=0.6)
-
-    plt.suptitle('Multi-Topology Blind Stress Testing: DQN Traffic Engineering Generalization Benchmark', fontsize=13, fontweight='bold')
-    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-    bench_plot = os.path.join(plots_dir, 'blind_topologies_stress_benchmark.png')
-    plt.savefig(bench_plot, dpi=300)
-    plt.close()
-    print(f" • Saved Benchmark Plot to: {bench_plot}")
-
-    # Radar Chart
-    radar_plot = plot_blind_radar(results_summary, plots_dir, topo_order, topo_labels)
 
     # Save summary JSON
     with open(out_json, 'w') as f:
         json.dump(results_summary, f, indent=2)
     print(f" • Saved Structured Results JSON to: {out_json}")
+
+    # Generate 4-Panel Dashboard & Radar Chart
+    bench_plot = plot_blind_stress_dashboard(results_summary, plots_dir, topo_order, topo_labels)
+    radar_plot = plot_blind_radar(results_summary, plots_dir, topo_order, topo_labels)
+
     print("=" * 85)
     print(" ALL 5 TOPOLOGY BLIND STRESS BENCHMARKS COMPLETED SUCCESSFULLY!")
     print("=" * 85)
+
+
+def plot_blind_stress_dashboard(results_summary, plots_dir, topo_order=None, topo_labels=None):
+    """Generates 4-panel multi-topology stress test benchmark dashboard with zero label collision."""
+    if topo_order is None:
+        topo_order = ['tree', 'fattree', 'abilene', 'nsfnet', 'spineleaf']
+    if topo_labels is None:
+        topo_labels = {
+            'tree': 'Hierarchical Tree',
+            'fattree': 'Fat-Tree Clos (k=4)',
+            'abilene': 'Abilene US Backbone',
+            'nsfnet': 'NSFNet Continental',
+            'spineleaf': 'Spine-Leaf Fabric'
+        }
+
+    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(16, 11), dpi=300)
+    plt.subplots_adjust(top=0.91, bottom=0.08, left=0.08, right=0.96, hspace=0.32, wspace=0.22)
+    short_labels = ['Tree', 'Fat-Tree', 'Abilene', 'NSFNet', 'Spine-Leaf']
+    x = np.arange(len(short_labels))
+    width = 0.35
+
+    # 1. Core Jamming
+    spf_b = [results_summary[t]["scenario_1_core_jamming"]["dijkstra_spf_bottleneck_pct"] for t in topo_order]
+    dqn_b = [results_summary[t]["scenario_1_core_jamming"]["double_dqn_bottleneck_pct"] for t in topo_order]
+    b1 = ax1.bar(x - width/2, spf_b, width, label='Dijkstra SPF', color='#dc2626', alpha=0.88)
+    b2 = ax1.bar(x + width/2, dqn_b, width, label='Double DQN (Ours)', color='#059669', alpha=0.88)
+    for i in range(len(short_labels)):
+        diff = abs(spf_b[i] - dqn_b[i])
+        spf_y = spf_b[i] + (3.6 if diff < 5.0 else 1.2)
+        dqn_y = dqn_b[i] + 1.2
+        ax1.text(x[i] - width/2, spf_y, f"{spf_b[i]:.1f}%", ha='center', va='bottom', fontsize=8, fontweight='bold', color='#dc2626')
+        ax1.text(x[i] + width/2, dqn_y, f"{dqn_b[i]:.1f}%", ha='center', va='bottom', fontsize=8, fontweight='bold', color='#059669')
+    ax1.set_title('Scenario 1: Core Jamming Bottleneck Load (%) [Lower is Better]', fontsize=11, fontweight='bold', pad=8)
+    ax1.set_ylabel('Bottleneck Utilization (%)', fontweight='bold')
+    ax1.set_xticks(x)
+    ax1.set_xticklabels(short_labels, rotation=0, ha='center', fontweight='bold', fontsize=9.5)
+    ax1.set_ylim(0, max(spf_b) * 1.22)
+    ax1.legend(loc='upper left', fontsize=8.5)
+    ax1.grid(True, linestyle='--', alpha=0.45)
+
+    # 2. Decision Throughput
+    dec_speeds = [results_summary[t]["scenario_2_concurrency_burst"]["decisions_per_sec"] for t in topo_order]
+    bars2 = ax2.bar(x, dec_speeds, color='#0284c7', alpha=0.88, width=0.48)
+    for b in bars2:
+        h = b.get_height()
+        ax2.text(b.get_x() + b.get_width()/2., h + max(dec_speeds)*0.02, f"{h:.0f}/s", ha='center', va='bottom', fontsize=8.5, fontweight='bold', color='#0284c7')
+    ax2.set_title('Scenario 2: Decision Throughput (decisions/sec) [Higher is Better]', fontsize=11, fontweight='bold', pad=8)
+    ax2.set_ylabel('Decisions / Second', fontweight='bold')
+    ax2.set_xticks(x)
+    ax2.set_xticklabels(short_labels, rotation=0, ha='center', fontweight='bold', fontsize=9.5)
+    ax2.set_ylim(0, max(dec_speeds) * 1.18)
+    ax2.grid(True, linestyle='--', alpha=0.45)
+
+    # 3. Hotspot Relief & Bypass Rate
+    hotspot_relief = [results_summary[t]["scenario_3_hotspot_surge"]["bottleneck_reduction_pct"] for t in topo_order]
+    hotspot_bypass = [results_summary[t]["scenario_3_hotspot_surge"]["diversion_rate_pct"] for t in topo_order]
+    bars3 = ax3.bar(x, hotspot_relief, color='#7c3aed', alpha=0.88, width=0.48)
+    ax3.set_title('Scenario 3: Asymmetric Hotspot Relief & Bypass [Higher is Better]', fontsize=11, fontweight='bold', pad=8)
+    ax3.set_ylabel('Load Reduction (%)', fontweight='bold')
+    ax3.set_ylim(0, max(85, max(hotspot_relief) * 1.30 if max(hotspot_relief) > 0 else 100))
+    for i, b in enumerate(bars3):
+        h = b.get_height()
+        bp = hotspot_bypass[i]
+        ax3.text(b.get_x() + b.get_width()/2., h + 1.5, f"+{h:.1f}%\n({bp:.0f}% bypass)", ha='center', va='bottom', fontsize=8, fontweight='bold', color='#6d28d9')
+    ax3.set_xticks(x)
+    ax3.set_xticklabels(short_labels, rotation=0, ha='center', fontweight='bold', fontsize=9.5)
+    ax3.grid(True, linestyle='--', alpha=0.45)
+
+    # 4. Latency
+    spf_lats = [results_summary[t]["scenario_4_latency_degradation"]["spf_latency_ms"] for t in topo_order]
+    dqn_lats = [results_summary[t]["scenario_4_latency_degradation"]["dqn_latency_ms"] for t in topo_order]
+    ax4.bar(x - width/2, spf_lats, width, label='Dijkstra SPF', color='#dc2626', alpha=0.88)
+    ax4.bar(x + width/2, dqn_lats, width, label='Double DQN (Ours)', color='#059669', alpha=0.88)
+    for i in range(len(short_labels)):
+        diff = abs(spf_lats[i] - dqn_lats[i])
+        spf_y = spf_lats[i] + (2.2 if diff < 2.5 else 0.6)
+        dqn_y = dqn_lats[i] + 0.6
+        ax4.text(x[i] - width/2, spf_y, f"{spf_lats[i]:.1f} ms", ha='center', va='bottom', fontsize=8, fontweight='bold', color='#dc2626')
+        ax4.text(x[i] + width/2, dqn_y, f"{dqn_lats[i]:.1f} ms", ha='center', va='bottom', fontsize=8, fontweight='bold', color='#059669')
+    ax4.set_title('Scenario 4: Latency under Core Link Delay Degradation [Lower is Better]', fontsize=11, fontweight='bold', pad=8)
+    ax4.set_ylabel('End-to-End Latency (ms)', fontweight='bold')
+    ax4.set_xticks(x)
+    ax4.set_xticklabels(short_labels, rotation=0, ha='center', fontweight='bold', fontsize=9.5)
+    ax4.set_ylim(0, max(spf_lats) * 1.22)
+    ax4.legend(loc='upper left', fontsize=8.5)
+    ax4.grid(True, linestyle='--', alpha=0.45)
+
+    plt.suptitle('Multi-Topology Blind Stress Testing: DQN Traffic Engineering Generalization Benchmark\n(Zero-Shot Evaluation on 5 Topologies without Retraining)', fontsize=13, fontweight='bold', y=0.975)
+    bench_plot = os.path.join(plots_dir, 'blind_topologies_stress_benchmark.png')
+    plt.savefig(bench_plot, dpi=300, bbox_inches='tight')
+    plt.close()
+    print(f" • Saved Benchmark Plot to: {bench_plot}")
+    return bench_plot
 
 
 def plot_blind_radar(results_summary, plots_dir, topo_order=None, topo_labels=None):
@@ -491,7 +526,8 @@ def plot_blind_radar(results_summary, plots_dir, topo_order=None, topo_labels=No
     angles = [n / float(N_cat) * 2 * math.pi for n in range(N_cat)]
     angles += angles[:1]
 
-    fig_r, ax_r = plt.subplots(figsize=(8.5, 8.5), subplot_kw=dict(polar=True), dpi=300)
+    fig_r, ax_r = plt.subplots(figsize=(9.0, 9.5), subplot_kw=dict(polar=True), dpi=300)
+    plt.subplots_adjust(top=0.88, bottom=0.15)
     colors_radar = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
 
     for idx, t in enumerate(topo_order):
@@ -518,7 +554,7 @@ def plot_blind_radar(results_summary, plots_dir, topo_order=None, topo_labels=No
 
     ax_r.set_theta_offset(math.pi / 2)
     ax_r.set_theta_direction(-1)
-    ax_r.set_rlabel_position(36)
+    ax_r.set_rlabel_position(22)
     ax_r.tick_params(axis='x', pad=16)
     ax_r.set_xticks(angles[:-1])
     ax_r.set_xticklabels(categories, fontweight='bold', fontsize=10)
@@ -539,10 +575,12 @@ def plot_blind_radar(results_summary, plots_dir, topo_order=None, topo_labels=No
         else:
             label.set_horizontalalignment('right')
             label.set_verticalalignment('center')
-    ax_r.set_ylim(0, 105)
+    ax_r.set_ylim(0, 110)
+    ax_r.set_yticks([20, 40, 60, 80, 100])
+    ax_r.set_yticklabels(['20%', '40%', '60%', '80%', '100%'], fontsize=8, color='#64748b')
     ax_r.grid(True, linestyle='--', alpha=0.5)
-    plt.title('Multi-Topology Resilience & Generalization Radar', size=13, fontweight='bold', y=1.08)
-    plt.legend(loc='upper right', bbox_to_anchor=(1.30, 1.12), fontsize=9, frameon=True, facecolor='#ffffff')
+    ax_r.set_title('Multi-Topology Resilience & Generalization Radar\n(Zero-Shot Evaluation Across 5 Diverse Topologies)', size=12, fontweight='bold', pad=26)
+    ax_r.legend(loc='lower center', bbox_to_anchor=(0.50, -0.15), ncol=3, fontsize=9.5, frameon=True, facecolor='#ffffff', edgecolor='#cbd5e1')
     radar_plot = os.path.join(plots_dir, 'blind_topologies_radar.png')
     plt.savefig(radar_plot, dpi=300, bbox_inches='tight')
     plt.close()
@@ -559,7 +597,7 @@ if __name__ == '__main__':
     parser.add_argument('--topologies', nargs='+', default=None, help="Specific topologies to test")
     parser.add_argument('--burst-flows', type=int, default=500, help="Number of concurrent burst flows in Test 2 (default: 500)")
     parser.add_argument('--seed', type=int, default=None, help="Random seed for reproducibility")
-    parser.add_argument('--replot-only', action='store_true', help="Regenerate radar plot from existing JSON results without re-running tests")
+    parser.add_argument('--replot-only', action='store_true', help="Regenerate radar plot and stress dashboard from existing JSON results without re-running tests")
     args = parser.parse_args()
 
     plots_dir = args.plots_dir or os.path.join(BASE_DIR, 'logs', 'plots')
@@ -570,8 +608,9 @@ if __name__ == '__main__':
         if os.path.exists(json_path):
             with open(json_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
+            plot_blind_stress_dashboard(data, plots_dir)
             plot_blind_radar(data, plots_dir)
-            print("Done replotting radar chart.")
+            print("Done replotting stress dashboard and radar chart.")
         else:
             print(f"Error: {json_path} not found for replotting.")
     else:

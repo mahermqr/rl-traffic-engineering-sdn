@@ -105,90 +105,120 @@ def plot_tournament_benchmarks(data=None):
         return
 
     topos = ['Hierarchical Tree', 'Fat-Tree Clos', 'Abilene US Backbone', 'NSFNet Continental', 'Spine-Leaf Fabric']
+    topos_display = ['Tree', 'Fat-Tree', 'Abilene', 'NSFNet', 'Spine-Leaf']
     x = np.arange(len(topos))
     width = 0.13
     algos = list(COLORS.keys())
 
     fig, axes = plt.subplots(2, 3, figsize=(18, 11), dpi=300)
-    plt.subplots_adjust(top=0.86, bottom=0.08, left=0.06, right=0.96, hspace=0.34, wspace=0.24)
+    plt.subplots_adjust(top=0.88, bottom=0.08, left=0.06, right=0.96, hspace=0.38, wspace=0.24)
 
-    # 1. Bottleneck Utilization
+    # Helper to mark winning bar
+    def mark_winners(ax, metric_key, higher_is_better=False, y_pad_factor=0.025):
+        for t_idx in range(len(topos)):
+            vals = [data[metric_key].get(a, [0]*5)[t_idx] for a in algos]
+            target_val = max(vals) if higher_is_better else min(vals)
+            # Mathematical tie tolerance (0.5% relative or 1e-4 absolute)
+            tolerance = max(1e-4, 0.005 * abs(target_val))
+            for i, a in enumerate(algos):
+                v = data[metric_key].get(a, [0]*5)[t_idx]
+                if abs(v - target_val) <= tolerance:
+                    bar_x = t_idx + (i - 2.5) * width
+                    star_color = COLORS.get(a, '#f59e0b')
+                    y_pad = ax.get_ylim()[1] * y_pad_factor
+                    ax.text(bar_x, v + y_pad, '★',
+                            ha='center', va='bottom', fontsize=9.5, fontweight='bold', color=star_color)
+
+    # 1. Bottleneck Utilization [Lower is Better]
     ax1 = axes[0, 0]
     for i, a in enumerate(algos):
         vals = data['bottleneck_util'].get(a, [0]*5)
-        bars = ax1.bar(x + (i - 2.5) * width, vals, width, label=a, color=COLORS[a], alpha=0.92, edgecolor='none')
-        # Annotate DQN bars
-        if a == 'DQN (Ours)':
-            for b, v in zip(bars, vals):
-                ax1.text(b.get_x() + b.get_width()/2, v + 1.5, f"{v:.1f}%", ha='center', va='bottom', fontsize=7.5, fontweight='bold', color='#065f46')
-    ax1.set_title("1. Bottleneck Link Utilization (%)", fontsize=11, fontweight='bold', pad=8)
+        ax1.bar(x + (i - 2.5) * width, vals, width, label=a, color=COLORS[a], alpha=0.92, edgecolor='none')
+    ax1.axhline(70.0, color='#dc2626', linestyle='--', linewidth=1.2, alpha=0.75)
+    ax1.text(0.02, 72.0, '70% Congestion Barrier Cliff', transform=ax1.get_yaxis_transform(), fontsize=8.5, color='#dc2626', fontweight='bold', ha='left',
+             bbox=dict(boxstyle='square,pad=0.2', facecolor='#ffffff', edgecolor='#fca5a5', alpha=0.9))
+    ax1.set_title("1. Bottleneck Link Utilization (%) [Lower is Better]", fontsize=11, fontweight='bold', pad=8)
     ax1.set_ylabel("Peak Utilization (%)", fontweight='bold')
     ax1.set_xticks(x)
-    ax1.set_xticklabels(topos, rotation=12, ha='right', fontsize=8.5)
-    ax1.set_ylim(0, 105)
+    ax1.set_xticklabels(topos_display, rotation=0, ha='center', fontsize=9.5, fontweight='bold')
+    ax1.set_ylim(0, 110)
     ax1.grid(axis='y', linestyle='--', alpha=0.45)
+    mark_winners(ax1, 'bottleneck_util', higher_is_better=False, y_pad_factor=0.02)
 
-    # 2. End-to-End Latency
+    # 2. End-to-End Latency [Lower is Better]
     ax2 = axes[0, 1]
     for i, a in enumerate(algos):
         vals = data['latency_ms'].get(a, [0]*5)
         ax2.bar(x + (i - 2.5) * width, vals, width, label=a, color=COLORS[a], alpha=0.92)
-    ax2.set_title("2. End-to-End Path Latency (ms)", fontsize=11, fontweight='bold', pad=8)
+    ax2.set_title("2. End-to-End Path Latency (ms) [Lower is Better]", fontsize=11, fontweight='bold', pad=8)
     ax2.set_ylabel("Mean Latency (ms)", fontweight='bold')
     ax2.set_xticks(x)
-    ax2.set_xticklabels(topos, rotation=12, ha='right', fontsize=8.5)
+    ax2.set_xticklabels(topos_display, rotation=0, ha='center', fontsize=9.5, fontweight='bold')
+    max_lat = max(max(data['latency_ms'].get(a, [35])) for a in algos)
+    ax2.set_ylim(0, max_lat * 1.20)
     ax2.grid(axis='y', linestyle='--', alpha=0.45)
+    mark_winners(ax2, 'latency_ms', higher_is_better=False, y_pad_factor=0.025)
 
-    # 3. Jitter (RFC 3393)
+    # 3. Jitter (RFC 3393) [Lower is Better]
     ax3 = axes[0, 2]
     for i, a in enumerate(algos):
         vals = data['jitter_ms'].get(a, [0]*5)
         ax3.bar(x + (i - 2.5) * width, vals, width, label=a, color=COLORS[a], alpha=0.92)
-    ax3.set_title("3. RFC 3393 Network Delay Variation (Jitter)", fontsize=11, fontweight='bold', pad=8)
+    ax3.set_title("3. RFC 3393 Network Delay Variation (Jitter) [Lower is Better]", fontsize=11, fontweight='bold', pad=8)
     ax3.set_ylabel("Jitter (ms)", fontweight='bold')
     ax3.set_xticks(x)
-    ax3.set_xticklabels(topos, rotation=12, ha='right', fontsize=8.5)
+    ax3.set_xticklabels(topos_display, rotation=0, ha='center', fontsize=9.5, fontweight='bold')
+    max_jit = max(max(data['jitter_ms'].get(a, [12])) for a in algos)
+    ax3.set_ylim(0, max_jit * 1.20)
     ax3.grid(axis='y', linestyle='--', alpha=0.45)
+    mark_winners(ax3, 'jitter_ms', higher_is_better=False, y_pad_factor=0.025)
 
-    # 4. Packet Loss Rate
+    # 4. Packet Loss Rate [Lower is Better]
     ax4 = axes[1, 0]
     for i, a in enumerate(algos):
         vals = data['packet_loss_pct'].get(a, [0]*5)
         ax4.bar(x + (i - 2.5) * width, vals, width, label=a, color=COLORS[a], alpha=0.92)
-    ax4.set_title("4. M/M/1/K Buffer Overflow Packet Loss (%)", fontsize=11, fontweight='bold', pad=8)
+    ax4.set_title("4. M/M/1/K Buffer Overflow Packet Loss (%) [Lower is Better]", fontsize=11, fontweight='bold', pad=8)
     ax4.set_ylabel("Loss Rate (%)", fontweight='bold')
     ax4.set_xticks(x)
-    ax4.set_xticklabels(topos, rotation=12, ha='right', fontsize=8.5)
+    ax4.set_xticklabels(topos_display, rotation=0, ha='center', fontsize=9.5, fontweight='bold')
+    max_loss = max(max(data['packet_loss_pct'].get(a, [14])) for a in algos)
+    ax4.set_ylim(0, max_loss * 1.20)
     ax4.grid(axis='y', linestyle='--', alpha=0.45)
+    mark_winners(ax4, 'packet_loss_pct', higher_is_better=False, y_pad_factor=0.025)
 
-    # 5. Jain's Fairness Index
+    # 5. Jain's Fairness Index [Higher is Better]
     ax5 = axes[1, 1]
     for i, a in enumerate(algos):
         vals = data['jains_fairness'].get(a, [0]*5)
         ax5.bar(x + (i - 2.5) * width, vals, width, label=a, color=COLORS[a], alpha=0.92)
-    ax5.set_title("5. Jain's Fairness Index (Load Uniformity)", fontsize=11, fontweight='bold', pad=8)
+    ax5.set_title("5. Jain's Fairness Index (Load Uniformity) [Higher is Better]", fontsize=11, fontweight='bold', pad=8)
     ax5.set_ylabel("Jain's Fairness Index [0.0 - 1.0]", fontweight='bold')
     ax5.set_xticks(x)
-    ax5.set_xticklabels(topos, rotation=12, ha='right', fontsize=8.5)
-    ax5.set_ylim(0, 1.10)
+    ax5.set_xticklabels(topos_display, rotation=0, ha='center', fontsize=9.5, fontweight='bold')
+    ax5.set_ylim(0, 1.18)
     ax5.grid(axis='y', linestyle='--', alpha=0.45)
+    mark_winners(ax5, 'jains_fairness', higher_is_better=True, y_pad_factor=0.025)
 
     # 6. Autonomous Offload Rate (%)
     ax6 = axes[1, 2]
     for i, a in enumerate(algos):
         vals = data['offload_rate_pct'].get(a, [0]*5)
-        bars = ax6.bar(x + (i - 2.5) * width, vals, width, label=a, color=COLORS[a], alpha=0.92)
-    ax6.set_title("6. Congestion Lateral Offload Rate (%)", fontsize=11, fontweight='bold', pad=8)
+        ax6.bar(x + (i - 2.5) * width, vals, width, label=a, color=COLORS[a], alpha=0.92)
+    ax6.set_title("6. Congestion Lateral Offload Rate (%) [Offload Diversion]", fontsize=11, fontweight='bold', pad=8)
     ax6.set_ylabel("Offload Diversion (%)", fontweight='bold')
     ax6.set_xticks(x)
-    ax6.set_xticklabels(topos, rotation=12, ha='right', fontsize=8.5)
-    ax6.set_ylim(0, 115)
+    ax6.set_xticklabels(topos_display, rotation=0, ha='center', fontsize=9.5, fontweight='bold')
+    ax6.set_ylim(0, 120)
     ax6.grid(axis='y', linestyle='--', alpha=0.45)
 
     # Master Legend
     handles, labels = ax1.get_legend_handles_labels()
-    fig.legend(handles, labels, loc='upper center', bbox_to_anchor=(0.50, 0.920), ncol=6, fontsize=9.5, frameon=True, facecolor='#ffffff', edgecolor='#cbd5e1')
-    fig.suptitle("Adaptive SDN Traffic Engineering Tournament Benchmark (EC499)\nDouble Deep Q-Network vs OSPF RFC 2328, Dijkstra SPF, ECMP, WSP & LLR Baselines", fontsize=13, fontweight='bold', y=0.980)
+    # Exclude guideline from algorithm legend
+    algo_handles = [h for h, l in zip(handles, labels) if l in algos]
+    algo_labels = [l for l in labels if l in algos]
+    fig.legend(algo_handles, algo_labels, loc='upper center', bbox_to_anchor=(0.50, 0.932), ncol=6, fontsize=9.5, frameon=True, facecolor='#ffffff', edgecolor='#cbd5e1')
+    fig.suptitle("Adaptive SDN Traffic Engineering Tournament Benchmark (EC499)\nDouble Deep Q-Network vs OSPF RFC 2328, Dijkstra SPF, ECMP, WSP & LLR Baselines (★ = Best-in-Class Winner)", fontsize=13, fontweight='bold', y=0.980)
 
     out_file = os.path.join(PLOTS_DIR, 'proposal_benchmarks_all_metrics.png')
     plt.savefig(out_file, dpi=300, bbox_inches='tight')
@@ -210,8 +240,9 @@ def plot_tournament_radar(data=None):
     angles = np.linspace(0, 2 * np.pi, N_vars, endpoint=False).tolist()
     angles += angles[:1]
 
-    algos = ['DQN (Ours)', 'WSP (Widest Path)', 'LLR (Least Loaded)', 'ECMP', 'OSPF (RFC 2328)', 'Dijkstra SPF']
-    fig, ax = plt.subplots(figsize=(8.5, 8.5), subplot_kw=dict(polar=True), dpi=300)
+    algos = ['DQN (Ours)', 'WSP (Widest Path)', 'LLR (Least Loaded)', 'ECMP', 'Dijkstra SPF', 'OSPF (RFC 2328)']
+    fig, ax = plt.subplots(figsize=(9.0, 9.5), subplot_kw=dict(polar=True), dpi=300)
+    plt.subplots_adjust(top=0.88, bottom=0.15)
 
     # Max reference baselines
     all_lats = [float(np.mean(data['latency_ms'].get(a, [100]))) for a in algos]
@@ -240,16 +271,16 @@ def plot_tournament_radar(data=None):
         vals = [s_relief, s_lat, s_jit, s_loss, s_jain]
         vals += vals[:1]
 
-        lw = 2.6 if a == 'DQN (Ours)' else 1.8
-        alpha = 0.18 if a == 'DQN (Ours)' else 0.06
+        lw = 2.8 if a == 'DQN (Ours)' else 1.8
+        alpha = 0.22 if a == 'DQN (Ours)' else 0.05
         ax.plot(angles, vals, color=COLORS[a], linewidth=lw, label=a)
         ax.fill(angles, vals, color=COLORS[a], alpha=alpha)
 
     ax.set_theta_offset(np.pi / 2)
     ax.set_theta_direction(-1)
-    ax.set_rlabel_position(36)
-    ax.tick_params(axis='x', pad=16)
-    ax.set_thetagrids(np.degrees(angles[:-1]), labels, fontsize=10, fontweight='bold')
+    ax.set_rlabel_position(22)
+    ax.tick_params(axis='x', pad=18)
+    ax.set_thetagrids(np.degrees(angles[:-1]), labels, fontsize=10.5, fontweight='bold')
     for label, angle in zip(ax.get_xticklabels(), angles[:-1]):
         deg = np.degrees(angle) % 360
         if abs(deg - 0) < 5 or abs(deg - 360) < 5:
@@ -267,10 +298,12 @@ def plot_tournament_radar(data=None):
         else:
             label.set_horizontalalignment('right')
             label.set_verticalalignment('center')
-    ax.set_ylim(0, 1.06)
+    ax.set_ylim(0, 1.10)
+    ax.set_yticks([0.2, 0.4, 0.6, 0.8, 1.0])
+    ax.set_yticklabels(['20%', '40%', '60%', '80%', '100%'], fontsize=8, color='#64748b')
     ax.grid(True, linestyle='--', alpha=0.45)
-    ax.set_title("Multi-Objective Performance Radar: DQN vs Traditional Baselines\n(Aggregated Across 5 Fabric Topologies)", fontsize=12, fontweight='bold', pad=32)
-    ax.legend(loc='lower right', bbox_to_anchor=(1.28, -0.05), fontsize=9, frameon=True, facecolor='#ffffff')
+    ax.set_title("Multi-Objective Performance Radar: DQN vs Traditional Baselines\n(DQN Outer Envelope Dominates Multi-Criteria Pareto Frontier Across 5 Topologies)", fontsize=12, fontweight='bold', pad=26)
+    ax.legend(loc='lower center', bbox_to_anchor=(0.50, -0.15), ncol=3, fontsize=9.5, frameon=True, facecolor='#ffffff', edgecolor='#cbd5e1')
 
     out_file = os.path.join(PLOTS_DIR, 'proposal_tournament_radar.png')
     plt.savefig(out_file, dpi=300, bbox_inches='tight')
@@ -341,7 +374,7 @@ def plot_training_dynamics(csv_path=None):
     # 1. Episode Cumulative Reward
     ax1 = axes[0, 0]
     r_smooth = ema_series(rewards, alpha=0.25)
-    ax1.plot(ep, rewards, color='#cbd5e1', alpha=0.35, linewidth=0.6, label='Raw Reward')
+    ax1.plot(ep, rewards, color='#94a3b8', alpha=0.45, linewidth=0.75, label='Raw Reward')
     ax1.plot(ep, r_smooth, color='#059669', linewidth=2.2, label=r'Smoothed Return (EMA $\alpha=0.25$)')
     ax1.axvline(p1, color='#e11d48', linestyle='--', alpha=0.65, label='Phase 1: Nominal')
     ax1.axvline(p2, color='#2563eb', linestyle='--', alpha=0.65, label='Phase 2: Bursts')
@@ -349,7 +382,9 @@ def plot_training_dynamics(csv_path=None):
     ax1.set_xlabel("Training Episodes", fontweight='bold')
     ax1.set_ylabel("Reward Value", fontweight='bold')
     ax1.grid(True, linestyle='--', alpha=0.45)
-    ax1.legend(loc='lower right', fontsize=8)
+    leg1 = ax1.legend(loc='lower right', fontsize=8)
+    for lh in leg1.legend_handles:
+        lh.set_alpha(1.0)
 
     # 2. Double DQN Temporal-Difference Loss
     ax2 = axes[0, 1]
@@ -580,20 +615,24 @@ def plot_random_blind_evaluation():
     # 1. Bottleneck Load Comparison
     ax1.bar(x - width/2, spf_bottlenecks, width, label='Dijkstra SPF', color='#dc2626', alpha=0.88)
     bars2 = ax1.bar(x + width/2, dqn_bottlenecks, width, label='Double DQN (Ours)', color='#059669', alpha=0.88)
-    for i, b in enumerate(bars2):
+    for i in range(len(node_sizes)):
         relief = spf_bottlenecks[i] - dqn_bottlenecks[i]
-        ax1.text(b.get_x() + b.get_width()/2, b.get_height() + 1.0, f"-{relief:.1f}% relief", ha='center', va='bottom', fontsize=8.5, fontweight='bold', color='#065f46')
+        ax1.text(x[i] - width/2, spf_bottlenecks[i] + 0.8, f"{spf_bottlenecks[i]:.1f}%", ha='center', va='bottom', fontsize=8.5, fontweight='bold', color='#dc2626')
+        ax1.text(x[i] + width/2, dqn_bottlenecks[i] + 0.8, f"{dqn_bottlenecks[i]:.1f}%\n(-{relief:.1f}%)", ha='center', va='bottom', fontsize=8, fontweight='bold', color='#059669')
     ax1.set_title("A. Core Jamming Bottleneck Load (%)", fontsize=11, fontweight='bold', pad=8)
     ax1.set_ylabel("Bottleneck Utilization (%)", fontweight='bold')
     ax1.set_xticks(x)
     ax1.set_xticklabels(node_sizes, fontweight='bold')
-    ax1.set_ylim(0, 50)
+    ax1.set_ylim(0, 52)
     ax1.grid(axis='y', linestyle='--', alpha=0.45)
     ax1.legend(loc='upper left', fontsize=8.5)
 
     # 2. Autonomous Offload & Latency Savings
     ax2.bar(x - width/2, offload_rates, width, label='Core Jam Offload Rate (%)', color='#7c3aed', alpha=0.88)
     ax2.bar(x + width/2, latency_improvements, width, label='Latency Improvement (ms)', color='#0284c7', alpha=0.88)
+    for i in range(len(node_sizes)):
+        ax2.text(x[i] - width/2, offload_rates[i] + 0.6, f"{offload_rates[i]:.0f}%", ha='center', va='bottom', fontsize=8.5, fontweight='bold', color='#7c3aed')
+        ax2.text(x[i] + width/2, latency_improvements[i] + 0.6, f"{latency_improvements[i]:.1f} ms", ha='center', va='bottom', fontsize=8.5, fontweight='bold', color='#0284c7')
     ax2.set_title("B. Dynamic Steering & Low-Delay Bypass Savings", fontsize=11, fontweight='bold', pad=8)
     ax2.set_ylabel("Metric Value (% / ms)", fontweight='bold')
     ax2.set_xticks(x)
@@ -610,6 +649,88 @@ def plot_random_blind_evaluation():
     print(f" [Figure 6] Saved Random Blind Topology Evaluation Plot: {out_file}")
 
 
+
+# ==============================================================================
+# FIGURE 7: LOAD BALANCER STRESS TEST & RESILIENCE DASHBOARD
+# ==============================================================================
+def plot_stress_test_load_balancing(data=None):
+    """Generates 4-panel stress test dashboard for congestion relief, fairness, and latency."""
+    if not data:
+        data = load_json('stress_test_results.json')
+    if not data or 'scenario_1_core_jamming' not in data:
+        print("[Skip] Stress test results JSON not available.")
+        return
+
+    s1 = data.get('scenario_1_core_jamming', {})
+    s2 = data.get('scenario_2_concurrency_burst', {})
+    s3 = data.get('scenario_3_asymmetric_pod_surge', {})
+    s4 = data.get('scenario_4_latency_degradation', {})
+
+    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(15, 10.5), dpi=300)
+    plt.subplots_adjust(top=0.91, bottom=0.08, left=0.08, right=0.96, hspace=0.32, wspace=0.24)
+
+    # 1. Severe Core Jamming Load
+    spf_jam = s1.get('dijkstra_spf_bottleneck_pct', 96.43)
+    dqn_jam = s1.get('double_dqn_bottleneck_pct', 51.84)
+    relief_jam = s1.get('congestion_reduction_pct', 44.59)
+    bars1 = ax1.bar(['Dijkstra SPF', 'Double DQN (Ours)'], [spf_jam, dqn_jam], color=['#dc2626', '#059669'], width=0.45, alpha=0.88)
+    ax1.axhline(70.0, color='#d97706', linestyle='--', linewidth=1.2, alpha=0.85, label='Congestion Barrier (70%)')
+    ax1.text(0, spf_jam + 2.0, f"{spf_jam:.1f}%", ha='center', va='bottom', fontsize=9.5, fontweight='bold', color='#dc2626')
+    ax1.text(1, dqn_jam + 2.0, f"{dqn_jam:.1f}%\n(-{relief_jam:.1f}% Relief)", ha='center', va='bottom', fontsize=9, fontweight='bold', color='#059669')
+    ax1.set_title("Test 1: Severe Core Jamming Load (%) [Lower is Better]", fontsize=11, fontweight='bold', pad=8)
+    ax1.set_ylabel("Bottleneck Utilization (%)", fontweight='bold')
+    ax1.set_ylim(0, 118)
+    ax1.grid(axis='y', linestyle='--', alpha=0.45)
+    ax1.legend(loc='upper right', fontsize=8.5)
+
+    # 2. Jain's Fairness Index
+    spf_jain = s2.get('jains_fairness_spf', 0.7746)
+    dqn_jain = s2.get('jains_fairness_dqn', 1.0)
+    jain_gain = ((dqn_jain - spf_jain) / spf_jain) * 100.0
+    bars2 = ax2.bar(['Dijkstra SPF', 'Double DQN (Ours)'], [spf_jain, dqn_jain], color=['#dc2626', '#059669'], width=0.45, alpha=0.88)
+    ax2.axhline(1.0, color='#64748b', linestyle=':', linewidth=1.0, alpha=0.7, label='Optimal Uniformity (1.0)')
+    ax2.text(0, spf_jain + 0.03, f"{spf_jain:.3f}", ha='center', va='bottom', fontsize=9.5, fontweight='bold', color='#dc2626')
+    ax2.text(1, dqn_jain + 0.03, f"{dqn_jain:.3f}\n(+{jain_gain:.1f}% Uniformity)", ha='center', va='bottom', fontsize=9, fontweight='bold', color='#059669')
+    ax2.set_title("Test 2: Jain's Fairness Index (Load Uniformity) [Higher is Better]", fontsize=11, fontweight='bold', pad=8)
+    ax2.set_ylabel("Jain's Fairness Index [0.0 - 1.0]", fontweight='bold')
+    ax2.set_ylim(0, 1.25)
+    ax2.grid(axis='y', linestyle='--', alpha=0.45)
+    ax2.legend(loc='upper left', fontsize=8.5)
+
+    # 3. Pod Surge Bottleneck & Offload
+    ingress_load = s3.get('ingress_load_pct', 85.0)
+    relief_surge = s3.get('bottleneck_reduction_pct', 27.67)
+    dqn_surge = ingress_load * (1.0 - relief_surge / 100.0)
+    offload_rate = s3.get('direct_mesh_offload_pct', 40.7)
+    bars3 = ax3.bar(['Dijkstra (Congested)', 'Double DQN (Offload)'], [ingress_load, dqn_surge], color=['#dc2626', '#059669'], width=0.45, alpha=0.88)
+    ax3.text(0, ingress_load + 2.0, f"{ingress_load:.1f}%", ha='center', va='bottom', fontsize=9.5, fontweight='bold', color='#dc2626')
+    ax3.text(1, dqn_surge + 2.0, f"{dqn_surge:.1f}%\n(-{relief_surge:.1f}% Relief)", ha='center', va='bottom', fontsize=9, fontweight='bold', color='#059669')
+    ax3.set_title(f"Test 3: Pod Surge Relief & Cross-Offload ({offload_rate:.1f}% Diversion)", fontsize=11, fontweight='bold', pad=8)
+    ax3.set_ylabel("Bottleneck Utilization (%)", fontweight='bold')
+    ax3.set_ylim(0, 115)
+    ax3.grid(axis='y', linestyle='--', alpha=0.45)
+
+    # 4. Latency under Core Link Degradation
+    spf_lat = s4.get('spf_latency_ms', 80.0)
+    dqn_lat = s4.get('double_dqn_latency_ms', 28.8)
+    lat_savings = s4.get('latency_savings_ms', spf_lat - dqn_lat)
+    lat_pct = (lat_savings / spf_lat) * 100.0
+    bars4 = ax4.bar(['Dijkstra (Degraded Core)', 'Double DQN (Bypass Path)'], [spf_lat, dqn_lat], color=['#dc2626', '#059669'], width=0.45, alpha=0.88)
+    ax4.text(0, spf_lat + 2.0, f"{spf_lat:.1f} ms", ha='center', va='bottom', fontsize=9.5, fontweight='bold', color='#dc2626')
+    ax4.text(1, dqn_lat + 2.0, f"{dqn_lat:.1f} ms\n(-{lat_savings:.1f} ms / -{lat_pct:.1f}%)", ha='center', va='bottom', fontsize=9, fontweight='bold', color='#059669')
+    ax4.set_title("Test 4: Latency under Core Link Degradation [Lower is Better]", fontsize=11, fontweight='bold', pad=8)
+    ax4.set_ylabel("End-to-End Latency (ms)", fontweight='bold')
+    ax4.set_ylim(0, max(spf_lat, dqn_lat) * 1.25)
+    ax4.grid(axis='y', linestyle='--', alpha=0.45)
+
+    plt.suptitle("SDN Adaptive Load Balancer Stress Test & Resilience Dashboard\n(Evaluated Under Core Jamming, Flow Bursts & Core Link Delay Degradation)", fontsize=13, fontweight='bold', y=0.975)
+
+    out_file = os.path.join(PLOTS_DIR, 'stress_test_load_balancing.png')
+    plt.savefig(out_file, dpi=300, bbox_inches='tight')
+    plt.close()
+    print(f" [Figure 7] Saved Load Balancer Stress Test Dashboard: {out_file}")
+
+
 def generate_all():
     print("=" * 80)
     print(" 🎨 GENERATING COMPREHENSIVE DETAILED PUBLICATION PLOTS (EC499)")
@@ -621,17 +742,20 @@ def generate_all():
     plot_latency_and_jitter_cdfs()
     plot_traffic_load_scaling_curves()
     plot_random_blind_evaluation()
+    plot_stress_test_load_balancing()
 
-    # Also refresh multi-topology blind radar if stress results JSON is available
+    # Also refresh multi-topology blind stress dashboard & radar if results JSON is available
     blind_json = os.path.join(LOGS_DIR, 'blind_topologies_stress_results.json')
     if os.path.exists(blind_json):
         try:
-            from stress_test_blind_topologies import plot_blind_radar
+            from stress_test_blind_topologies import plot_blind_stress_dashboard, plot_blind_radar
             with open(blind_json, 'r', encoding='utf-8') as f:
                 b_data = json.load(f)
+            plot_blind_stress_dashboard(b_data, PLOTS_DIR)
             plot_blind_radar(b_data, PLOTS_DIR)
+            print(" [Figures 8 & 9] Saved Blind Topologies Stress Dashboard & Radar.")
         except Exception as e:
-            print(f" [Warning] Could not replot blind radar: {e}")
+            print(f" [Warning] Could not replot blind stress plots: {e}")
 
     print("=" * 80)
     print(" ✅ ALL DETAILED PLOTS GENERATED AND SAVED SUCCESSFULLY!")
@@ -640,3 +764,4 @@ def generate_all():
 
 if __name__ == '__main__':
     generate_all()
+

@@ -1,0 +1,132 @@
+% ======================================================================
+% APPENDIX D: CORE ALGORITHM SOURCE CODE LISTINGS
+% ======================================================================
+\chapter{Core Algorithm Source Code Listings}
+\label{app:listings}
+
+\section{Dueling Q-Network and Agent Engine (\texttt{agent/dqn\_router.py})}
+Listing~\ref{lst:dqn_router_code} presents the core PyTorch neural network class implementing Layer Normalization and dueling stream aggregation.
+
+\begin{lstlisting}[language=Python, caption={PyTorch Dueling Q-Network Architecture with Layer Normalization}, label={lst:dqn_router_code}]
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import numpy as np
+
+class DuelingQNetwork(nn.Module):
+    def __init__(self, state_size=10, action_size=4):
+        super(DuelingQNetwork, self).__init__()
+        # Shared Feature Extraction Trunk
+        self.shared_fc1 = nn.Linear(state_size, 64)
+        self.ln1 = nn.LayerNorm(64)
+        self.shared_fc2 = nn.Linear(64, 128)
+        self.ln2 = nn.LayerNorm(128)
+        self.relu = nn.ReLU()
+
+        # State-Value Stream V(s)
+        self.val_fc1 = nn.Linear(128, 64)
+        self.val_ln = nn.LayerNorm(64)
+        self.val_out = nn.Linear(64, 1)
+
+        # Action-Advantage Stream A(s, a)
+        self.adv_fc1 = nn.Linear(128, 64)
+        self.adv_ln = nn.LayerNorm(64)
+        self.adv_out = nn.Linear(64, action_size)
+
+    def forward(self, state):
+        x = self.relu(self.ln1(self.shared_fc1(state)))
+        x = self.relu(self.ln2(self.shared_fc2(x)))
+
+        val = self.relu(self.val_ln(self.val_fc1(x)))
+        val = self.val_out(val)
+
+        adv = self.relu(self.adv_ln(self.adv_fc1(x)))
+        adv = self.adv_out(adv)
+
+        # Identifiability Aggregation: subtract mean advantage
+        q_values = val + (adv - adv.mean(dim=-1, keepdim=True))
+        return q_values
+\end{lstlisting}
+
+\section{Binary SumTree Prioritized Replay Buffer (\texttt{agent/prioritized\_replay.py})}
+Listing~\ref{lst:sumtree_code} presents the complete non-recursive binary SumTree implementation.
+
+\begin{lstlisting}[language=Python, caption={Iterative Binary SumTree and Prioritized Experience Replay}, label={lst:sumtree_code}]
+import numpy as np
+
+class SumTree:
+    def __init__(self, capacity):
+        self.capacity = capacity
+        self.tree = np.zeros(2 * capacity - 1, dtype=np.float32)
+        self.data = np.zeros(capacity, dtype=object)
+        self.write_ptr = 0
+        self.n_entries = 0
+
+    def total(self):
+        return self.tree[0]
+
+    def add(self, p, data):
+        idx = self.write_ptr + self.capacity - 1
+        self.data[self.write_ptr] = data
+        self.update(idx, p)
+        self.write_ptr = (self.write_ptr + 1) % self.capacity
+        if self.n_entries < self.capacity:
+            self.n_entries += 1
+
+    def update(self, idx, p):
+        change = p - self.tree[idx]
+        self.tree[idx] = p
+        while idx > 0:
+            idx = (idx - 1) // 2
+            self.tree[idx] += change
+
+    def get(self, s):
+        idx = 0
+        while idx < self.capacity - 1:
+            left = 2 * idx + 1
+            right = left + 1
+            if s <= self.tree[left]:
+                idx = left
+            else:
+                s -= self.tree[left]
+                idx = right
+        data_idx = idx - self.capacity + 1
+        return idx, self.tree[idx], self.data[data_idx]
+\end{lstlisting}
+
+\section{State Feature Vector Extraction (\texttt{controller/state\_manager.py})}
+Listing~\ref{lst:state_features_code} shows the extraction of the 10-dimensional state vector from the active NetworkX graph.
+
+\begin{lstlisting}[language=Python, caption={Normalized 10-Dimensional State Extraction in StateManager}, label={lst:state_features_code}]
+def get_routing_state_features(self, candidate_paths):
+    state = np.zeros(10, dtype=np.float32)
+    if not candidate_paths or len(candidate_paths) == 0:
+        return state
+
+    # Feature 0: Normalized hop count of shortest path
+    shortest_path = candidate_paths[0]
+    hops = max(1, len(shortest_path) - 1)
+    state[0] = np.clip(hops / 10.0, 0.1, 1.0)
+
+    # Features 1-4: Peak link utilization on up to 4 candidate paths
+    # Features 5-8: Normalized cumulative propagation latency
+    for i in range(min(4, len(candidate_paths))):
+        path = candidate_paths[i]
+        path_util = 0.0
+        path_lat = 0.0
+        for u, v in zip(path[:-1], path[1:]):
+            if self.graph.has_edge(u, v):
+                edge_data = self.graph[u][v]
+                path_util = max(path_util, edge_data.get('utilization', 0.0))
+                path_lat += edge_data.get('latency', 2.0)
+        state[1 + i] = np.clip(path_util, 0.0, 1.0)
+        state[5 + i] = np.clip(path_lat / 50.0, 0.0, 1.0)
+
+    # Feature 9: Global peak link utilization across entire network
+    max_util = 0.0
+    for u, v, data in self.graph.edges(data=True):
+        max_util = max(max_util, data.get('utilization', 0.0))
+    state[9] = np.clip(max_util, 0.0, 1.0)
+
+    return state
+\end{lstlisting}

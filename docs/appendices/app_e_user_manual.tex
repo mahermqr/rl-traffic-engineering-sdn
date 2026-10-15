@@ -1,0 +1,210 @@
+% ======================================================================
+% APPENDIX E: COMPLETE USER & ADMINISTRATOR DEPLOYMENT MANUAL
+% ======================================================================
+\chapter{User \& Administrator Deployment Manual}
+\label{app:manual}
+
+\section{System Prerequisites and Dependencies}
+The Adaptive SDN Traffic Engineering Platform is engineered to run natively on Linux-based environments (Ubuntu 20.04 LTS, Ubuntu 22.04 LTS, Ubuntu 24.04 LTS, or Debian 11/12). 
+
+\subsection{Hardware Requirements}
+\begin{itemize}
+    \item \textbf{Processor}: Modern x86\_64 or ARM64 multi-core CPU (Intel Core i5/i7/Xeon, AMD Ryzen/EPYC, or Apple Silicon via Linux VM). Minimum: 4 physical cores. Recommended: 8 cores.
+    \item \textbf{System Memory (RAM)}: Minimum 4~GB. Recommended: 8~GB or 16~GB for 20-switch Clos emulations.
+    \item \textbf{Storage}: Minimum 2~GB of available disk space for dependencies, logs, and pre-trained models.
+\end{itemize}
+
+\subsection{Software Requirements}
+\begin{itemize}
+    \item \textbf{Operating System}: Linux kernel 5.4 or higher with Open vSwitch kernel module support.
+    \item \textbf{Python Environment}: Python 3.9 to Python 3.12 (Python 3.14 compatible).
+    \item \textbf{Network Virtualization}: Mininet Version 2.3.0+ and Open vSwitch (OVS) 2.13+.
+    \item \textbf{Deep Learning Framework}: PyTorch 2.0+ (CPU or CUDA).
+    \item \textbf{SDN Framework}: Ryu SDN Framework 4.34+.
+    \item \textbf{Web Browser}: Google Chrome, Chromium, Firefox, or Safari with HTML5 Canvas support.
+\end{itemize}
+
+\section{Installation and Environment Initialization}
+The platform includes automated launcher scripts that detect the active Python virtual environment without manual path exports.
+
+\subsection{Step-by-Step Installation}
+\begin{lstlisting}[language=bash, caption={Platform Environment Setup}]
+# 1. Clone repository and navigate to root directory
+git clone https://github.com/maher-alqadhi/Reinforcement_Learning_for_Adaptive_Traffic_Engineering_in_an_SDN_Network.git
+cd Reinforcement_Learning_for_Adaptive_Traffic_Engineering_in_an_SDN_Network
+
+# 2. Create isolated Python virtual environment
+python3 -m venv .venv
+source .venv/bin/activate
+
+# 3. Upgrade package installer and install core dependencies
+pip install --upgrade pip
+pip install -r requirements.txt
+\end{lstlisting}
+
+\section{Automated Execution Runbook}
+
+\subsection{1. Execute Unit \& Integration Tests (32 Tests)}
+To assert software integrity across all 32 automated unit tests:
+\begin{lstlisting}[language=bash]
+chmod +x run_tests.sh
+./run_tests.sh
+\end{lstlisting}
+
+\subsection{2. Execute the Head-to-Head Tournament Benchmark}
+To run the automated routing tournament across all 5 topologies:
+\begin{lstlisting}[language=bash]
+chmod +x run_benchmarks.sh
+./run_benchmarks.sh
+\end{lstlisting}
+Benchmark results are written to \texttt{logs/routing\_tournament\_results.json}.
+
+\subsection{3. Execute Multi-Topology Stress Testing}
+To evaluate severe core link saturation, flow avalanches, and link failures:
+\begin{lstlisting}[language=bash]
+python3 stress_test_blind_topologies.py
+\end{lstlisting}
+
+\subsection{4. Evaluate Zero-Shot Random Graph Generalization}
+To test the pre-trained model on arbitrary unseen random graphs:
+\begin{lstlisting}[language=bash]
+chmod +x run_random_blind_test.sh
+./run_random_blind_test.sh --nodes 25 --flows 200
+\end{lstlisting}
+
+\subsection{5. Launch Live Production System (Controller + Web Dashboard)}
+To start the Ryu SDN controller alongside the interactive Web Dashboard:
+\begin{lstlisting}[language=bash]
+chmod +x run_system.sh
+./run_system.sh
+\end{lstlisting}
+Open a modern web browser to access the interactive HTML5 canvas dashboard:
+\begin{equation*}
+    \texttt{http://localhost:8080}
+\end{equation*}
+
+\subsection{6. Standalone Web Dashboard Launcher}
+The Web Dashboard can also be launched independently for testing and visualization:
+\begin{lstlisting}[language=bash]
+python3 controller/web_dashboard.py --port 8080 --topo tree
+\end{lstlisting}
+
+\section{Interactive Web Dashboard User Guide}
+The Web Dashboard interface is structured into six functional zones:
+\begin{enumerate}
+    \item \textbf{Global Navigation Bar}:
+    \begin{itemize}
+        \item \textit{Fabric Topology Pill}: Displays the active network topology (e.g., Hierarchical Tree, Clos Fat-Tree).
+        \item \textit{Model Parameters Badge}: Displays loaded D3QN weights ($26,501$ parameters). Clicking opens the Neural Network Inspector modal.
+        \item \textit{Exploration Badge ($\varepsilon$)}: Shows the active exploration rate ($\varepsilon = 0.010$).
+        \item \textit{Theme Toggle (Light/Dark)}: Instantly toggles between high-contrast daylight theme and dark mode.
+        \item \textit{Telemetry Auto-Refresh}: Pauses or activates automatic 2.5-second telemetry polling.
+        \item \textit{Network Settings Button}: Opens the global architecture configuration modal.
+    \end{itemize}
+    
+    \item \textbf{Real-Time KPI Strip}:
+    \begin{itemize}
+        \item \textit{Fabric Throughput (Mbps)}: Real-time aggregated data plane throughput with active flow count.
+        \item \textit{Bottleneck Load (\%)}: Peak link utilization across all network links with status pill (Optimal $<45\%$, Moderate $45$--$75\%$, Congested $>75\%$).
+        \item \textit{Latency \& Jitter (ms)}: Average end-to-end path latency, Echo-RTT delay variation, and packet loss percentage.
+        \item \textit{Control Plane Rate (msg/s)}: OpenFlow asynchronous message throughput and mean D3QN decision latency.
+    \end{itemize}
+    
+    \item \textbf{Interactive OpenFlow 1.3 Canvas Fabric}:
+    \begin{itemize}
+        \item \textit{Pan \& Zoom Controls}: Zoom In ($+$), Zoom Out ($-$), Reset Zoom ($\circlearrowleft 100\%$), or use mouse wheel zoom centered at cursor position.
+        \item \textit{Node Selection}: Click any switch node to designate it as the Source switch (green halo) or Destination switch (pink halo).
+        \item \textit{Utilization Badges}: Real-time link percentage badges displaying link saturation levels.
+        \item \textit{Severed Link Overlay}: Rendered as dashed red lines with a central \texttt{[⚡ CUT]} badge during simulated link failures.
+    \end{itemize}
+    
+    \item \textbf{Interactive Route Predictor \& Decision Explainer}:
+    \begin{itemize}
+        \item \textit{Source \& Destination Selectors}: Dropdowns allowing instant selection of ingress and egress edge switches.
+        \item \textit{Demand Slider}: Adjusts simulated flow bandwidth demand between 5~Mbps and 95~Mbps.
+        \item \textit{Predict Route Button}: Dispatches an asynchronous request to \texttt{/api/model\_predict}, executing D3QN inference ($<2.5\text{ ms}$).
+        \item \textit{Apply Flow to Fabric Button}: Dynamically injects the selected flow into the active state manager, updating link loads and flow tables in real-time.
+        \item \textit{Softmax Q-Value Table}: Renders all candidate path alternatives, action indices $a^*$, Q-softmax choice probabilities, projected bottlenecks, and path latencies.
+    \end{itemize}
+    
+    \item \textbf{Algorithm Tournament Arena}:
+    \begin{itemize}
+        \item \textit{Protocol Checklist Chips}: Toggle D3QN, OSPF, ECMP, WSP, LLR, or Dijkstra SPF for comparative head-to-head simulation.
+        \item \textit{Workload Pattern}: Select between Poisson, Core Congestion Jamming, or Asymmetric Burst Shockwave.
+        \item \textit{Plot View Tabs}: Switch seamlessly between All-in-One Triad, Metric Deltas (Bar), Delay Trajectory (Timeline), 6D Quality Radar, Latency CDF (Tail SLA), and Load Scaling Curves.
+    \end{itemize}
+    
+    \item \textbf{Chaos Engineering Toolbar}:
+    \begin{itemize}
+        \item \textit{Sever Link}: Simulates a physical fiber cut on a candidate core or aggregation trunk link.
+        \item \textit{Brownout}: Degrades link capacity by 90\% with an artificial latency penalty.
+        \item \textit{Burst (+50M)}: Injects an instant +50~Mbps traffic surge to stress the active routing path.
+        \item \textit{Restore Links}: Restores all severed or degraded links to nominal operating status.
+        \item \textit{Flush Flows}: Flushes all dynamic flow table entries to baseline idle state.
+    \end{itemize}
+\end{enumerate}
+
+\section{REST API Specification \& Endpoint Reference}
+The embedded HTTP server exposes a complete RESTful API for external monitoring, telemetry polling, and automation scripting:
+
+\begin{table}[htbp]
+\centering
+\caption{Complete REST API Endpoint Reference}
+\label{tab:rest_api_reference}
+\small
+\begin{tabularx}{\textwidth}{l l p{4.2cm} X}
+\toprule
+\textbf{HTTP Method} & \textbf{Endpoint} & \textbf{Parameters} & \textbf{Description \& Output Schema} \\
+\midrule
+\texttt{GET} & \texttt{/api/health} & None & Returns controller health, active topology ID, switch count, link count, and active flow count. \\
+\addlinespace
+\texttt{GET} & \texttt{/api/telemetry} & \texttt{topo=\{id\}} & Fast single round-trip bundle containing topology layout, network TE stats, control overhead, RL metrics, and active flows. \\
+\addlinespace
+\texttt{GET} & \texttt{/api/topology} & \texttt{topo=\{id\}} & Returns graph nodes with 2D positions ($x, y$), switch types, link capacities, delays, and current utilization. \\
+\addlinespace
+\texttt{GET} & \texttt{/api/stats} & None & Returns network-wide aggregated TE summary (throughput, mean utilization, bottleneck load, latency, jitter, loss). \\
+\addlinespace
+\texttt{GET} & \texttt{/api/control\_overhead} & None & Returns OpenFlow message generation rates (msg/s) and mean D3QN decision latency (ms). \\
+\addlinespace
+\texttt{GET} & \texttt{/api/rl\_metrics} & None & Returns exploration rate $\varepsilon$, model device, parameter count, and buffer capacity. \\
+\addlinespace
+\texttt{GET} & \texttt{/api/model\_inspect} & None & Detailed PyTorch neural architecture inspection including layer dimensions, parameter count, and tensor shapes. \\
+\addlinespace
+\texttt{GET} & \texttt{/api/model\_predict} & \texttt{src}, \texttt{dst}, \texttt{demand} & Real-time forward inference returning chosen path, candidate path alternatives, action indices, and softmax probabilities. \\
+\addlinespace
+\texttt{GET/POST} & \texttt{/api/verse} & \texttt{topo}, \texttt{protocols}, \texttt{pattern}, \texttt{flows} & Head-to-head algorithm tournament simulation returning comparative metrics, trajectories, and Pareto efficiency verdicts. \\
+\addlinespace
+\texttt{GET} & \texttt{/api/flows} & None & Returns active flow table entries (flow ID, DPID, match criteria, actions, byte counters, duration). \\
+\addlinespace
+\texttt{GET} & \texttt{/api/simulate/apply\_flow} & \texttt{src}, \texttt{dst}, \texttt{demand} & Injects a dynamic flow into the network state manager and updates port counters. \\
+\addlinespace
+\texttt{GET} & \texttt{/api/simulate/traffic\_burst} & None & Injects an asymmetric +50~Mbps surge across the core trunks. \\
+\addlinespace
+\texttt{GET} & \texttt{/api/simulate/core\_jamming} & None & Injects severe core link congestion ($96\%$ saturation) to trigger autonomous rerouting. \\
+\addlinespace
+\texttt{POST} & \texttt{/api/network\_settings} & JSON payload & Configures queue depths ($K$), link bandwidths, propagation delays, and physical packet drop rates. \\
+\addlinespace
+\texttt{GET} & \texttt{/api/plots/\{filename\}} & None & Serves static high-resolution benchmark and telemetry plots as PNG images. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Mininet CLI Operations and OVS Diagnostics}
+When running interactive emulations, the Mininet command-line interface provides real-time control:
+
+\begin{lstlisting}[language=bash, caption={Mininet CLI and Open vSwitch Diagnostics}]
+# Launch Mininet with Fat-Tree Clos topology
+sudo mn --custom topology/mininet_topo.py --topo fattree --controller=remote,ip=127.0.0.1,port=6633 --switch ovsk,protocols=OpenFlow13
+
+# Inside the Mininet CLI:
+mininet> pingall             # Verify full Layer 2 and Layer 3 reachability
+mininet> h1 ping -c 5 h16    # Measure end-to-end ping RTT across pod boundaries
+mininet> iperf h1 h16        # Generate TCP bandwidth stream between edge hosts
+mininet> link s1 s5 down     # Simulate physical link failure between core and agg
+
+# Inspect live OpenFlow 1.3 flow tables via Linux shell:
+sudo ovs-ofctl -O OpenFlow13 dump-flows s1
+sudo ovs-ofctl -O OpenFlow13 dump-groups s1
+sudo ovs-ofctl -O OpenFlow13 dump-ports-desc s1
+sudo ovs-ofctl -O OpenFlow13 dump-ports s1
+\end{lstlisting}

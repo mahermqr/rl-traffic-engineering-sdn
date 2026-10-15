@@ -1,0 +1,236 @@
+% ======================================================================
+% CHAPTER 4: SYSTEM ARCHITECTURE & SDN CONTROL PLANE ENGINEERING
+% ======================================================================
+\chapter{System Architecture \& SDN Control Plane Engineering}
+\label{chap:architecture}
+
+\section{System Overview and Architectural Decomposition}
+The software-defined traffic engineering platform is engineered as a modular, event-driven, microservice-inspired architecture built atop the Ryu SDN framework, PyTorch, and Mininet. The system is decomposed into four tightly coordinated yet logically decoupled subsystems:
+\begin{enumerate}
+    \item \textbf{OpenFlow 1.3 Control Plane Engine (\texttt{MainController})}: Implements the event-driven southbound interface, managing switch handshakes, table-miss installations, loop-free ARP resolution, and asynchronous telemetry collection.
+    \item \textbf{Telemetry \& Network State Engine (\texttt{StateManager})}: Maintains the active directed graph representation of the network topology, computes differential byte rates, tracks OpenFlow message accounting, and extracts the 10-dimensional state vector.
+    \item \textbf{Adaptive Traffic Engineering Engine (\texttt{RoutingModule})}: Coordinates candidate path discovery, policy inference, multi-hop FlowMod rule installations, WCMP group table configuration, and background training threads.
+    \item \textbf{Deep Q-Network Agent (\texttt{DQNRouter})}: Implements the Dueling Double Deep Q-Network, the binary SumTree Prioritized Experience Replay buffer, and Polyak soft target updates.
+\end{enumerate}
+
+Figure~\ref{fig:system_block_diagram} illustrates the interaction and data flow among these core architectural subsystems.
+
+\begin{figure}[htbp]
+\centering
+\begin{minipage}{0.95\textwidth}
+\centering
+\fbox{\parbox{0.95\textwidth}{
+\vspace{0.2cm}
+\centering
+{\large \textbf{System Architectural Block Diagram \& Data Pipeline}}\\[0.3cm]
+\begin{tabular}{c c c}
+\fbox{\parbox{0.28\textwidth}{\centering \textbf{Data Forwarding Plane}\\ \footnotesize Open vSwitch (OVS)\\ TCAM Tables, Group Tables}} 
+& $\xleftrightarrow[\text{OpenFlow 1.3}]{\text{Southbound Channel}}$ 
+& \fbox{\parbox{0.32\textwidth}{\centering \textbf{\texttt{MainController}}\\ \footnotesize Handshake, PacketIn, FlowMod\\ Loop-Free ARP, Echo Probing}} \\
+& & $\Updownarrow$ \footnotesize Live Telemetry \& Routing Calls \\
+\fbox{\parbox{0.28\textwidth}{\centering \textbf{Web UI \& Telemetry}\\ \footnotesize HTML5 Canvas Topology\\ REST API (Port 8080)}} 
+& $\xleftrightarrow[\text{HTTP / REST}]{\text{Northbound API}}$ 
+& \fbox{\parbox{0.32\textwidth}{\centering \textbf{\texttt{StateManager}}\\ \footnotesize NetworkX Graph ($V, E$)\\ Differential Counters, State $s_t$}} \\
+& & $\Updownarrow$ \footnotesize State Vector $s_t$ \& Action $a_t$ \\
+\fbox{\parbox{0.28\textwidth}{\centering \textbf{Asynchronous Worker}\\ \footnotesize PyTorch Backpropagation\\ PER Mini-Batch Gradient}} 
+& $\xleftrightarrow[\text{Shared Buffer}]{\text{Experience Tuples}}$ 
+& \fbox{\parbox{0.32\textwidth}{\centering \textbf{\texttt{RoutingModule} \& \texttt{D3QN}}\\ \footnotesize Candidate Path Synthesis\\ Action Selection $a_t \in \{0, 1, 2, 3\}$}} \\
+\end{tabular}
+\vspace{0.2cm}
+}}
+\end{minipage}
+\caption{End-to-End Architectural Decomposition of the Adaptive SDN TE Platform.}
+\label{fig:system_block_diagram}
+\end{figure}
+
+\section{OpenFlow 1.3 Control Plane Engine (\texttt{MainController})}
+The \texttt{MainController} class (\texttt{controller/main\_controller.py}) inherits from \texttt{ryu.base.app\_manager.RyuApp} and serves as the primary operational coordinator of the SDN control plane.
+
+\subsection{Switch Feature Handshake and Table-Miss Setup}
+When an OpenFlow switch initiates a TCP connection to the controller on port 6633/6653, Ryu performs the standard OpenFlow 1.3 protocol handshake:
+\begin{enumerate}
+    \item The switch and controller exchange \texttt{OFPHello} messages to negotiate the highest mutually supported protocol version (Version 1.3, wire format \texttt{0x04}).
+    \item The controller transmits an \texttt{OFPFeaturesRequest}. The switch responds with an \texttt{OFPSwitchFeatures} message detailing its Datapath ID (DPID), buffer capacity, table count, and auxiliary capabilities.
+    \item Upon catching \texttt{EventOFPSwitchFeatures}, the controller immediately provisions a default \textbf{Table-Miss Flow Entry} into Flow Table 0.
+\end{enumerate}
+
+The Table-Miss rule is installed at Priority 0 with a completely wildcarded match field:
+\begin{lstlisting}[language=Python, caption={Table-Miss Entry Installation in MainController}]
+@set_ev_cls(ofp_event.EventOFPSwitchFeatures, CONFIG_DISPATCHER)
+def switch_features_handler(self, ev):
+    datapath = ev.msg.datapath
+    ofproto = datapath.ofproto
+    parser = datapath.ofproto_parser
+
+    # Priority 0 Table-Miss: send unclassified packets to controller
+    match = parser.OFPMatch()
+    actions = [parser.OFPActionOutput(ofproto.OFPP_CONTROLLER, ofproto.OFPCML_NO_BUFFER)]
+    inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
+    mod = parser.OFPFlowMod(
+        datapath=datapath, priority=0, match=match, instructions=inst
+    )
+    datapath.send_msg(mod)
+\end{lstlisting}
+Setting \texttt{max_len=ofproto.OFPCML_NO_BUFFER} instructs the switch to send the complete packet payload to the controller without reserving internal switch buffer space, avoiding buffer leak vulnerabilities in virtual switches.
+
+\subsection{Loop-Free Intelligent ARP Engine without Spanning Tree Protocol}
+A classical problem in meshed network architectures is the handling of Address Resolution Protocol (ARP) broadcast frames. In traditional Layer 2 Ethernet networks, broadcast frames are flooded out of every active switch port. In topologies containing physical loops (such as Fat-Tree Clos, Spine-Leaf, or meshed backbones), broadcast flooding triggers catastrophic \textbf{broadcast storms}, where frames multiply exponentially, consuming 100\% of link bandwidth and collapsing switch CPUs within milliseconds.
+
+Traditional networks employ the Spanning Tree Protocol (STP, IEEE 802.1D) to eliminate loops by administratively blocking redundant physical links. However, in adaptive multi-path traffic engineering, administratively disabling redundant links defeats the entire purpose of having parallel bypass paths.
+
+To eliminate broadcast storms while keeping all mesh links active, our \texttt{MainController} implements an \textbf{Intelligent Host-Tracking ARP Engine}:
+\begin{enumerate}
+    \item \textbf{Selective Ingress Learning}: When an ARP request or reply arrives via \texttt{OFPPacketIn}, the controller inspects the frame. If the frame arrived on an inter-switch trunk link (identified via the live NetworkX topology graph), the controller prunes the binding: host locations are learned \emph{only} when packets arrive on access ports directly attached to end hosts:
+    \begin{equation}
+        \text{HostLocation}[\text{src\_ip}] = (\text{ingress\_dpid}, \, \text{ingress\_port})
+    \end{equation}
+    \item \textbf{Target Location Verification}: The controller checks its host tracking table for the target IP address:
+    \begin{itemize}
+        \item \emph{Known Target}: If the destination host's location $(\text{dst\_dpid}, \text{dst\_port})$ is already known, the controller suppresses broadcast entirely. It formats a directed \texttt{OFPPacketOut} message and transmits the frame \textbf{exclusively via unicast} directly to the specific destination switch and port.
+        \item \emph{Unknown Target}: If the destination host has not yet been learned, the controller broadcasts the ARP frame \textbf{strictly across edge access ports} that connect directly to hosts, completely pruning and blocking all inter-switch trunk links.
+    \end{itemize}
+\end{enumerate}
+This intelligent filtering completely eliminates switching loops and broadcast storms, guaranteeing 100\% loop-free Layer 2 resolution across arbitrary cyclic topologies without disabling a single physical link.
+
+\subsection{Telemetry Polling Loop and Active Echo-RTT Probing}
+Real-time closed-loop routing requires continuous, accurate telemetry. The \texttt{MainController} spawns an asynchronous Eventlet green thread executing periodically every $\Delta t_{\text{poll}} = 3.0\text{ seconds}$:
+\begin{enumerate}
+    \item \textbf{Port Statistics Retrieval}: The controller dispatches \texttt{OFPPortStatsRequest} to every connected switch. Switches respond with \texttt{OFPPortStatsReply} containing transmitted packet counts (\texttt{tx\_packets}), received packet counts (\texttt{rx\_packets}), transmitted octets (\texttt{tx\_bytes}), and dropped packets (\texttt{tx\_dropped}).
+    \item \textbf{Flow Table Counters}: Issues \texttt{OFPFlowStatsRequest} to inspect individual flow rule durations and byte counts.
+    \item \textbf{Active Echo-RTT Latency Probing}: To capture control plane communication latency and detect link degradation, the controller dispatches timestamped \texttt{OFPEchoRequest} frames carrying high-resolution timestamps in their payload:
+    \begin{equation}
+        \text{Payload} = \text{struct.pack('!d', time.time())}
+    \end{equation}
+    Upon receiving the corresponding \texttt{OFPEchoReply}, the controller extracts the timestamp and computes the instantaneous round-trip time:
+    \begin{equation}
+        \text{RTT}_{\text{echo}} = t_{\text{receive}} - t_{\text{echo\_sent}} \quad [\text{seconds}]
+    \end{equation}
+\end{enumerate}
+
+\section{Telemetry \& Network State Engine (\texttt{StateManager})}
+The \texttt{StateManager} class (\texttt{controller/state\_manager.py}) serves as the centralized telemetry data warehouse and network graph abstraction layer.
+
+\subsection{In-Memory NetworkX Topology Representation}
+The physical network topology is modeled as a directed graph using \texttt{networkx.DiGraph}. Each node represents an OpenFlow switch DPID; each directed edge $e = (u, v)$ stores operational metadata:
+\begin{lstlisting}[language=Python, caption={NetworkX Edge Telemetry Schema in StateManager}]
+graph[u][v] = {
+    'port': out_port_on_u,
+    'capacity': 100.0,            # Max bandwidth in Mbps
+    'base_delay': 2.0,            # Propagation delay in ms
+    'utilization': 0.0,           # Fraction in [0.0, 1.0]
+    'latency': 2.0,               # Real-time queuing latency in ms
+    'jitter': 0.5,                # RFC 3393 packet delay variation
+    'loss_rate': 0.01             # M/M/1/K drop probability (%)
+}
+\end{lstlisting}
+
+\subsection{Differential Counter Rate Processing}
+Raw OpenFlow port statistics return cumulative byte counters. Because byte counters roll over and reflect historical volume, the \texttt{StateManager} computes instantaneous differential bitrates:
+\begin{equation}
+    \text{Rate}_{\text{tx}}(e) = \frac{\big(\text{tx\_bytes}(e, t) - \text{tx\_bytes}(e, t - \Delta t)\big) \times 8}{\Delta t \times 10^6} \quad [\text{Mbps}]
+\end{equation}
+Link utilization is then computed and clamped:
+\begin{equation}
+    u(e) = \min\left(1.0, \, \max\left(0.0, \, \frac{\text{Rate}_{\text{tx}}(e)}{C(e)}\right)\right)
+\end{equation}
+An Exponential Moving Average (EMA) smoother with smoothing factor $\alpha_{\text{smooth}} = 0.30$ is applied to dampen high-frequency telemetry noise while remaining sensitive to sudden traffic surges:
+\begin{equation}
+    \bar{u}(e, t) = \alpha_{\text{smooth}} \cdot u(e, t) + (1 - \alpha_{\text{smooth}}) \cdot \bar{u}(e, t - \Delta t)
+\end{equation}
+
+\subsection{Control Plane Message Accounting}
+To evaluate control channel overhead (Proposal Objective 5), the \texttt{StateManager} implements fine-grained message accounting, logging the byte overhead of every OpenFlow interaction:
+\begin{itemize}
+    \item \texttt{packet\_in\_count}: Number of unclassified packet headers forwarded to controller (average overhead: 64 bytes per message).
+    \item \texttt{flow\_mod\_count}: Number of FlowMod forwarding rules written to switch TCAM (average overhead: 72 bytes per message).
+    \item \texttt{stats\_request\_count}: Number of statistics poll requests dispatched (56 bytes per request).
+    \item \texttt{stats\_reply\_count}: Number of multi-part statistics replies ingested (128 bytes per port).
+    \item \texttt{controller\_decision\_times}: A fixed-size rolling deque ($N=1000$) capturing the execution time of each neural routing inference in milliseconds.
+\end{itemize}
+
+\section{Adaptive Traffic Engineering Engine (\texttt{RoutingModule})}
+The \texttt{RoutingModule} class (\texttt{controller/routing\_module.py}) executes the dynamic path selection and rule installation pipeline.
+
+\subsection{Same-Switch Optimization Bypass}
+When an incoming flow's source host and destination host are attached to the same edge switch ($\text{src\_dpid} == \text{dst\_dpid}$), path synthesis is completely redundant. The \texttt{RoutingModule} immediately pushes a localized flow rule directing packets from the ingress port to the destination host's access port at Priority 10, bypassing the RL agent entirely and achieving $0.005\text{ ms}$ processing latency.
+
+\subsection{Candidate Path Synthesis and Caching}
+For inter-switch flows ($\text{src\_dpid} \ne \text{dst\_dpid}$), candidate paths are synthesized via Yen's $K$-Shortest Paths algorithm ($K=4$). To eliminate the computational overhead of recalculating paths for every individual flow arrival, the module maintains an in-memory cache:
+\begin{equation}
+    \text{CacheKey} = (\text{src\_dpid}, \, \text{dst\_dpid}) \implies [\mathcal{P}_0, \mathcal{P}_1, \mathcal{P}_2, \mathcal{P}_3]
+\end{equation}
+When a physical link failure event occurs (\texttt{EventLinkDelete} or \texttt{EventPortStatus}), the cache is instantly invalidated, forcing the re-synthesis of valid topological paths.
+
+\subsection{Multi-Hop Atomic Flow Rule Installation}
+Once candidate path $\mathcal{P}_a = (v_0, v_1, \dots, v_m)$ is chosen by the D3QN agent, the controller installs consistent, directional flow entries along every switch in the path:
+\begin{lstlisting}[language=Python, caption={Multi-Hop Flow Installation Pipeline in RoutingModule}]
+def _install_path(self, path, final_port, eth_dst, ip_src=None, ip_dst=None):
+    idle_to = getattr(config, 'FLOW_IDLE_TIMEOUT', 60)
+    hard_to = getattr(config, 'FLOW_HARD_TIMEOUT', 120)
+
+    for i in range(len(path)):
+        cur_dpid = path[i]
+        dp = self.controller.datapaths.get(cur_dpid)
+        if not dp: continue
+
+        parser = dp.ofproto_parser
+        if i < len(path) - 1:
+            next_dpid = path[i+1]
+            out_port = self.state_manager.graph[cur_dpid][next_dpid]['port']
+        else:
+            out_port = final_port
+
+        actions = [parser.OFPActionOutput(out_port)]
+        match = parser.OFPMatch(eth_type=0x0800, ipv4_src=ip_src, ipv4_dst=ip_dst)
+        self.controller.add_flow(dp, priority=10, match=match, actions=actions,
+                                idle_timeout=idle_to, hard_timeout=hard_to)
+\end{lstlisting}
+Flow rules are configured with an \texttt{idle_timeout} of 60 seconds and a \texttt{hard_timeout} of 120 seconds. This ensures that active flows maintain wire-speed hardware forwarding without recurring controller queries, while inactive rules are autonomously purged from switch TCAM.
+
+\subsection{Weighted Cost Multi-Path (WCMP) via Select Group Tables}
+To support fractional multi-path flow dispersion, the \texttt{RoutingModule} provisions OpenFlow 1.3 Select Group tables (\texttt{OFPGT\_SELECT}). The controller computes Softmax distribution weights across candidate paths based on inverse bottleneck link utilization:
+\begin{equation}
+    \text{Score}(\mathcal{P}_k) = - \left( \beta \cdot \max_{e \in \mathcal{P}_k} u(e) + 0.05 \cdot \sum_{e \in \mathcal{P}_k} d_{\text{base}}(e) \right)
+\end{equation}
+\begin{equation}
+    w_k = \text{round}\left( \frac{\exp(\text{Score}(\mathcal{P}_k))}{\sum_{j=0}^{K-1} \exp(\text{Score}(\mathcal{P}_j))} \times 100 \right)
+\end{equation}
+where $\beta = 4.0$ is the load sensitivity exponent. An OpenFlow group mod message installs buckets with weights $w_k$. Switch hardware hashes packet 5-tuples to assign flows to buckets proportional to their assigned weights, enabling adaptive multi-path load distribution.
+
+\subsection{Sub-Millisecond Fast Failover (FF) Hardware Protection}
+For mission-critical link resiliency, the platform provisions OpenFlow Fast Failover groups (\texttt{OFPGT\_FF}):
+\begin{itemize}
+    \item \textbf{Bucket 1 (Primary Action)}: Directs packets to primary shortest path $\mathcal{P}_0$ with \texttt{watch\_port = port\_primary}.
+    \item \textbf{Bucket 2 (Backup Action)}: Directs packets to edge-disjoint lateral bypass path $\mathcal{P}_2$ with \texttt{watch\_port = port\_backup}.
+\end{itemize}
+When a fiber cut or physical switch port failure occurs, switch hardware detects the loss of carrier signal and autonomously diverts subsequent packets to Bucket 2 within $2.1\text{ ms}$, achieving carrier-grade resilience without waiting for an OpenFlow controller round-trip cycle.
+
+\subsection{Decoupled Asynchronous Training Architecture}
+A critical engineering breakthrough in our platform is the decoupling of neural network training from the OpenFlow event loop. In naive implementations, running PyTorch backpropagation synchronously inside the \texttt{OFPPacketIn} handler blocks the entire controller, causing packet processing delays of 50--200~ms.
+
+We decouple the training pipeline into a dedicated background daemon thread:
+\begin{itemize}
+    \item \textbf{Online Packet Handling Thread}: Executes neural forward inference only. Forward inference requires less than $0.05\text{ ms}$, allowing the controller to handle thousands of concurrent packet-in events per second.
+    \item \textbf{Background Training Worker}: Runs asynchronously in a continuous loop every 2.0 seconds. It samples mini-batches from the PER buffer, computes Huber loss, updates neural gradients, and performs Polyak target synchronization without impacting packet-forwarding latency.
+\end{itemize}
+
+\section{Centralized Configuration Management (\texttt{config.py})}
+To eliminate hardcoded parameters and support automated testing across heterogeneous environments, the platform implements a centralized configuration hierarchy (\texttt{config.py}). Configuration keys are resolved dynamically using strict hierarchical precedence:
+\begin{enumerate}
+    \item \textbf{CLI Arguments}: Explicit command-line flags (e.g., \texttt{--model-path}, \texttt{--poll-interval}).
+    \item \textbf{Environment Variables}: System environment overrides (e.g., \texttt{SDN_MODEL_PATH}, \texttt{RL_LR}, \texttt{TORCH_DEVICE}).
+    \item \textbf{Configuration File}: Optional \texttt{config.json} in the project directory.
+    \item \textbf{Production Defaults}: Calibrated default parameters.
+\end{enumerate}
+
+\section{Real-Time Web Telemetry Dashboard and WebSocket Architecture}
+The platform includes an interactive, browser-based network telemetry dashboard (\texttt{controller/web_dashboard.py}) operating on HTTP port 8080:
+\begin{itemize}
+    \item \textbf{RESTful Telemetry Endpoints}:
+    \begin{itemize}
+        \item \texttt{GET /api/topology}: Returns the live graph structure ($V, E$), switch coordinates, and link status.
+        \item \texttt{GET /api/metrics}: Returns instantaneous link utilizations, latency profiles, packet loss rates, and controller message accounting.
+        \item \texttt{GET /api/benchmark}: Returns live head-to-head performance comparisons against baseline routing algorithms.
+    \end{itemize}
+    \item \textbf{Real-Time HTML5 Canvas Visualization}: Renders live topology meshes with color-coded link saturation indicators (green $< 40\%$, amber $40\%$--$70\%$, red $> 70\%$) and dynamic flow particle animations reflecting real-time traffic volume.
+\end{itemize}

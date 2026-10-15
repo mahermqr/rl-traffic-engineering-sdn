@@ -1,0 +1,126 @@
+% ======================================================================
+% APPENDIX A: MATHEMATICAL PROOFS & THEORETICAL DERIVATIONS
+% ======================================================================
+\chapter{Mathematical Proofs \& Theoretical Derivations}
+\label{app:proofs}
+
+\section{Proof of Bellman Optimality via Banach Fixed Point Theorem}
+Let $\mathcal{B}(\mathcal{S} \times \mathcal{A})$ denote the Banach space of all bounded real-valued functions over state-action space $\mathcal{S} \times \mathcal{A}$, equipped with the supremum norm (infinity norm):
+\begin{equation}
+    \|Q\|_\infty = \sup_{s \in \mathcal{S}, a \in \mathcal{A}} |Q(s, a)|
+\end{equation}
+We define the Bellman Optimality Operator $\mathcal{T}^*: \mathcal{B}(\mathcal{S} \times \mathcal{A}) \to \mathcal{B}(\mathcal{S} \times \mathcal{A})$ by:
+\begin{equation}
+    (\mathcal{T}^* Q)(s, a) = \mathcal{R}(s, a) + \gamma \sum_{s' \in \mathcal{S}} \mathcal{P}(s' \mid s, a) \max_{a' \in \mathcal{A}} Q(s', a')
+\end{equation}
+
+\begin{theorem}[Contraction Mapping of Bellman Optimality Operator]
+If the discount factor satisfies $\gamma \in [0, 1)$, then $\mathcal{T}^*$ is a $\gamma$-contraction mapping on $(\mathcal{B}(\mathcal{S} \times \mathcal{A}), \|\cdot\|_\infty)$.
+\end{theorem}
+
+\begin{proof}
+Let $Q_1, Q_2 \in \mathcal{B}(\mathcal{S} \times \mathcal{A})$. For any state $s \in \mathcal{S}$ and action $a \in \mathcal{A}$:
+\begin{align}
+    |(\mathcal{T}^* Q_1)(s, a) - (\mathcal{T}^* Q_2)(s, a)| &= \left| \gamma \sum_{s'} \mathcal{P}(s' \mid s, a) \left( \max_{a'} Q_1(s', a') - \max_{a''} Q_2(s', a'') \right) \right| \nonumber \\
+    &\le \gamma \sum_{s'} \mathcal{P}(s' \mid s, a) \left| \max_{a'} Q_1(s', a') - \max_{a''} Q_2(s', a'') \right|
+\end{align}
+Using the algebraic inequality $|\max_x f(x) - \max_x g(x)| \le \max_x |f(x) - g(x)|$:
+\begin{align}
+    |(\mathcal{T}^* Q_1)(s, a) - (\mathcal{T}^* Q_2)(s, a)| &\le \gamma \sum_{s'} \mathcal{P}(s' \mid s, a) \max_{a'} |Q_1(s', a') - Q_2(s', a')| \nonumber \\
+    &\le \gamma \sum_{s'} \mathcal{P}(s' \mid s, a) \|Q_1 - Q_2\|_\infty \nonumber \\
+    &= \gamma \|Q_1 - Q_2\|_\infty \sum_{s'} \mathcal{P}(s' \mid s, a) \nonumber \\
+    &= \gamma \|Q_1 - Q_2\|_\infty
+\end{align}
+Taking the supremum over all $s \in \mathcal{S}$ and $a \in \mathcal{A}$:
+\begin{equation}
+    \|\mathcal{T}^* Q_1 - \mathcal{T}^* Q_2\|_\infty \le \gamma \|Q_1 - Q_2\|_\infty
+\end{equation}
+Since $\gamma < 1$, $\mathcal{T}^*$ is a strict contraction. By the Banach Fixed Point Theorem, there exists a unique fixed point $Q^* \in \mathcal{B}(\mathcal{S} \times \mathcal{A})$ such that $\mathcal{T}^* Q^* = Q^*$, and value iteration converges geometrically:
+\begin{equation}
+    \|Q_{k+1} - Q^*\|_\infty \le \gamma^k \|Q_0 - Q^*\|_\infty
+\end{equation}
+which proves asymptotic convergence to the optimal routing value function.
+\end{proof}
+
+\section{Derivation of Double Q-Learning Bias Elimination}
+Consider a state $s$ with $M$ candidate actions whose true values are equal: $Q^*(s, a_i) = V^*$. Suppose our value estimates are subject to zero-mean random estimation noise $\epsilon_i$:
+\begin{equation}
+    \hat{Q}(s, a_i) = V^* + \epsilon_i, \quad \mathbb{E}[\epsilon_i] = 0, \quad \text{Var}(\epsilon_i) = \sigma^2
+\end{equation}
+
+\subsection{Standard Q-Learning Bias}
+In standard Q-learning, the target value takes the maximum across action estimates:
+\begin{equation}
+    \mathbb{E}\left[ \max_i \hat{Q}(s, a_i) \right] = V^* + \mathbb{E}\left[ \max_{i=1,\dots,M} \epsilon_i \right]
+\end{equation}
+If $\epsilon_i \sim \mathcal{N}(0, \sigma^2)$, then by extreme value theory for independent Gaussians:
+\begin{equation}
+    \mathbb{E}\left[ \max_{i=1,\dots,M} \epsilon_i \right] \approx \sigma \sqrt{2 \ln M} > 0 \quad \forall M \ge 2
+\end{equation}
+This positive bias scales with $\sqrt{\ln M}$, causing standard DQN to systematically overestimate expected returns on candidate paths with noisy latency measurements.
+
+\subsection{Double Q-Learning Decoupling}
+In Double Q-learning, action selection is performed by set of weights $\theta_1$, while evaluation is performed by independent set $\theta_2$:
+\begin{equation}
+    a^* = \arg\max_i \hat{Q}(s, a_i; \theta_1)
+\end{equation}
+The evaluated target value is:
+\begin{equation}
+    \mathbb{E}\left[ \hat{Q}(s, a^*; \theta_2) \right] = \mathbb{E}\left[ V^* + \epsilon_2(a^*) \right] = V^* + \mathbb{E}[\epsilon_2(a^*)]
+\end{equation}
+Because $\theta_2$ is statistically independent of $\theta_1$, the estimation noise $\epsilon_2$ is independent of the index selection $a^*$:
+\begin{equation}
+    \mathbb{E}[\epsilon_2(a^*)] = \sum_{k=1}^M \mathbb{P}(a^* = k) \cdot \mathbb{E}[\epsilon_2(k)] = \sum_{k=1}^M \mathbb{P}(a^* = k) \cdot 0 = 0
+\end{equation}
+Thus, Double Q-learning completely eliminates maximization overestimation bias, proving theoretical stability.
+
+\section{Derivation of Importance Sampling Correction in PER}
+Under Prioritized Experience Replay, transitions are drawn from distribution $P(i) = p_i^\alpha / \sum p_k^\alpha$ instead of the true empirical replay distribution $U(i) = 1/N$.
+
+The expected value of gradient updates under the true uniform distribution is:
+\begin{equation}
+    \mathbb{E}_{i \sim U}[\nabla_\theta \mathcal{L}_i] = \sum_{i=1}^N \frac{1}{N} \nabla_\theta \mathcal{L}_i
+\end{equation}
+Under prioritized sampling distribution $P(i)$, the expectation is:
+\begin{equation}
+    \mathbb{E}_{i \sim P}\left[ w_i \nabla_\theta \mathcal{L}_i \right] = \sum_{i=1}^N P(i) \cdot w_i \nabla_\theta \mathcal{L}_i
+\end{equation}
+Equating the two expectations to eliminate bias:
+\begin{equation}
+    P(i) \cdot w_i = \frac{1}{N} \implies w_i = \frac{1}{N \cdot P(i)}
+\end{equation}
+Raising to exponent $\beta$ and normalizing by $\max_j w_j$ yields the standard PER Importance Sampling weight formula:
+\begin{equation}
+    \tilde{w}_i = \left( \frac{1}{N \cdot P(i)} \right)^\beta \Big/ \max_j w_j
+\end{equation}
+When $\beta = 1.0$, $\mathbb{E}_{i \sim P}[\tilde{w}_i \nabla \mathcal{L}_i] \propto \mathbb{E}_{i \sim U}[\nabla \mathcal{L}_i]$, guaranteeing that prioritized stochastic gradient descent converges to the true expected value.
+
+\section{Derivation of the M/M/1 Queuing Delay Model}
+Consider an OpenFlow switch output port buffer modeled as a birth-death Markovian queuing system $M/M/1$:
+\begin{itemize}
+    \item Arrival rate: $\lambda$ packets/second (Poisson process).
+    \item Service rate: $\mu = C / \bar{L}$ packets/second (exponentially distributed service times).
+    \item Traffic intensity (link utilization): $\rho = \lambda / \mu < 1$.
+\end{itemize}
+
+Let $P_n$ denote the steady-state probability that exactly $n$ packets reside in the queue buffer. The balance equations state:
+\begin{equation}
+    \lambda P_{n-1} = \mu P_n \implies P_n = \left(\frac{\lambda}{\mu}\right)^n P_0 = \rho^n P_0
+\end{equation}
+Since $\sum_{n=0}^\infty P_n = 1$:
+\begin{equation}
+    P_0 \sum_{n=0}^\infty \rho^n = \frac{P_0}{1 - \rho} = 1 \implies P_0 = 1 - \rho
+\end{equation}
+Thus, $P_n = (1 - \rho)\rho^n$. The mean number of packets in the system $L$ is:
+\begin{equation}
+    L = \sum_{n=0}^\infty n P_n = (1 - \rho) \sum_{n=0}^\infty n \rho^n = (1 - \rho) \frac{\rho}{(1 - \rho)^2} = \frac{\rho}{1 - \rho}
+\end{equation}
+Applying Little's Law ($L = \lambda W$), the average time $W$ a packet spends in the system (transmission delay + queuing delay) is:
+\begin{equation}
+    W = \frac{L}{\lambda} = \frac{\rho}{\lambda(1 - \rho)} = \frac{1}{\mu(1 - \rho)} = \frac{1}{\mu - \lambda}
+\end{equation}
+Subtracting the base transmission delay $1/\mu$, the average queuing delay $W_q$ is:
+\begin{equation}
+    W_q = W - \frac{1}{\mu} = \frac{1}{\mu - \lambda} - \frac{1}{\mu} = \frac{\lambda}{\mu(\mu - \lambda)} = \frac{\rho}{\mu(1 - \rho)}
+\end{equation}
+This establishes the theoretical foundation for Equation~\ref{eq:queuing_delay_formula}.

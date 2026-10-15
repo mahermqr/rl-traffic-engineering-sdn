@@ -2118,7 +2118,7 @@
         </div>
 
         <!-- 4. Benchmark & Algorithm Tournament Arena -->
-        <section class="tournament-section">
+        <section class="tournament-section" id="tournamentSection">
             <div class="card-header">
                 <div>
                     <h2 class="card-title">⚔️ Algorithm Tournament & Head-to-Head Benchmarking</h2>
@@ -4294,13 +4294,13 @@
                     ctx.setLineDash([]);
 
                     // Midpoint ⚡ CUT badge
-                    const midX = (s.x + t.x) / 2;
-                    const midY = (s.y + t.y) / 2;
+                    const cutMidX = (s.x + t.x) / 2;
+                    const cutMidY = (s.y + t.y) / 2;
                     ctx.fillStyle = isDark ? 'rgba(239, 68, 68, 0.2)' : 'rgba(239, 68, 68, 0.12)';
                     ctx.strokeStyle = '#EF4444';
                     ctx.lineWidth = 1;
                     ctx.beginPath();
-                    ctx.roundRect(midX - 22, midY - 9, 44, 18, 4);
+                    ctx.roundRect(cutMidX - 22, cutMidY - 9, 44, 18, 4);
                     ctx.fill();
                     ctx.stroke();
 
@@ -4308,7 +4308,7 @@
                     ctx.font = '700 9px "JetBrains Mono", monospace';
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
-                    ctx.fillText('⚡ CUT', midX, midY + 0.5);
+                    ctx.fillText('⚡ CUT', cutMidX, cutMidY + 0.5);
                 });
             }
 
@@ -5635,6 +5635,22 @@
 
             if (new URLSearchParams(window.location.search).has('studio')) {
                 openPlotStudioModal();
+            }
+            if (new URLSearchParams(window.location.search).has('inspect')) {
+                setTimeout(openModelInspectModal, 300);
+            }
+            if (new URLSearchParams(window.location.search).has('settings')) {
+                setTimeout(openNetworkSettingsModal, 300);
+            }
+            if (new URLSearchParams(window.location.search).has('guide')) {
+                setTimeout(openUserGuideModal, 300);
+            }
+            const urlScroll = new URLSearchParams(window.location.search).get('scroll');
+            if (urlScroll) {
+                setTimeout(() => {
+                    const el = document.getElementById(urlScroll);
+                    if (el) el.scrollIntoView({ behavior: 'instant', block: 'start' });
+                }, 300);
             }
 
             setTimeout(() => {

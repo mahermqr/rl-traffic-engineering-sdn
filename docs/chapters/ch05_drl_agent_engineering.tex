@@ -1,0 +1,293 @@
+% ======================================================================
+% CHAPTER 5: DEEP REINFORCEMENT LEARNING AGENT ENGINEERING
+% ======================================================================
+\chapter{Deep Reinforcement Learning Agent Engineering}
+\label{chap:agent}
+
+\section{Dueling Double Deep Q-Network Architecture}
+The core intelligence of our traffic engineering platform resides in the \texttt{DQNRoutingAgent} class (\texttt{agent/dqn\_router.py}), which implements a PyTorch \textbf{Dueling Double Deep Q-Network (D3QN)} stabilized by \textbf{Layer Normalization} and an $O(\log N)$ \textbf{Binary SumTree Prioritized Experience Replay} engine.
+
+\subsection{Architectural Specification and Layer Dimensions}
+The neural network takes the normalized 10-dimensional state vector $s_t \in \mathbb{R}^{10}$ as input and outputs estimated action values $Q(s_t, a_t)$ for each of the $K=4$ candidate paths. The network is structured into three distinct computational stages: a shared feature extraction trunk, a scalar state-value stream $V(s)$, and a vector action-advantage stream $A(s, a)$.
+
+\begin{figure}[htbp]
+\centering
+\begin{minipage}{0.92\textwidth}
+\centering
+\fbox{\parbox{0.95\textwidth}{
+\vspace{0.2cm}
+\centering
+{\large \textbf{PyTorch Dueling Q-Network Layer Topology}}\\[0.3cm]
+\begin{tabular}{c}
+\fbox{\parbox{0.75\textwidth}{\centering \textbf{Input State Vector} $s_t \in \mathbb{R}^{10}$\\ \footnotesize (Normalized hop count, 4 candidate bottleneck loads, 4 path delays, global max load)}}\\[0.2cm]
+$\Downarrow$\\[0.2cm]
+\fbox{\parbox{0.75\textwidth}{\centering \textbf{Shared Feature Extraction Trunk}\\ \footnotesize $\text{Linear}(10 \to 64) \to \text{LayerNorm}(64) \to \text{ReLU}$\\ $\text{Linear}(64 \to 128) \to \text{LayerNorm}(128) \to \text{ReLU}$}}\\[0.2cm]
+$\swarrow$ \hspace{4cm} $\searrow$\\[0.2cm]
+\begin{tabular}{c c}
+\fbox{\parbox{0.40\textwidth}{\centering \textbf{Value Stream $V(s)$}\\ \footnotesize $\text{Linear}(128 \to 64)$\\ $\text{LayerNorm}(64) \to \text{ReLU}$\\ $\text{Linear}(64 \to 1) \implies V(s) \in \mathbb{R}^1$}} &
+\fbox{\parbox{0.40\textwidth}{\centering \textbf{Advantage Stream $A(s, a)$}\\ \footnotesize $\text{Linear}(128 \to 64)$\\ $\text{LayerNorm}(64) \to \text{ReLU}$\\ $\text{Linear}(64 \to 4) \implies A(s, a) \in \mathbb{R}^4$}}
+\end{tabular}\\[0.3cm]
+$\searrow$ \hspace{4cm} $\swarrow$\\[0.2cm]
+\fbox{\parbox{0.82\textwidth}{\centering \textbf{Identifiability Aggregation Layer}\\ \footnotesize $Q(s, a) = V(s) + \left( A(s, a) - \frac{1}{4}\sum_{a'=0}^3 A(s, a') \right) \implies Q(s, a) \in \mathbb{R}^4$}}\\
+\end{tabular}
+\vspace{0.2cm}
+}}
+\end{minipage}
+\caption{Detailed Computational Architecture of the Dueling Q-Network with Layer Normalization.}
+\label{fig:nn_detailed_topology}
+\end{figure}
+
+Table~\ref{tab:layer_specifications} details the parameter counts, weight tensor dimensions, and activation functions across each layer of the model.
+
+\begin{table}[htbp]
+\centering
+\caption{Layer Configuration and Parameter Counts of the Dueling Q-Network}
+\label{tab:layer_specifications}
+\small
+\begin{tabularx}{\textwidth}{l c c c X}
+\toprule
+\textbf{Layer Name} & \textbf{Input Dim} & \textbf{Output Dim} & \textbf{Parameters} & \textbf{Activation / Normalization} \\
+\midrule
+\texttt{shared\_fc1} & 10 & 64 & $10 \times 64 + 64 = 704$ & \texttt{nn.LayerNorm(64)} + ReLU \\
+\texttt{shared\_fc2} & 64 & 128 & $64 \times 128 + 128 = 8,320$ & \texttt{nn.LayerNorm(128)} + ReLU \\
+\addlinespace
+\texttt{val\_fc1} & 128 & 64 & $128 \times 64 + 64 = 8,256$ & \texttt{nn.LayerNorm(64)} + ReLU \\
+\texttt{val\_out} & 64 & 1 & $64 \times 1 + 1 = 65$ & Linear (Scalar $V(s)$) \\
+\addlinespace
+\texttt{adv\_fc1} & 128 & 64 & $128 \times 64 + 64 = 8,256$ & \texttt{nn.LayerNorm(64)} + ReLU \\
+\texttt{adv\_out} & 64 & 4 & $64 \times 4 + 4 = 260$ & Linear (Vector $A(s, a)$) \\
+\midrule
+\multicolumn{3}{l}{\textbf{Total Trainable Parameters}} & \textbf{25,861} & ($\sim 101\text{ KB}$ memory footprint) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{The Role of Layer Normalization in Network Control Loops}
+In computer network control environments, link loads, queuing delays, and packet dropouts exhibit extreme spatial and temporal volatility. An elephant flow arrival can cause a link's measured utilization to jump from $0.05$ to $0.98$ within a single polling interval. In standard unnormalized networks, such sharp input shifts cause internal covariate shift, resulting in exploding gradients that destabilize training or collapse Q-values into local minima.
+
+To ensure numerical stability, we incorporate \textbf{Layer Normalization} (\texttt{nn.LayerNorm}) \cite{ba2016layer} after each dense linear projection. Unlike Batch Normalization (which computes statistics across mini-batch samples and fails during single-sample real-time inference), Layer Normalization standardizes activations across the channel dimension for each transition independently:
+\begin{equation}
+    \mu_L = \frac{1}{H} \sum_{i=1}^H x_i, \quad \sigma_L^2 = \frac{1}{H} \sum_{i=1}^H (x_i - \mu_L)^2
+\end{equation}
+\begin{equation}
+    \text{LN}(x) = \frac{x - \mu_L}{\sqrt{\sigma_L^2 + \epsilon}} \odot \gamma + \beta
+\end{equation}
+where $H$ is the hidden layer dimension, and $\gamma, \beta \in \mathbb{R}^H$ are learnable affine parameters. Layer Normalization guarantees that activations remain strictly zero-centered and unit-variance, allowing smooth gradient descent even during violent traffic surges.
+
+\subsection{Mathematical Proof of Dueling Identifiability}
+A fundamental challenge in decomposing action values into value $V(s)$ and advantage $A(s, a)$ is \emph{unidentifiability}. Given $Q(s, a) = V(s) + A(s, a)$, adding an arbitrary constant $c$ to $V(s)$ while subtracting $c$ from $A(s, a)$ produces the exact same $Q$-value, preventing unique parameter recovery.
+
+\begin{theorem}[Identifiability of Mean-Subtracted Dueling Network]
+The aggregation formula:
+\begin{equation}
+    Q(s, a; \theta, \alpha, \beta) = V(s; \theta, \beta) + \left( A(s, a; \theta, \alpha) - \frac{1}{|\mathcal{A}|} \sum_{a' \in \mathcal{A}} A(s, a'; \theta, \alpha) \right)
+    \label{eq:dueling_identifiability_proof}
+\end{equation}
+guarantees unique identifiability such that $V(s)$ represents the arithmetic mean of optimal action values across the action space.
+\end{theorem}
+
+\begin{proof}
+Let $\bar{A}(s) = \frac{1}{|\mathcal{A}|} \sum_{a' \in \mathcal{A}} A(s, a')$. Summing Equation~\ref{eq:dueling_identifiability_proof} over all actions $a \in \mathcal{A}$:
+\begin{align}
+    \sum_{a \in \mathcal{A}} Q(s, a) &= \sum_{a \in \mathcal{A}} \left( V(s) + A(s, a) - \bar{A}(s) \right) \nonumber \\
+    &= |\mathcal{A}| \cdot V(s) + \sum_{a \in \mathcal{A}} A(s, a) - |\mathcal{A}| \cdot \bar{A}(s) \nonumber \\
+    &= |\mathcal{A}| \cdot V(s) + |\mathcal{A}| \bar{A}(s) - |\mathcal{A}| \bar{A}(s) \nonumber \\
+    &= |\mathcal{A}| \cdot V(s)
+\end{align}
+Dividing both sides by $|\mathcal{A}|$:
+\begin{equation}
+    V(s) = \frac{1}{|\mathcal{A}|} \sum_{a \in \mathcal{A}} Q(s, a)
+\end{equation}
+Thus, $V(s)$ is uniquely identified as the average value of all candidate actions in state $s$, and the advantage terms $A(s, a) - \bar{A}(s)$ uniquely represent zero-mean deviations, establishing mathematical identifiability.
+\end{proof}
+
+\section{Binary SumTree Prioritized Experience Replay (PER)}
+To overcome the limitations of uniform replay sampling, the \texttt{PrioritizedReplayBuffer} (\texttt{agent/prioritized\_replay.py}) implements an iterative binary \textbf{SumTree} data structure supporting $O(\log N)$ sampling and priority updates.
+
+\subsection{Array-Based Binary SumTree Data Structure}
+A binary SumTree is a complete binary tree where:
+\begin{itemize}
+    \item Each leaf node stores the priority $p_i$ of an individual transition tuple $e_i = (s_i, a_i, r_i, s_{i+1})$.
+    \item Each internal node stores the exact sum of the priorities of its two child subtrees:
+    \begin{equation}
+        \text{tree}[\text{parent}] = \text{tree}[\text{left\_child}] + \text{tree}[\text{right\_child}]
+    \end{equation}
+    \item The root node ($\text{tree}[0]$) stores the grand sum of all transition priorities in memory:
+    \begin{equation}
+        \text{tree}[0] = \sum_{k=1}^N p_k
+    \end{equation}
+\end{itemize}
+
+For a buffer capacity of $N = 5,000$ transitions, the SumTree is allocated as a single, contiguous 1D NumPy array of size $2N - 1 = 9,999$ elements:
+\begin{itemize}
+    \item Internal parent nodes occupy indices $0$ through $N - 2$.
+    \item Leaf nodes occupy indices $N - 1$ through $2N - 2$.
+    \item For any internal node at index $i$:
+    \begin{equation}
+        \text{left\_child}(i) = 2i + 1, \quad \text{right\_child}(i) = 2i + 2
+    \end{equation}
+    \item For any child node at index $j > 0$:
+    \begin{equation}
+        \text{parent}(j) = \lfloor (j - 1) / 2 \rfloor
+    \end{equation}
+\end{itemize}
+
+Figure~\ref{fig:sumtree_diagram} illustrates the structural memory mapping of the binary SumTree.
+
+\begin{figure}[htbp]
+\centering
+\begin{minipage}{0.85\textwidth}
+\centering
+\fbox{\parbox{0.95\textwidth}{
+\vspace{0.2cm}
+\centering
+{\large \textbf{Array-Based Binary SumTree Structure ($N=4$)}}\\[0.3cm]
+\begin{tabular}{c c c c}
+\multicolumn{4}{c}{\textbf{Root Node}: $\text{tree}[0] = 42.0$ (Total Priority Sum)}\\[0.2cm]
+\multicolumn{2}{c}{$\swarrow$} & \multicolumn{2}{c}{$\searrow$}\\[0.1cm]
+\multicolumn{2}{c}{\textbf{Node 1}: $\text{tree}[1] = 29.0$} & \multicolumn{2}{c}{\textbf{Node 2}: $\text{tree}[2] = 13.0$}\\[0.2cm]
+$\swarrow$ & $\searrow$ & $\swarrow$ & $\searrow$\\[0.1cm]
+\textbf{Leaf 3}: $p_1 = 12.0$ & \textbf{Leaf 4}: $p_2 = 17.0$ & \textbf{Leaf 5}: $p_3 = 3.0$ & \textbf{Leaf 6}: $p_4 = 10.0$\\
+\end{tabular}\\[0.3cm]
+\rule{0.8\textwidth}{0.4pt}\\[0.2cm]
+\textbf{Contiguous NumPy Array Representation}:\\
+\texttt{tree = [42.0, 29.0, 13.0, 12.0, 17.0, 3.0, 10.0]}\\
+\vspace{0.1cm}
+}}
+\end{minipage}
+\caption{Binary SumTree Data Structure with Total Prefix Sum at Root.}
+\label{fig:sumtree_diagram}
+\end{figure}
+
+\subsection{Sampling and Update Algorithms in Formal Pseudocode}
+Sampling a mini-batch of size $B=32$ transitions proceeds by partitioning the range $[0, \text{tree}[0]]$ into $B$ equal intervals:
+\begin{equation}
+    I_k = \left[ k \cdot \frac{\text{tree}[0]}{B}, \, (k + 1) \cdot \frac{\text{tree}[0]}{B} \right) \quad \forall k \in \{0, 1, \dots, B-1\}
+\end{equation}
+A uniform random value $v_k \sim \mathcal{U}(I_k)$ is drawn from each interval, and the tree is traversed from the root downward to locate the corresponding leaf in exactly $\lceil \log_2 N \rceil = 13$ steps. Algorithm~\ref{alg:sumtree_sampling} and Algorithm~\ref{alg:sumtree_update} detail the iterative, non-recursive implementations.
+
+\begin{algorithm}[htbp]
+\caption{Iterative Non-Recursive Binary SumTree Retrieval}
+\label{alg:sumtree_sampling}
+\begin{algorithmic}[1]
+\REQUIRE SumTree array $\text{tree}$ of size $2N - 1$, search value $v \in [0, \text{tree}[0]]$
+\ENSURE Leaf index $\text{tree\_idx}$, priority value $p$, and data pointer $\text{data\_idx}$
+\STATE $\text{idx} \gets 0$ \COMMENT{Start at root node}
+\WHILE{$\text{idx} < N - 1$} \COMMENT{Loop until reaching a leaf node}
+    \STATE $\text{left} \gets 2 \cdot \text{idx} + 1$
+    \STATE $\text{right} \gets \text{left} + 1$
+    \IF{$v \le \text{tree}[\text{left}]$}
+        \STATE $\text{idx} \gets \text{left}$
+    \ELSE
+        \STATE $v \gets v - \text{tree}[\text{left}]$
+        \STATE $\text{idx} \gets \text{right}$
+    \ENDIF
+\ENDWHILE
+\STATE $\text{data\_idx} \gets \text{idx} - (N - 1)$
+\RETURN $\text{idx}, \, \text{tree}[\text{idx}], \, \text{data\_idx}$
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}[htbp]
+\caption{Iterative Non-Recursive Binary SumTree Priority Update}
+\label{alg:sumtree_update}
+\begin{algorithmic}[1]
+\REQUIRE SumTree array $\text{tree}$, leaf index $\text{tree\_idx}$, new priority $p_{\text{new}}$
+\ENSURE Updated prefix sums propagated from leaf to root
+\STATE $\Delta \gets p_{\text{new}} - \text{tree}[\text{tree\_idx}]$ \COMMENT{Compute priority differential}
+\STATE $\text{tree}[\text{tree\_idx}] \gets p_{\text{new}}$
+\STATE $\text{idx} \gets \text{tree\_idx}$
+\WHILE{$\text{idx} > 0$} \COMMENT{Propagate differential up to root}
+    \STATE $\text{idx} \gets \lfloor (\text{idx} - 1) / 2 \rfloor$ \COMMENT{Move to parent}
+    \STATE $\text{tree}[\text{idx}] \gets \text{tree}[\text{idx}] + \Delta$
+\ENDWHILE
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Importance Sampling Weight Annealing}
+Prioritized sampling introduces bias because transitions with high TD error are sampled more frequently than their true empirical distribution. We correct this bias using Importance Sampling (IS) weights:
+\begin{equation}
+    w_i = \left( \frac{1}{N} \cdot \frac{1}{P(i)} \right)^\beta = \left( \frac{\text{tree}[0]}{N \cdot p_i^\alpha} \right)^\beta
+\end{equation}
+Weights are normalized by the maximum weight in the mini-batch:
+\begin{equation}
+    \tilde{w}_i = \frac{w_i}{\max_j w_j} \in (0.0, 1.0]
+\end{equation}
+The parameter $\beta$ controls the degree of correction. Early in training, gradient direction is noisy, so partial correction ($\beta_0 = 0.4$) accelerates discovery. As policy convergence approaches, full correction ($\beta \to 1.0$) is essential for asymptotic unbiased convergence:
+\begin{equation}
+    \beta(t) = \min\left(1.0, \, \beta_0 + t \cdot \frac{1.0 - \beta_0}{T_{\text{max}}}\right)
+\end{equation}
+
+\section{Polyak Soft Target Updates vs. Periodic Hard Copies}
+In standard DQN \cite{mnih2015human}, target network parameters $\theta^-$ are updated via periodic hard copies every $C$ steps ($\theta^- \gets \theta$). In network traffic engineering, hard updates trigger sudden, violent shifts in target values $Y_t$, causing transient routing oscillations and policy collapse immediately following each synchronization.
+
+To eliminate target instability, our agent implements \textbf{Polyak Soft Target Updates} \cite{lillicrap2015continuous}. After every gradient backpropagation step, target parameters are blended continuously toward online parameters:
+\begin{equation}
+    \theta^- \gets \tau \cdot \theta + (1 - \tau) \cdot \theta^-
+    \label{eq:polyak_update}
+\end{equation}
+where $\tau = 0.005$ is the soft tracking rate. Polyak averaging acts as an exponential low-pass filter over parameter trajectories, ensuring that target Q-values evolve smoothly and monotonically.
+
+\section{Huber Loss vs. Mean Squared Error}
+Standard Mean Squared Error (MSE), $\mathcal{L}_{\text{MSE}}(\delta) = \delta^2$, has a quadratic gradient with respect to TD error: $\nabla_\theta \mathcal{L} = 2 \delta \nabla_\theta Q$. When sudden traffic bursts occur, the instantaneous TD error $\delta_i$ can exceed $50.0$, generating massive gradients ($2 \times 50 = 100$) that destabilize the Adam optimizer.
+
+We employ the \textbf{Smooth L1 (Huber) Loss Function}:
+\begin{equation}
+    \mathcal{L}_{\text{Huber}}(\delta) = \begin{cases}
+        0.5 \cdot \delta^2 & \text{if } |\delta| \le 1.0 \\[0.5em]
+        |\delta| - 0.5 & \text{otherwise}
+    \end{cases}
+\end{equation}
+whose gradient is:
+\begin{equation}
+    \frac{\partial \mathcal{L}_{\text{Huber}}}{\partial \delta} = \begin{cases}
+        \delta & \text{if } |\delta| \le 1.0 \\
+        \text{sign}(\delta) & \text{otherwise}
+    \end{cases}
+\end{equation}
+For errors exceeding $1.0$, the gradient magnitude is strictly capped at $\pm 1.0$. This linear clipping prevents exploding gradients, guaranteeing robust convergence under extreme network traffic volatility.
+
+\section{Complete End-to-End D3QN-PER Training Algorithm}
+Algorithm~\ref{alg:d3qn_complete_loop} formalizes the complete training loop executed across the 1,000 curriculum episodes.
+
+\begin{algorithm}[htbp]
+\caption{Complete D3QN-PER Adaptive Traffic Engineering Training Pipeline}
+\label{alg:d3qn_complete_loop}
+\begin{algorithmic}[1]
+\REQUIRE Mininet network topology $G = (V, E)$, episodes $M = 1000$, steps per episode $T = 30$, batch size $B = 32$, replay capacity $N = 5000$, learning rate $\alpha = 0.001$, soft update rate $\tau = 0.005$, discount factor $\gamma = 0.95$
+\ENSURE Optimized D3QN weights $\theta^*$
+\STATE Initialize online network parameters $\theta$ randomly; target network $\theta^- \gets \theta$
+\STATE Initialize SumTree replay buffer $\mathcal{D}$ with capacity $N$, priorities $\alpha = 0.6$, $\beta_0 = 0.4$
+\FOR{episode $m = 1$ \TO $M$}
+    \STATE Calculate curriculum exploration rate $\epsilon(m)$ and injection stress profile
+    \STATE Reset network link states; observe initial state $s_0 \in \mathbb{R}^{10}$
+    \FOR{step $t = 1$ \TO $T$}
+        \STATE Sample $r \sim \mathcal{U}(0, 1)$
+        \IF{$r < \epsilon(m)$}
+            \STATE Select random candidate path action $a_t \sim \mathcal{U}(\{0, 1, 2, 3\})$
+        \ELSE
+            \STATE Select greedy action $a_t = \arg\max_{a} Q(s_t, a; \theta)$ via forward pass
+        \ENDIF
+        \STATE Route flow along path $\mathcal{P}_{a_t}$; accumulate link traffic
+        \STATE Calculate multi-objective reward $r_t = \mathcal{R}(s_t, a_t)$ via Equation~\ref{eq:multi_objective_reward}
+        \STATE Observe subsequent state $s_{t+1} \in \mathbb{R}^{10}$
+        \STATE Store transition $(s_t, a_t, r_t, s_{t+1})$ in SumTree $\mathcal{D}$ with max priority $p_{\text{max}}$
+        \IF{$|\mathcal{D}| \ge B$}
+            \STATE Sample mini-batch of $B$ transitions using Algorithm~\ref{alg:sumtree_sampling}
+            \STATE Compute Importance Sampling weights $\tilde{w}_i$ via Equation~\ref{eq:per_is_weights}
+            \FOR{each sample $i \in \{1, \dots, B\}$}
+                \STATE $a^* \gets \arg\max_{a'} Q(s'_{i}, a'; \theta)$ \COMMENT{Action selection via online network}
+                \STATE $Y_i \gets r_i + \gamma Q(s'_{i}, a^*; \theta^-)$ \COMMENT{Action evaluation via target network}
+                \STATE $\delta_i \gets Q(s_i, a_i; \theta) - Y_i$ \COMMENT{Compute TD error}
+                \STATE Update transition priority in SumTree: $p_i \gets (|\delta_i| + 10^{-5})^\alpha$
+            \ENDFOR
+            \STATE Compute weighted loss: $\mathcal{L} = \frac{1}{B}\sum_{i=1}^B \tilde{w}_i \cdot \mathcal{L}_{\text{Huber}}(\delta_i)$
+            \STATE Execute Adam backpropagation: $\theta \gets \theta - \alpha \nabla_\theta \mathcal{L}$
+            \STATE Execute Polyak soft update: $\theta^- \gets \tau \theta + (1 - \tau) \theta^-$
+        \ENDIF
+        \STATE $s_t \gets s_{t+1}$
+    \ENDFOR
+\ENDFOR
+\RETURN $\theta^* \gets \theta$
+\end{algorithmic}
+\end{algorithm}

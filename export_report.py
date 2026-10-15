@@ -9,6 +9,7 @@ Converts Project_Report_EC499.md into:
 import os
 import re
 import sys
+import subprocess
 from pathlib import Path
 
 # Paths
@@ -18,6 +19,7 @@ PLOTS_DIR = BASE_DIR / "logs" / "plots"
 MD_PATH = DOCS_DIR / "Project_Report_EC499.md"
 HTML_OUTPUT = DOCS_DIR / "Project_Report_EC499.html"
 PDF_OUTPUT = DOCS_DIR / "Project_Report_EC499_Exported.pdf"
+CHROME_PDF_OUTPUT = DOCS_DIR / "Project_Report_EC499_Final.pdf"
 
 def generate_html_report():
     print(f"[*] Reading Markdown from {MD_PATH}...")
@@ -34,14 +36,21 @@ def generate_html_report():
         # Basic fallback
         html_body = f"<pre>{html.escape(md_text)}</pre>"
 
-    # Embed plot images into the HTML
+    # Embed all 13 publication and dashboard plots into the HTML
     plot_images = [
         ("proposal_benchmarks_all_metrics.png", "Figure 1: Full Metric Tournament Benchmarks across All 5 Topologies"),
         ("proposal_tournament_radar.png", "Figure 2: 6D Quality Radar Comparison across Routing Paradigms"),
         ("dqn_te_training_convergence.png", "Figure 3: Multi-Objective D3QN Training Loss & TD-Error Convergence"),
         ("routing_cdfs_latency_jitter.png", "Figure 4: Cumulative Distribution Functions (CDF) for End-to-End Latency & Jitter"),
         ("stress_test_load_balancing.png", "Figure 5: High-Intensity Stress Test Load Balancing & Congestion Relief"),
-        ("blind_topologies_radar.png", "Figure 6: Zero-Shot Generalization Radar across Diverse Topologies")
+        ("blind_topologies_radar.png", "Figure 6: Zero-Shot Generalization Radar across Diverse Topologies"),
+        ("blind_topologies_stress_benchmark.png", "Figure 7: Multi-Topology Blind Stress Benchmark (Zero-Shot Generalization)"),
+        ("traffic_load_scaling_curves.png", "Figure 8: Network Scalability & Queuing Transition Curves under Escalating Traffic"),
+        ("random_blind_topologies_evaluation.png", "Figure 9: Zero-Shot Blind Transfer Evaluation on Unseen Random Topologies (20-30 Nodes)"),
+        ("dashboard_topology_telemetry.png", "Figure 10: Real-Time OpenFlow 1.3 Topology Fabric and Interactive Telemetry Console"),
+        ("dashboard_versus_tournament.png", "Figure 11: Real-Time Algorithm Tournament and Multi-Metric Benchmarking Studio"),
+        ("dashboard_model_inspector.png", "Figure 12: PyTorch D3QN Neural Network Architecture and Live Model Telemetry Inspector"),
+        ("dashboard_network_settings.png", "Figure 13: Network Fabric Architecture Settings and Chaos Fault Injection Console")
     ]
 
     plots_gallery_html = '<section class="plots-gallery"><h2>Empirical Plot Studio & Visual Benchmark Gallery</h2><div class="gallery-grid">'
@@ -570,7 +579,14 @@ def generate_pdf_report():
             ("dqn_te_training_convergence.png", "Figure 3: Multi-Objective D3QN Training Loss & TD-Error"),
             ("routing_cdfs_latency_jitter.png", "Figure 4: Latency & Jitter Cumulative Distribution Functions (CDF)"),
             ("stress_test_load_balancing.png", "Figure 5: High-Intensity Stress Test Congestion Relief"),
-            ("blind_topologies_radar.png", "Figure 6: Zero-Shot Generalization Radar Across Diverse Topologies")
+            ("blind_topologies_radar.png", "Figure 6: Zero-Shot Generalization Radar Across Diverse Topologies"),
+            ("blind_topologies_stress_benchmark.png", "Figure 7: Multi-Topology Blind Stress Benchmark (Zero-Shot Generalization)"),
+            ("traffic_load_scaling_curves.png", "Figure 8: Network Scalability & Queuing Transition Curves under Escalating Traffic"),
+            ("random_blind_topologies_evaluation.png", "Figure 9: Zero-Shot Blind Transfer Evaluation on Unseen Random Topologies (20-30 Nodes)"),
+            ("dashboard_topology_telemetry.png", "Figure 10: Real-Time OpenFlow 1.3 Topology Fabric and Interactive Telemetry Console"),
+            ("dashboard_versus_tournament.png", "Figure 11: Real-Time Algorithm Tournament and Multi-Metric Benchmarking Studio"),
+            ("dashboard_model_inspector.png", "Figure 12: PyTorch D3QN Neural Network Architecture and Live Model Telemetry Inspector"),
+            ("dashboard_network_settings.png", "Figure 13: Network Fabric Architecture Settings and Chaos Fault Injection Console")
         ]
 
         for pf, cap in plot_files:
@@ -590,6 +606,25 @@ def generate_pdf_report():
         import traceback
         traceback.print_exc()
 
+def export_pdf_with_chrome():
+    chrome_bin = "/home/maher/.local/bin/google-chrome"
+    print(f"[*] Compiling publication-grade PDF via Google Chrome to: {CHROME_PDF_OUTPUT}...")
+    cmd = [
+        chrome_bin,
+        "--headless=new",
+        "--disable-gpu",
+        "--no-sandbox",
+        "--no-pdf-header-footer",
+        f"--print-to-pdf={CHROME_PDF_OUTPUT}",
+        str(HTML_OUTPUT)
+    ]
+    res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    if CHROME_PDF_OUTPUT.exists() and CHROME_PDF_OUTPUT.stat().st_size > 0:
+        print(f"[+] Successfully exported publication PDF via Google Chrome: {CHROME_PDF_OUTPUT} ({CHROME_PDF_OUTPUT.stat().st_size:,} bytes)")
+    else:
+        print(f"[-] Google Chrome PDF export error: {res.stderr}")
+
 if __name__ == "__main__":
     generate_html_report()
+    export_pdf_with_chrome()
     generate_pdf_report()
