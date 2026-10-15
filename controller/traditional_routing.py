@@ -57,6 +57,7 @@ def compute_path_metrics(path, link_utilization, link_delays=None, link_bandwidt
     bws = link_bandwidths or {}
     hops = len(path) - 1
     total_delay = 0.0
+    total_queue_delay = 0.0
     bottleneck_util = 0.0
     default_delay = getattr(config, 'DEFAULT_LINK_DELAY', 2.0)
     loss_threshold = getattr(config, 'CONGESTION_BARRIER_THRESHOLD', 0.70)
@@ -68,21 +69,26 @@ def compute_path_metrics(path, link_utilization, link_delays=None, link_bandwidt
         if util == 0.0 and (v, u) in link_utilization:
             util = float(link_utilization[(v, u)])
 
-        base_delay = float(delays.get((u, v), delays.get((v, u), default_delay)))
+        prop_delay = float(delays.get((u, v), delays.get((v, u), default_delay)))
+        prop_delay = max(1.0, min(10.0, prop_delay))
 
-        # Queuing delay scales with link utilization: M/M/1 queue delay
-        # D_e = base_delay / (1 - min(0.95, util))
-        clamped_util = min(0.95, max(0.0, util))
-        queuing_delay = base_delay * (0.2 + 0.8 / max(0.05, 1.0 - clamped_util))
+        # Queuing delay scales with link utilization: M/M/1/K finite buffer model
+        clamped_util = min(0.96, max(0.0, util))
+        if clamped_util <= 0.15:
+            queue_delay = clamped_util * 0.5
+        else:
+            queue_delay = min(15.0, prop_delay * (0.8 * clamped_util / max(0.06, 1.0 - clamped_util)))
 
-        total_delay += queuing_delay
+        total_delay += (prop_delay + queue_delay)
+        total_queue_delay += queue_delay
         bottleneck_util = max(bottleneck_util, util)
 
-    # 1. Network Jitter (RFC 3393 Delay Variation)
-    # Fluctuation in queuing delay increases drastically under heavy load
-    base_jitter = 0.35 * hops
-    congestion_factor = (bottleneck_util ** 2) / max(0.02, 1.0 - min(0.98, bottleneck_util))
-    jitter_ms = float(base_jitter + 0.45 * total_delay * min(5.0, congestion_factor))
+    # 1. Network Jitter (RFC 3393 Packet Delay Variation)
+    # Jitter reflects queuing delay variation; bounded by standard buffer variance (typically 15-30% of queuing latency)
+    base_jitter = 0.25 * hops
+    congestion_factor = (bottleneck_util ** 2) / max(0.05, 1.0 - min(0.95, bottleneck_util))
+    queuing_latency_portion = float(total_queue_delay)
+    jitter_ms = float(base_jitter + min(15.0, 0.22 * queuing_latency_portion * min(2.5, congestion_factor)))
 
     # 2. Packet Loss Rate (%):
     # Under low load (util <= threshold), loss is negligible (< 0.05%)
@@ -136,14 +142,14 @@ def dijkstra_spf(graph, src, dst, weight=None):
         return [src, dst]
 
 
-def ecmp_routing(graph, src, dst, flow_hash=0):
+def ecmp_routing(graph, src, dst, flow_hash=0, weight=None):
     """
     Equal-Cost Multi-Path (ECMP).
-    Discovers all shortest paths of identical minimum hop count and hashes flows across them.
+    Discovers all shortest paths of identical minimum cost/hop count and hashes flows across them.
     Incapable of offloading onto slightly longer but uncongested alternative paths.
     """
     try:
-        all_shortest = list(nx.all_shortest_paths(graph, src, dst))
+        all_shortest = list(nx.all_shortest_paths(graph, src, dst, weight=weight))
         if not all_shortest:
             return [src, dst]
         selected_idx = int(flow_hash) % len(all_shortest)

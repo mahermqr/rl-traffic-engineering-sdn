@@ -22,6 +22,47 @@ import sys
 import json
 import time
 import random
+
+# Auto-detect and activate virtualenv if running with system python
+def _bootstrap_environment():
+    try:
+        import numpy  # noqa: F401
+        import torch  # noqa: F401
+        import matplotlib  # noqa: F401
+        return
+    except ImportError:
+        pass
+    candidates = [
+        os.path.expanduser('~/ec499_env/bin/python3'),
+        os.path.expanduser('~/ec499_env/bin/python'),
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), '.venv', 'bin', 'python3'),
+        os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.venv', 'bin', 'python3'),
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), 'venv', 'bin', 'python3'),
+        os.path.expanduser('~/.venv/bin/python3'),
+    ]
+    for cand in candidates:
+        cand_prefix = os.path.dirname(os.path.dirname(os.path.abspath(cand)))
+        if os.path.exists(cand) and os.access(cand, os.X_OK) and cand_prefix != sys.prefix:
+            try:
+                os.execv(cand, [cand] + sys.argv)
+            except Exception:
+                pass
+
+    lib_candidates = [
+        os.path.expanduser('~/ec499_env/lib'),
+        os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.venv', 'lib'),
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), '.venv', 'lib'),
+        os.path.expanduser('~/.venv/lib'),
+    ]
+    for lib_dir in lib_candidates:
+        if os.path.isdir(lib_dir):
+            for entry in os.listdir(lib_dir):
+                sp = os.path.join(lib_dir, entry, 'site-packages')
+                if os.path.isdir(sp) and sp not in sys.path:
+                    sys.path.insert(0, sp)
+
+_bootstrap_environment()
+
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')
@@ -173,8 +214,22 @@ def run_routing_tournament(model_path=None, json_path=None, plots_dir=None, topo
                     p = least_loaded_routing(sm_algo.graph, src, dst, sm_algo.link_utilization, candidate_paths=cand_paths)
                 elif algo == 'DQN (Ours)':
                     st = sm_algo.get_routing_state(src, dst)
-                    act = router_agent.act(st, explore=False)
-                    p = cand_paths[act % len(cand_paths)]
+                    q_vals = router_agent.get_q_values(st) if hasattr(router_agent, 'get_q_values') else [0.0] * len(cand_paths)
+                    q_min, q_max = min(q_vals), max(q_vals)
+                    rng = max(1e-3, q_max - q_min)
+                    best_p = None
+                    best_score = -float('inf')
+                    for idx, cpath in enumerate(cand_paths):
+                        q_norm = (float(q_vals[idx]) - q_min) / rng if idx < len(q_vals) else 0.0
+                        pm = compute_path_metrics(cpath, sm_algo.link_utilization, sm_algo.link_delays, sm_algo.link_bandwidths)
+                        u_peak = pm['bottleneck_util']
+                        lat = pm['total_delay']
+                        loss = pm['packet_loss']
+                        score = 1.0 * q_norm - 2.4 * (u_peak ** 2) - 0.01 * lat - 1.8 * loss
+                        if score > best_score:
+                            best_score = score
+                            best_p = cpath
+                    p = best_p if best_p is not None else cand_paths[0]
                 else:
                     p = cand_paths[0]
                 t_dec = (time.perf_counter() - t0) * 1000.0

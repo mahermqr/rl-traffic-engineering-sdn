@@ -18,18 +18,62 @@ import json
 import time
 import urllib.request
 
+# Auto-detect and activate virtualenv if running with system python
+def _bootstrap_environment():
+    try:
+        import numpy  # noqa: F401
+        return
+    except ImportError:
+        pass
+    candidates = [
+        os.path.expanduser('~/ec499_env/bin/python3'),
+        os.path.expanduser('~/ec499_env/bin/python'),
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), '.venv', 'bin', 'python3'),
+        os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.venv', 'bin', 'python3'),
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), 'venv', 'bin', 'python3'),
+        os.path.expanduser('~/.venv/bin/python3'),
+    ]
+    for cand in candidates:
+        cand_prefix = os.path.dirname(os.path.dirname(os.path.abspath(cand)))
+        if os.path.exists(cand) and os.access(cand, os.X_OK) and cand_prefix != sys.prefix:
+            try:
+                os.execv(cand, [cand] + sys.argv)
+            except Exception:
+                pass
+
+    lib_candidates = [
+        os.path.expanduser('~/ec499_env/lib'),
+        os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.venv', 'lib'),
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), '.venv', 'lib'),
+        os.path.expanduser('~/.venv/lib'),
+    ]
+    for lib_dir in lib_candidates:
+        if os.path.isdir(lib_dir):
+            for entry in os.listdir(lib_dir):
+                sp = os.path.join(lib_dir, entry, 'site-packages')
+                if os.path.isdir(sp) and sp not in sys.path:
+                    sys.path.insert(0, sp)
+
+_bootstrap_environment()
+
 BASE_URL = os.environ.get("SDN_DASHBOARD_URL", "http://localhost:8080")
 
 
 def ensure_server():
     global BASE_URL
-    try:
-        req = urllib.request.Request(f"{BASE_URL}/api/health", method='GET')
-        with urllib.request.urlopen(req, timeout=1.0) as resp:
-            if resp.status == 200:
-                return None
-    except Exception:
-        pass
+    candidates = []
+    if os.environ.get("SDN_DASHBOARD_URL"):
+        candidates.append(os.environ["SDN_DASHBOARD_URL"])
+    candidates.extend(["http://127.0.0.1:8081", "http://127.0.0.1:8080", "http://localhost:8081", "http://localhost:8080"])
+    for cand in candidates:
+        try:
+            req = urllib.request.Request(f"{cand}/api/health", method='GET')
+            with urllib.request.urlopen(req, timeout=1.0) as resp:
+                if resp.status == 200:
+                    BASE_URL = cand
+                    return None
+        except Exception:
+            pass
 
     test_port = 8112
     BASE_URL = f"http://127.0.0.1:{test_port}"

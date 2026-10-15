@@ -17,6 +17,46 @@ Saves all figures at 300 DPI to logs/plots/.
 import os
 import sys
 import json
+
+# Auto-detect and activate virtualenv if running with system python
+def _bootstrap_environment():
+    try:
+        import numpy  # noqa: F401
+        import matplotlib  # noqa: F401
+        return
+    except ImportError:
+        pass
+    candidates = [
+        os.path.expanduser('~/ec499_env/bin/python3'),
+        os.path.expanduser('~/ec499_env/bin/python'),
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), '.venv', 'bin', 'python3'),
+        os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.venv', 'bin', 'python3'),
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), 'venv', 'bin', 'python3'),
+        os.path.expanduser('~/.venv/bin/python3'),
+    ]
+    for cand in candidates:
+        cand_prefix = os.path.dirname(os.path.dirname(os.path.abspath(cand)))
+        if os.path.exists(cand) and os.access(cand, os.X_OK) and cand_prefix != sys.prefix:
+            try:
+                os.execv(cand, [cand] + sys.argv)
+            except Exception:
+                pass
+
+    lib_candidates = [
+        os.path.expanduser('~/ec499_env/lib'),
+        os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.venv', 'lib'),
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), '.venv', 'lib'),
+        os.path.expanduser('~/.venv/lib'),
+    ]
+    for lib_dir in lib_candidates:
+        if os.path.isdir(lib_dir):
+            for entry in os.listdir(lib_dir):
+                sp = os.path.join(lib_dir, entry, 'site-packages')
+                if os.path.isdir(sp) and sp not in sys.path:
+                    sys.path.insert(0, sp)
+
+_bootstrap_environment()
+
 import numpy as np
 
 # Configure headless matplotlib

@@ -109,6 +109,11 @@ class PrioritizedReplayBuffer:
             self.state_size = len(s)
             self.states = np.zeros((self.capacity, self.state_size), dtype=np.float32)
             self.next_states = np.zeros((self.capacity, self.state_size), dtype=np.float32)
+            self.actions = np.zeros(self.capacity, dtype=np.int64)
+            self.rewards = np.zeros(self.capacity, dtype=np.float32)
+            self.dones = np.zeros(self.capacity, dtype=np.float32)
+            self.tree = SumTree(self.capacity)
+            ptr = 0
 
         self.states[ptr] = s
         self.actions[ptr] = int(action)
@@ -118,7 +123,7 @@ class PrioritizedReplayBuffer:
 
         # Maintain tuple in tree for full backward compatibility
         transition = (s, int(action), float(reward), ns, bool(done))
-        priority = self.max_priority ** self.alpha
+        priority = float(self.max_priority)
         self.tree.add(priority, transition)
 
     def sample(self, batch_size=32):

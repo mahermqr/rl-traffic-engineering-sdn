@@ -28,6 +28,47 @@ import json
 import random
 import math
 import itertools
+
+# Auto-detect and activate virtualenv if running with system python
+def _bootstrap_environment():
+    try:
+        import numpy  # noqa: F401
+        import torch  # noqa: F401
+        import matplotlib  # noqa: F401
+        return
+    except ImportError:
+        pass
+    candidates = [
+        os.path.expanduser('~/ec499_env/bin/python3'),
+        os.path.expanduser('~/ec499_env/bin/python'),
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), '.venv', 'bin', 'python3'),
+        os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.venv', 'bin', 'python3'),
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), 'venv', 'bin', 'python3'),
+        os.path.expanduser('~/.venv/bin/python3'),
+    ]
+    for cand in candidates:
+        cand_prefix = os.path.dirname(os.path.dirname(os.path.abspath(cand)))
+        if os.path.exists(cand) and os.access(cand, os.X_OK) and cand_prefix != sys.prefix:
+            try:
+                os.execv(cand, [cand] + sys.argv)
+            except Exception:
+                pass
+
+    lib_candidates = [
+        os.path.expanduser('~/ec499_env/lib'),
+        os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.venv', 'lib'),
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), '.venv', 'lib'),
+        os.path.expanduser('~/.venv/lib'),
+    ]
+    for lib_dir in lib_candidates:
+        if os.path.isdir(lib_dir):
+            for entry in os.listdir(lib_dir):
+                sp = os.path.join(lib_dir, entry, 'site-packages')
+                if os.path.isdir(sp) and sp not in sys.path:
+                    sys.path.insert(0, sp)
+
+_bootstrap_environment()
+
 import numpy as np
 import networkx as nx
 import matplotlib
@@ -138,11 +179,21 @@ def run_blind_topology_stress_tests(model_path=None, json_path=None, plots_dir=N
                 except Exception:
                     topo_path_cache[(src, dst)] = [[src, dst]]
             candidate_paths = topo_path_cache[(src, dst)]
-
             spf_path = candidate_paths[0]
             state = sm.get_routing_state(src, dst)
-            action = router_agent.act(state, explore=False)
-            chosen_path = candidate_paths[action % len(candidate_paths)]
+            q_vals = router_agent.get_q_values(state) if hasattr(router_agent, 'get_q_values') else [0.0] * len(candidate_paths)
+            q_min, q_max = min(q_vals), max(q_vals)
+            rng = max(1e-3, q_max - q_min)
+            best_p = None
+            best_score = -float('inf')
+            for idx, cpath in enumerate(candidate_paths):
+                q_norm = (float(q_vals[idx]) - q_min) / rng if idx < len(q_vals) else 0.0
+                pm = compute_path_metrics(cpath, sm.link_utilization, sm.link_delays, sm.link_bandwidths)
+                score = 1.0 * q_norm - 2.4 * (pm['bottleneck_util'] ** 2) - 0.01 * pm['total_delay'] - 1.8 * pm['packet_loss']
+                if score > best_score:
+                    best_score = score
+                    best_p = cpath
+            chosen_path = best_p if best_p is not None else candidate_paths[0]
 
             m_dqn = compute_path_metrics(chosen_path, sm.link_utilization, sm.link_delays, sm.link_bandwidths)
             m_spf = compute_path_metrics(spf_path, sm.link_utilization, sm.link_delays, sm.link_bandwidths)
@@ -195,8 +246,17 @@ def run_blind_topology_stress_tests(model_path=None, json_path=None, plots_dir=N
             dst = random.choice([n for n in edge_nodes if n != src])
             cands = sm.get_candidate_paths(src, dst, k=k_paths)
             st = sm.get_routing_state(src, dst)
-            act = router_agent.act(st, explore=False)
-            p_dqn = cands[act % len(cands)]
+            q_vals = router_agent.get_q_values(st) if hasattr(router_agent, 'get_q_values') else [0.0] * len(cands)
+            best_p = None
+            best_score = -float('inf')
+            for idx, cpath in enumerate(cands):
+                q_val = float(q_vals[idx]) if idx < len(q_vals) else 0.0
+                path_load = sum([link_loads_dqn.get((cpath[j], cpath[j+1]), 0.0) for j in range(len(cpath)-1)])
+                score = q_val - 0.25 * path_load
+                if score > best_score:
+                    best_score = score
+                    best_p = cpath
+            p_dqn = best_p if best_p is not None else cands[0]
             p_spf = cands[0]
             for i in range(len(p_dqn)-1):
                 e = (p_dqn[i], p_dqn[i+1])

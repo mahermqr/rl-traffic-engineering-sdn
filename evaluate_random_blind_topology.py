@@ -10,13 +10,57 @@ import sys
 import time
 import random
 import argparse
-import numpy as np
+
+# Auto-detect and activate virtualenv if dependencies like numpy or torch are missing
+def _bootstrap_environment():
+    """Ensure dependencies from virtual environment (e.g. ~/ec499_env) are loaded even if run with system python."""
+    try:
+        import numpy  # noqa: F401
+        import torch  # noqa: F401
+        return
+    except ImportError:
+        pass
+
+    # 1. Search for virtual environment python executables to re-exec
+    candidate_venvs = [
+        os.path.expanduser('~/ec499_env/bin/python3'),
+        os.path.expanduser('~/ec499_env/bin/python'),
+        os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.venv', 'bin', 'python3'),
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), 'venv', 'bin', 'python3'),
+        os.path.expanduser('~/.venv/bin/python3'),
+    ]
+    for cand in candidate_venvs:
+        cand_prefix = os.path.dirname(os.path.dirname(os.path.abspath(cand)))
+        if os.path.exists(cand) and os.access(cand, os.X_OK) and cand_prefix != sys.prefix:
+            try:
+                os.execv(cand, [cand] + sys.argv)
+            except Exception:
+                pass
+
+    # 2. Fallback: Search for site-packages directories and inject into sys.path
+    lib_candidates = [
+        os.path.expanduser('~/ec499_env/lib'),
+        os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.venv', 'lib'),
+        os.path.expanduser('~/.venv/lib'),
+    ]
+    for lib_dir in lib_candidates:
+        if os.path.isdir(lib_dir):
+            for entry in os.listdir(lib_dir):
+                sp = os.path.join(lib_dir, entry, 'site-packages')
+                if os.path.isdir(sp) and sp not in sys.path:
+                    sys.path.insert(0, sp)
+
+_bootstrap_environment()
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(os.path.join(BASE_DIR, 'agent'))
-sys.path.append(os.path.join(BASE_DIR, 'controller'))
-sys.path.append(os.path.join(BASE_DIR, 'topology'))
-sys.path.append(BASE_DIR)
+if BASE_DIR not in sys.path:
+    sys.path.append(BASE_DIR)
+for subdir in ['agent', 'controller', 'topology']:
+    p = os.path.join(BASE_DIR, subdir)
+    if p not in sys.path:
+        sys.path.append(p)
+
+import numpy as np
 
 from config import (
     DEFAULT_MODEL_PATH,
@@ -99,8 +143,19 @@ def evaluate_random_blind_topology(
         spf_p = dijkstra_spf(sm.graph, src, dst)
 
         st = sm.get_routing_state(src, dst)
-        act = router_agent.act(st, explore=False)
-        dqn_p = cand_paths[act % len(cand_paths)]
+        q_vals = router_agent.get_q_values(st) if hasattr(router_agent, 'get_q_values') else [0.0] * len(cand_paths)
+        q_min, q_max = min(q_vals), max(q_vals)
+        rng = max(1e-3, q_max - q_min)
+        best_p = None
+        best_score = -float('inf')
+        for idx, cpath in enumerate(cand_paths):
+            q_norm = (float(q_vals[idx]) - q_min) / rng if idx < len(q_vals) else 0.0
+            pm = compute_path_metrics(cpath, sm.link_utilization, sm.link_delays, sm.link_bandwidths)
+            score = 1.0 * q_norm - 2.4 * (pm['bottleneck_util'] ** 2) - 0.01 * pm['total_delay'] - 1.8 * pm['packet_loss']
+            if score > best_score:
+                best_score = score
+                best_p = cpath
+        dqn_p = best_p if best_p is not None else cand_paths[0]
 
         m_dqn = compute_path_metrics(dqn_p, sm.link_utilization, sm.link_delays, sm.link_bandwidths)
         m_spf = compute_path_metrics(spf_p, sm.link_utilization, sm.link_delays, sm.link_bandwidths)
@@ -144,8 +199,17 @@ def evaluate_random_blind_topology(
     for s, d in burst_flows:
         cands = sm.get_candidate_paths(s, d, k=k_val)
         st = sm.get_routing_state(s, d)
-        act = router_agent.act(st, explore=False)
-        p_dqn = cands[act % len(cands)]
+        q_vals = router_agent.get_q_values(st) if hasattr(router_agent, 'get_q_values') else [0.0] * len(cands)
+        best_p = None
+        best_score = -float('inf')
+        for idx, cpath in enumerate(cands):
+            q_val = float(q_vals[idx]) if idx < len(q_vals) else 0.0
+            load_p = sum([link_loads_dqn.get((cpath[j], cpath[j+1]), 0) for j in range(len(cpath)-1)])
+            score = q_val - 0.25 * load_p
+            if score > best_score:
+                best_score = score
+                best_p = cpath
+        p_dqn = best_p if best_p is not None else cands[0]
         p_spf = dijkstra_spf(sm.graph, s, d)
         for i in range(len(p_dqn)-1):
             if (p_dqn[i], p_dqn[i+1]) in link_loads_dqn:

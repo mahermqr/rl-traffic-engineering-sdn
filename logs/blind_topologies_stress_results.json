@@ -7,30 +7,30 @@
       "dijkstra_spf_bottleneck_pct": 15.0,
       "double_dqn_bottleneck_pct": 15.0,
       "congestion_reduction_pct": 0.0,
-      "autonomous_offload_rate_pct": 39.3,
-      "dqn_latency_ms": 15.63,
-      "spf_latency_ms": 10.24
+      "autonomous_offload_rate_pct": 25.3,
+      "dqn_latency_ms": 12.82,
+      "spf_latency_ms": 9.71
     },
     "scenario_2_concurrency_burst": {
-      "decisions_per_sec": 3667.7,
-      "jains_fairness_dqn": 0.6891,
-      "jains_fairness_spf": 0.7353
+      "decisions_per_sec": 4625.2,
+      "jains_fairness_dqn": 0.7439,
+      "jains_fairness_spf": 0.746
     },
     "scenario_3_hotspot_surge": {
-      "bottleneck_reduction_pct": 33.58,
-      "diversion_rate_pct": 46.0
+      "bottleneck_reduction_pct": 51.1,
+      "diversion_rate_pct": 70.0
     },
     "scenario_4_latency_degradation": {
-      "dqn_latency_ms": 32.05,
-      "spf_latency_ms": 30.88,
-      "latency_savings_ms": -1.17
+      "dqn_latency_ms": 18.25,
+      "spf_latency_ms": 18.9,
+      "latency_savings_ms": 0.65
     },
     "scenario_5_jitter_and_loss": {
-      "dqn_jitter_ms": 36.46,
-      "spf_jitter_ms": 57.74,
-      "jitter_suppression_pct": 36.8,
-      "dqn_loss_pct": 2.55,
-      "spf_loss_pct": 5.3
+      "dqn_jitter_ms": 0.86,
+      "spf_jitter_ms": 7.39,
+      "jitter_suppression_pct": 88.3,
+      "dqn_loss_pct": 0.01,
+      "spf_loss_pct": 5.69
     }
   },
   "fattree": {
@@ -38,33 +38,33 @@
     "switches": 20,
     "edges": 64,
     "scenario_1_core_jamming": {
-      "dijkstra_spf_bottleneck_pct": 81.0,
+      "dijkstra_spf_bottleneck_pct": 80.0,
       "double_dqn_bottleneck_pct": 15.0,
-      "congestion_reduction_pct": 66.0,
-      "autonomous_offload_rate_pct": 88.0,
-      "dqn_latency_ms": 5.43,
-      "spf_latency_ms": 292.06
+      "congestion_reduction_pct": 65.0,
+      "autonomous_offload_rate_pct": 86.7,
+      "dqn_latency_ms": 5.01,
+      "spf_latency_ms": 46.48
     },
     "scenario_2_concurrency_burst": {
-      "decisions_per_sec": 2918.2,
-      "jains_fairness_dqn": 0.3865,
-      "jains_fairness_spf": 0.3477
+      "decisions_per_sec": 4245.2,
+      "jains_fairness_dqn": 0.5796,
+      "jains_fairness_spf": 0.3489
     },
     "scenario_3_hotspot_surge": {
       "bottleneck_reduction_pct": 73.0,
       "diversion_rate_pct": 100.0
     },
     "scenario_4_latency_degradation": {
-      "dqn_latency_ms": 24.97,
-      "spf_latency_ms": 48.34,
-      "latency_savings_ms": 23.37
+      "dqn_latency_ms": 5.04,
+      "spf_latency_ms": 25.86,
+      "latency_savings_ms": 20.81
     },
     "scenario_5_jitter_and_loss": {
-      "dqn_jitter_ms": 1.64,
-      "spf_jitter_ms": 56.57,
-      "jitter_suppression_pct": 97.1,
+      "dqn_jitter_ms": 0.89,
+      "spf_jitter_ms": 6.18,
+      "jitter_suppression_pct": 85.6,
       "dqn_loss_pct": 0.01,
-      "spf_loss_pct": 4.22
+      "spf_loss_pct": 4.02
     }
   },
   "abilene": {
@@ -72,33 +72,33 @@
     "switches": 12,
     "edges": 30,
     "scenario_1_core_jamming": {
-      "dijkstra_spf_bottleneck_pct": 19.5,
+      "dijkstra_spf_bottleneck_pct": 17.5,
       "double_dqn_bottleneck_pct": 15.0,
-      "congestion_reduction_pct": 4.5,
-      "autonomous_offload_rate_pct": 6.0,
-      "dqn_latency_ms": 13.92,
-      "spf_latency_ms": 47.26
+      "congestion_reduction_pct": 2.5,
+      "autonomous_offload_rate_pct": 3.3,
+      "dqn_latency_ms": 12.83,
+      "spf_latency_ms": 14.75
     },
     "scenario_2_concurrency_burst": {
-      "decisions_per_sec": 3314.2,
-      "jains_fairness_dqn": 0.3645,
-      "jains_fairness_spf": 0.4494
+      "decisions_per_sec": 4557.4,
+      "jains_fairness_dqn": 0.565,
+      "jains_fairness_spf": 0.4622
     },
     "scenario_3_hotspot_surge": {
-      "bottleneck_reduction_pct": 65.7,
-      "diversion_rate_pct": 90.0
+      "bottleneck_reduction_pct": 67.16,
+      "diversion_rate_pct": 92.0
     },
     "scenario_4_latency_degradation": {
-      "dqn_latency_ms": 36.78,
-      "spf_latency_ms": 30.43,
-      "latency_savings_ms": -6.34
+      "dqn_latency_ms": 22.85,
+      "spf_latency_ms": 23.38,
+      "latency_savings_ms": 0.53
     },
     "scenario_5_jitter_and_loss": {
-      "dqn_jitter_ms": 3.71,
-      "spf_jitter_ms": 39.16,
-      "jitter_suppression_pct": 90.5,
-      "dqn_loss_pct": 0.2,
-      "spf_loss_pct": 4.12
+      "dqn_jitter_ms": 1.11,
+      "spf_jitter_ms": 7.28,
+      "jitter_suppression_pct": 84.7,
+      "dqn_loss_pct": 0.01,
+      "spf_loss_pct": 4.81
     }
   },
   "nsfnet": {
@@ -106,33 +106,33 @@
     "switches": 14,
     "edges": 42,
     "scenario_1_core_jamming": {
-      "dijkstra_spf_bottleneck_pct": 43.5,
-      "double_dqn_bottleneck_pct": 24.5,
-      "congestion_reduction_pct": 19.0,
-      "autonomous_offload_rate_pct": 48.7,
-      "dqn_latency_ms": 66.24,
-      "spf_latency_ms": 179.36
+      "dijkstra_spf_bottleneck_pct": 41.5,
+      "double_dqn_bottleneck_pct": 22.0,
+      "congestion_reduction_pct": 19.5,
+      "autonomous_offload_rate_pct": 50.0,
+      "dqn_latency_ms": 15.08,
+      "spf_latency_ms": 25.34
     },
     "scenario_2_concurrency_burst": {
-      "decisions_per_sec": 4076.3,
-      "jains_fairness_dqn": 0.5941,
-      "jains_fairness_spf": 0.7619
+      "decisions_per_sec": 4663.0,
+      "jains_fairness_dqn": 0.6639,
+      "jains_fairness_spf": 0.7673
     },
     "scenario_3_hotspot_surge": {
-      "bottleneck_reduction_pct": 38.69,
-      "diversion_rate_pct": 61.0
+      "bottleneck_reduction_pct": 27.01,
+      "diversion_rate_pct": 53.0
     },
     "scenario_4_latency_degradation": {
-      "dqn_latency_ms": 29.72,
-      "spf_latency_ms": 31.51,
-      "latency_savings_ms": 1.79
+      "dqn_latency_ms": 16.59,
+      "spf_latency_ms": 18.94,
+      "latency_savings_ms": 2.35
     },
     "scenario_5_jitter_and_loss": {
-      "dqn_jitter_ms": 2.7,
-      "spf_jitter_ms": 31.66,
-      "jitter_suppression_pct": 91.5,
-      "dqn_loss_pct": 0.11,
-      "spf_loss_pct": 3.14
+      "dqn_jitter_ms": 0.87,
+      "spf_jitter_ms": 3.97,
+      "jitter_suppression_pct": 78.0,
+      "dqn_loss_pct": 0.01,
+      "spf_loss_pct": 2.85
     }
   },
   "spineleaf": {
@@ -144,29 +144,29 @@
       "double_dqn_bottleneck_pct": 15.0,
       "congestion_reduction_pct": 75.0,
       "autonomous_offload_rate_pct": 100.0,
-      "dqn_latency_ms": 2.28,
-      "spf_latency_ms": 328.0
+      "dqn_latency_ms": 2.15,
+      "spf_latency_ms": 50.0
     },
     "scenario_2_concurrency_burst": {
-      "decisions_per_sec": 4164.1,
-      "jains_fairness_dqn": 0.2476,
-      "jains_fairness_spf": 0.2476
+      "decisions_per_sec": 4668.8,
+      "jains_fairness_dqn": 0.5354,
+      "jains_fairness_spf": 0.248
     },
     "scenario_3_hotspot_surge": {
       "bottleneck_reduction_pct": 73.0,
       "diversion_rate_pct": 100.0
     },
     "scenario_4_latency_degradation": {
-      "dqn_latency_ms": 2.28,
-      "spf_latency_ms": 106.34,
-      "latency_savings_ms": 104.05
+      "dqn_latency_ms": 2.15,
+      "spf_latency_ms": 28.21,
+      "latency_savings_ms": 26.06
     },
     "scenario_5_jitter_and_loss": {
-      "dqn_jitter_ms": 0.73,
-      "spf_jitter_ms": 165.25,
-      "jitter_suppression_pct": 99.6,
+      "dqn_jitter_ms": 0.5,
+      "spf_jitter_ms": 6.26,
+      "jitter_suppression_pct": 92.0,
       "dqn_loss_pct": 0.01,
-      "spf_loss_pct": 4.12
+      "spf_loss_pct": 3.73
     }
   }
 }

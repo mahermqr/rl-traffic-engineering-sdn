@@ -3328,15 +3328,19 @@
 
             const data = algos.map(algo => {
                 const m = metrics[algo] || {};
+                const yVals = [
+                    m.bottleneck_util || 0,
+                    m.latency_ms || 0,
+                    m.jitter_ms || 0,
+                    m.packet_loss_pct || 0,
+                    m.qos_sla_score || 0
+                ];
                 return {
                     x: categories,
-                    y: [
-                        m.bottleneck_util || 0,
-                        m.latency_ms || 0,
-                        m.jitter_ms || 0,
-                        m.packet_loss_pct || 0,
-                        m.qos_sla_score || 0
-                    ],
+                    y: yVals,
+                    text: yVals.map((v, i) => i === 4 ? `${Math.round(v)}` : (i === 0 || i === 3 ? `${v.toFixed(1)}%` : `${v.toFixed(1)}ms`)),
+                    textposition: 'auto',
+                    textfont: { size: 10, color: '#FFFFFF' },
                     name: algo,
                     type: 'bar',
                     marker: { color: ALGO_COLORS[algo] || '#6366F1' },
@@ -3346,13 +3350,15 @@
 
             const layout = {
                 barmode: 'group',
+                bargap: 0.22,
+                bargroupgap: 0.08,
                 margin: { t: 25, b: 35, l: 45, r: 20 },
                 paper_bgcolor: theme.paper_bgcolor,
                 plot_bgcolor: theme.plot_bgcolor,
                 font: { family: "'Inter', sans-serif", color: theme.fontColor, size: 11 },
                 legend: { orientation: 'h', y: 1.15, x: 0.5, xanchor: 'center', font: { size: 10, color: theme.fontColor } },
                 xaxis: { gridcolor: theme.gridColor, tickfont: theme.tickFont },
-                yaxis: { gridcolor: theme.gridColor, zerolinecolor: theme.zeroLineColor, tickfont: theme.tickFont }
+                yaxis: { gridcolor: theme.gridColor, zerolinecolor: theme.zeroLineColor, tickfont: theme.tickFont, rangemode: 'tozero' }
             };
 
             const config = {
@@ -4189,9 +4195,20 @@
                 const isBase = baseEdges.has(edgeKey);
                 const util = link.utilization || 0;
 
+                // Check if this is a horizontal cross-tier lateral link connecting non-adjacent switches
+                const isLateralCross = (Math.abs(s.y - t.y) < 25 && Math.abs(s.x - t.x) > 120);
+                const isOuterLateral = (link.source === 4 || link.target === 4 || link.source === 7 || link.target === 7);
+                const curveYOffset = isLateralCross ? (isOuterLateral ? 55 : 35) : 0;
+                const arcMidX = (s.x + t.x) / 2;
+                const arcMidY = (s.y + t.y) / 2 + curveYOffset;
+
                 ctx.beginPath();
                 ctx.moveTo(s.x, s.y);
-                ctx.lineTo(t.x, t.y);
+                if (isLateralCross) {
+                    ctx.quadraticCurveTo(arcMidX, arcMidY, t.x, t.y);
+                } else {
+                    ctx.lineTo(t.x, t.y);
+                }
 
                 if (isDQN && isBase) {
                     ctx.strokeStyle = isDark ? '#8B5CF6' : '#7C3AED';
@@ -4224,8 +4241,8 @@
 
                 // Link Utilization Badge Pill
                 const frac = 0.35 + ((link.source * 7 + link.target * 13) % 7) * 0.04;
-                const midX = s.x + (t.x - s.x) * frac;
-                const midY = s.y + (t.y - s.y) * frac;
+                const midX = isLateralCross ? arcMidX : (s.x + (t.x - s.x) * frac);
+                const midY = isLateralCross ? (arcMidY - (isOuterLateral ? 6 : 4)) : (s.y + (t.y - s.y) * frac);
 
                 if (showAllTags || util > 20 || (idx % 3 === 0 && util > 5) || isDQN || isBase) {
                     ctx.fillStyle = isDark ? 'rgba(12, 12, 16, 0.92)' : 'rgba(255, 255, 255, 0.96)';
@@ -4257,9 +4274,19 @@
                     const t = nodeCoords[sv];
                     if (!s || !t) return;
 
+                    const isLateralCross = (Math.abs(s.y - t.y) < 25 && Math.abs(s.x - t.x) > 120);
+                    const isOuterLateral = (su === 4 || sv === 4 || su === 7 || sv === 7);
+                    const curveYOffset = isLateralCross ? (isOuterLateral ? 55 : 35) : 0;
+                    const midX = (s.x + t.x) / 2;
+                    const midY = (s.y + t.y) / 2 + curveYOffset;
+
                     ctx.beginPath();
                     ctx.moveTo(s.x, s.y);
-                    ctx.lineTo(t.x, t.y);
+                    if (isLateralCross) {
+                        ctx.quadraticCurveTo(midX, midY, t.x, t.y);
+                    } else {
+                        ctx.lineTo(t.x, t.y);
+                    }
                     ctx.strokeStyle = '#EF4444';
                     ctx.lineWidth = 2.4;
                     ctx.setLineDash([6, 5]);
@@ -4694,6 +4721,48 @@
                 document.getElementById('ospfJitterVal').textContent = `${(om.jitter || 0).toFixed(2)} ms`;
                 document.getElementById('ospfHopsVal').textContent = `${om.hops || (res.ospf_path ? res.ospf_path.length - 1 : 0)} Hops`;
                 document.getElementById('ospfPathNodes').textContent = `[${(res.ospf_path || []).join(', ')}]`;
+
+                // Dynamic Winner / Comparison Badge Update
+                const dqnCards = document.querySelectorAll('.sub-comparison-card');
+                if (dqnCards.length >= 2) {
+                    const dqnBadge = dqnCards[0].querySelector('.rank-pill');
+                    const ospfBadge = dqnCards[1].querySelector('.rank-pill');
+                    const dUtil = (dm.bottleneck_util || 0);
+                    const oUtil = (om.bottleneck_util || 0);
+                    const dLat = (dm.total_delay || 0);
+                    const oLat = (om.total_delay || 0);
+
+                    const isDqnBetter = (dUtil < oUtil - 0.01) || (Math.abs(dUtil - oUtil) <= 0.01 && dLat < oLat - 0.5);
+                    const isParity = (Math.abs(dUtil - oUtil) <= 0.01 && Math.abs(dLat - oLat) <= 1.0);
+
+                    if (dqnBadge) {
+                        if (isParity) {
+                            dqnBadge.textContent = 'Optimal (Parity)';
+                            dqnBadge.className = 'rank-pill champion';
+                            dqnBadge.style.background = '';
+                            dqnBadge.style.color = '';
+                        } else if (isDqnBetter) {
+                            dqnBadge.textContent = 'Champion';
+                            dqnBadge.className = 'rank-pill champion';
+                            dqnBadge.style.background = '';
+                            dqnBadge.style.color = '';
+                        } else {
+                            dqnBadge.textContent = 'Detour Route';
+                            dqnBadge.className = 'rank-pill';
+                            dqnBadge.style.background = 'rgba(139, 92, 246, 0.15)';
+                            dqnBadge.style.color = '#c4b5fd';
+                        }
+                    }
+                    if (ospfBadge) {
+                        if (isParity) {
+                            ospfBadge.textContent = 'Shortest Path';
+                        } else if (!isDqnBetter) {
+                            ospfBadge.textContent = 'Shortest Path';
+                        } else {
+                            ospfBadge.textContent = 'Baseline (Congested)';
+                        }
+                    }
+                }
 
                 // Candidate Paths Table
                 const tbody = document.getElementById('candidatePathsBody');

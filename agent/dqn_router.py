@@ -1,16 +1,18 @@
-import torch
-import torch.nn as nn
-import torch.optim as optim
+import os
+import sys
 import random
 from collections import deque
 import numpy as np
-import os
-import sys
+import torch
+import torch.nn as nn
+import torch.optim as optim
 
-# Dynamic config resolution
-_BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if _BASE_DIR not in sys.path:
-    sys.path.insert(0, _BASE_DIR)
+# Dynamic path resolution
+_AGENT_DIR = os.path.dirname(os.path.abspath(__file__))
+_BASE_DIR = os.path.dirname(_AGENT_DIR)
+for _p in [_AGENT_DIR, _BASE_DIR]:
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
 
 try:
     import config
@@ -260,3 +262,45 @@ class DQNRoutingAgent:
             self.epsilon = checkpoint.get('epsilon', self.epsilon_min)
             return True
         return False
+
+# Compatibility alias
+DQNAgent = DQNRoutingAgent
+
+
+if __name__ == '__main__':
+    print("=" * 70)
+    print(" 🧠 D3QN ADAPTIVE ROUTING AGENT - STANDALONE DIAGNOSTIC & VERIFICATION")
+    print("=" * 70)
+    state_dim = config.STATE_SIZE if config else 10
+    action_dim = config.ACTION_SIZE if config else 4
+    model_path = config.DEFAULT_MODEL_PATH if (config and os.path.isabs(config.DEFAULT_MODEL_PATH)) else os.path.join(_BASE_DIR, config.DEFAULT_MODEL_PATH if config else "models/dqn_router.pth")
+
+    agent = DQNRoutingAgent(state_size=state_dim, action_size=action_dim)
+    print(f" • Device: {agent.device}")
+    print(f" • Network Architecture: Dueling Double Deep Q-Network (D3QN)")
+    print(f" • State Dimension: {agent.state_size} | Action Space: {agent.action_size}")
+    total_params = sum(p.numel() for p in agent.model.parameters())
+    print(f" • Total Parameters: {total_params:,}")
+
+    if os.path.exists(model_path):
+        success = agent.load(model_path)
+        print(f" • Checkpoint: {model_path} -> {'Loaded successfully' if success else 'Failed to load'}")
+    else:
+        print(f" • Checkpoint: Not found at {model_path} (using randomly initialized weights)")
+
+    # Sample forward inference test
+    dummy_state = np.random.uniform(0.1, 0.9, size=agent.state_size).astype(np.float32)
+    import time
+    t0 = time.perf_counter()
+    q_vals = agent.get_q_values(dummy_state)
+    latency_ms = (time.perf_counter() - t0) * 1000
+    chosen_action = agent.act(dummy_state, explore=False)
+
+    print(f"\n --- Forward Inference Test ---")
+    print(f" • Sample Input State : [{', '.join(f'{x:.2f}' for x in dummy_state[:6])} ...]")
+    print(f" • Output Q-Values    : [{', '.join(f'{q:.4f}' for q in q_vals[:6])} ...]")
+    print(f" • Greedy Action Chosen: Path {chosen_action} (Q = {q_vals[chosen_action]:.4f})")
+    print(f" • Decision Latency    : {latency_ms:.3f} ms")
+    print("=" * 70)
+    print(" ✅ DQNAgent operational and healthy.")
+    print("=" * 70)

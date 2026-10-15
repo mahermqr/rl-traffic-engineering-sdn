@@ -70,28 +70,28 @@ class StateManager:
         self.degraded_links = {}
 
         # D3QN Multi-Objective reward weights
-        self.w_hops = 0.35
-        self.w_delay = 0.06
-        self.w_congestion = 1.0
-        self.w_jitter = 0.25
-        self.w_loss = 0.50
-        self.congestion_barrier_pct = 70.0
+        self.w_hops = getattr(config, 'W_HOPS', 0.35)
+        self.w_delay = getattr(config, 'W_DELAY', 0.06)
+        self.w_congestion = getattr(config, 'W_CONGESTION', 1.0)
+        self.w_jitter = getattr(config, 'W_JITTER', 0.25)
+        self.w_loss = getattr(config, 'W_LOSS', 0.50)
+        self.congestion_barrier_pct = getattr(config, 'CONGESTION_BARRIER_THRESHOLD', 0.70) * 100.0
 
         # Traffic Generation & Matrix defaults
-        self.traffic_pattern = 'uniform'
-        self.traffic_flow_rate_mbps = 15.0
-        self.diffserv_dscp = 'BE'
+        self.traffic_pattern = getattr(config, 'DEFAULT_TRAFFIC_PATTERN', 'uniform')
+        self.traffic_flow_rate_mbps = getattr(config, 'DEFAULT_FLOW_RATE_MBPS', 15.0)
+        self.diffserv_dscp = getattr(config, 'DEFAULT_DSCP', 'BE')
 
         # OpenFlow 1.3 Control Plane defaults
-        self.switch_queue_depth = 256
-        self.switch_mtu = 1500
-        self.flow_timeout_sec = 30
-        self.max_flow_rules = 1000
-        self.poll_interval_sec = 2.5
-        self.k_candidate_paths = 4
-        self.lldp_interval_sec = 2.0
-        self.multipart_stats_mode = 'port'
-        self.control_channel_mode = 'oob'
+        self.switch_queue_depth = getattr(config, 'SWITCH_QUEUE_DEPTH', 256)
+        self.switch_mtu = getattr(config, 'SWITCH_MTU', 1500)
+        self.flow_timeout_sec = getattr(config, 'FLOW_IDLE_TIMEOUT', 30)
+        self.max_flow_rules = getattr(config, 'MAX_FLOW_RULES', 1000)
+        self.poll_interval_sec = getattr(config, 'STATS_POLL_INTERVAL', 2.5)
+        self.k_candidate_paths = getattr(config, 'K_CANDIDATE_PATHS', 4)
+        self.lldp_interval_sec = getattr(config, 'LLDP_INTERVAL_SEC', 2.0)
+        self.multipart_stats_mode = getattr(config, 'MULTIPART_STATS_MODE', 'port')
+        self.control_channel_mode = getattr(config, 'CONTROL_CHANNEL_MODE', 'oob')
 
         # Rolling time-series telemetry history (up to 60 data points for live web charts)
         self.telemetry_history = collections.deque(maxlen=60)
@@ -109,6 +109,8 @@ class StateManager:
         """Sets active topology and initializes links, attributes, and routing cache."""
         self.current_topology_id = topo_id
         self.current_topology_meta = meta or {'name': topo_id, 'id': topo_id}
+        self.active_core_nodes = list(meta.get('core_nodes', [])) if meta else []
+        self.active_edge_nodes = list(meta.get('edge_nodes', [])) if meta else []
         self.graph = graph.copy()
         self.link_bandwidths.clear()
         self.link_delays.clear()
@@ -355,16 +357,21 @@ class StateManager:
         # Instantaneous delay variation
         d_diff = abs(d_new - d_prev)
         j_prev = self.link_jitter.get(link, 0.25)
-        # RFC 3550 Jitter filter
-        j_new = j_prev + (d_diff - j_prev) / 16.0
 
-        # Account for queue congestion jitter scaling
+        # Account for queue congestion variance target (RFC 3393 / RFC 3550)
         util = self.link_utilization.get(link, 0.0)
+        congestion_jitter = 0.0
         if util > 0.60:
             congestion_boost = (util ** 2) / max(0.05, 1.0 - min(0.95, util))
-            j_new += 0.15 * d_new * min(4.0, congestion_boost)
+            congestion_jitter = min(12.0, 0.15 * d_new * min(3.0, congestion_boost))
 
-        self.link_jitter[link] = float(j_new)
+        # Target instant jitter includes physical variation plus load-induced queue variance
+        target_jitter = max(0.20, d_diff + congestion_jitter)
+        # RFC 3550 Jitter filter: smooth convergence without runaway accumulation
+        j_new = j_prev + (target_jitter - j_prev) / 16.0
+        j_bounded = min(15.0, max(0.05, float(j_new)))
+
+        self.link_jitter[link] = j_bounded
 
     # --------------------------------------------------------------------------
     # Control Overhead Accounting (Proposal Objective 5)
@@ -623,7 +630,9 @@ class StateManager:
                 self.link_loss[(u, v)] = float(loss_pct)
 
                 base_d = self.base_link_delays.get((u, v), self.default_delay)
-                self.update_link_latency(u, v, base_d * (1.0 + new_u))
+                clamped_u = min(0.96, max(0.0, new_u))
+                q_delay = min(15.0, base_d * (0.8 * clamped_u / max(0.06, 1.0 - clamped_u)))
+                self.update_link_latency(u, v, base_d + q_delay)
 
                 port = self.graph[u][v].get('port', 1) if self.graph.has_edge(u, v) else 1
                 self.port_rates[(u, port)] = {
@@ -664,8 +673,9 @@ class StateManager:
             self.link_loss[(u, v)] = float(loss_pct)
 
             base_d = self.base_link_delays.get((u, v), 2.0)
-            q_delay = base_d * (0.2 + 0.8 / max(0.05, 1.0 - min(0.95, new_u)))
-            self.update_link_latency(u, v, q_delay)
+            clamped_u = min(0.96, max(0.0, new_u))
+            q_delay = min(15.0, base_d * (0.8 * clamped_u / max(0.06, 1.0 - clamped_u)))
+            self.update_link_latency(u, v, base_d + q_delay)
 
     def release_dynamic_flow(self, flow_id):
         """Reclaims link bandwidth and relieves queue congestion upon flow completion."""
@@ -691,8 +701,9 @@ class StateManager:
             self.link_loss[(u, v)] = float(loss_pct)
 
             base_d = self.base_link_delays.get((u, v), 2.0)
-            q_delay = base_d * (0.2 + 0.8 / max(0.05, 1.0 - min(0.95, new_u)))
-            self.update_link_latency(u, v, q_delay)
+            clamped_u = min(0.96, max(0.0, new_u))
+            q_delay = min(15.0, base_d * (0.8 * clamped_u / max(0.06, 1.0 - clamped_u)))
+            self.update_link_latency(u, v, base_d + q_delay)
 
     def step_dynamic_flows(self, current_time=None):
         """Expires finished flows whose lifespan has ended."""

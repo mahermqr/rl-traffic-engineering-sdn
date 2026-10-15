@@ -17,16 +17,60 @@ import os
 import time
 import tempfile
 import unittest
-import numpy as np
-import torch
-import networkx as nx
+
+# Auto-detect and activate virtualenv if dependencies like numpy or torch are missing
+def _bootstrap_environment():
+    """Ensure dependencies from virtual environment (e.g. ~/ec499_env) are loaded even if run with system python."""
+    try:
+        import numpy  # noqa: F401
+        import torch  # noqa: F401
+        return
+    except ImportError:
+        pass
+
+    # 1. Search for virtual environment python executables to re-exec
+    candidate_venvs = [
+        os.path.expanduser('~/ec499_env/bin/python3'),
+        os.path.expanduser('~/ec499_env/bin/python'),
+        os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.venv', 'bin', 'python3'),
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), 'venv', 'bin', 'python3'),
+        os.path.expanduser('~/.venv/bin/python3'),
+    ]
+    for cand in candidate_venvs:
+        cand_prefix = os.path.dirname(os.path.dirname(os.path.abspath(cand)))
+        if os.path.exists(cand) and os.access(cand, os.X_OK) and cand_prefix != sys.prefix:
+            try:
+                os.execv(cand, [cand] + sys.argv)
+            except Exception:
+                pass
+
+    # 2. Fallback: Search for site-packages directories and inject into sys.path
+    lib_candidates = [
+        os.path.expanduser('~/ec499_env/lib'),
+        os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.venv', 'lib'),
+        os.path.expanduser('~/.venv/lib'),
+    ]
+    for lib_dir in lib_candidates:
+        if os.path.isdir(lib_dir):
+            for entry in os.listdir(lib_dir):
+                sp = os.path.join(lib_dir, entry, 'site-packages')
+                if os.path.isdir(sp) and sp not in sys.path:
+                    sys.path.insert(0, sp)
+
+_bootstrap_environment()
 
 # Setup path imports
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(BASE_DIR)
-sys.path.append(os.path.join(BASE_DIR, 'agent'))
-sys.path.append(os.path.join(BASE_DIR, 'controller'))
-sys.path.append(os.path.join(BASE_DIR, 'topology'))
+if BASE_DIR not in sys.path:
+    sys.path.append(BASE_DIR)
+for subdir in ['agent', 'controller', 'topology']:
+    p = os.path.join(BASE_DIR, subdir)
+    if p not in sys.path:
+        sys.path.append(p)
+
+import numpy as np
+import torch
+import networkx as nx
 
 from dqn_router import DQNRoutingAgent, DuelingQNetwork
 from prioritized_replay import PrioritizedReplayBuffer, SumTree

@@ -159,6 +159,21 @@ DEFAULT_PACKET_LOSS_THRESHOLD = get_config_val("packet_loss_threshold", "SDN_PAC
 DEFAULT_LINK_CAPACITY_MBPS = DEFAULT_LINK_CAPACITY
 DEFAULT_LINK_DELAY_MS = DEFAULT_LINK_DELAY
 
+# Multi-Objective Traffic Engineering Reward Weights
+W_HOPS = get_config_val("w_hops", "SDN_W_HOPS", 0.35, cast_type=float)
+W_DELAY = get_config_val("w_delay", "SDN_W_DELAY", 0.06, cast_type=float)
+W_CONGESTION = get_config_val("w_congestion", "SDN_W_CONGESTION", 1.0, cast_type=float)
+W_JITTER = get_config_val("w_jitter", "SDN_W_JITTER", 0.25, cast_type=float)
+W_LOSS = get_config_val("w_loss", "SDN_W_LOSS", 0.50, cast_type=float)
+
+# OpenFlow Datapath & Buffer Parameters
+SWITCH_QUEUE_DEPTH = get_config_val("switch_queue_depth", "SDN_SWITCH_QUEUE_DEPTH", 256, cast_type=int)
+SWITCH_MTU = get_config_val("switch_mtu", "SDN_SWITCH_MTU", 1500, cast_type=int)
+MAX_FLOW_RULES = get_config_val("max_flow_rules", "SDN_MAX_FLOW_RULES", 1000, cast_type=int)
+LLDP_INTERVAL_SEC = get_config_val("lldp_interval", "SDN_LLDP_INTERVAL", 2.0, cast_type=float)
+MULTIPART_STATS_MODE = str(get_config_val("multipart_stats_mode", "SDN_MULTIPART_MODE", "port"))
+CONTROL_CHANNEL_MODE = str(get_config_val("control_channel_mode", "SDN_CONTROL_CHANNEL_MODE", "oob"))
+
 # Default topology
 DEFAULT_TOPOLOGY_ID = str(get_config_val("default_topology", "SDN_DEFAULT_TOPOLOGY", "tree"))
 AVAILABLE_TOPOLOGIES = ["tree", "fattree", "abilene", "nsfnet", "spineleaf"]
@@ -212,6 +227,17 @@ def to_dict() -> Dict[str, Any]:
             "default_link_delay": DEFAULT_LINK_DELAY,
             "default_link_jitter": DEFAULT_LINK_JITTER,
             "congestion_barrier_threshold": CONGESTION_BARRIER_THRESHOLD,
+            "w_hops": W_HOPS,
+            "w_delay": W_DELAY,
+            "w_congestion": W_CONGESTION,
+            "w_jitter": W_JITTER,
+            "w_loss": W_LOSS,
+            "switch_queue_depth": SWITCH_QUEUE_DEPTH,
+            "switch_mtu": SWITCH_MTU,
+            "max_flow_rules": MAX_FLOW_RULES,
+            "lldp_interval_sec": LLDP_INTERVAL_SEC,
+            "multipart_stats_mode": MULTIPART_STATS_MODE,
+            "control_channel_mode": CONTROL_CHANNEL_MODE,
             "wcmp_beta": WCMP_BETA,
             "wcmp_group_id": WCMP_GROUP_ID,
             "default_topology_id": DEFAULT_TOPOLOGY_ID,

@@ -38,6 +38,7 @@ ec499_env/
 # Logs & Runtime Process State
 logs/*.log
 *.log
+logs/mininet_matrix/
 
 # Operating System Files
 .DS_Store

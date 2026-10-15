@@ -16,11 +16,26 @@ _BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 if _BASE_DIR not in sys.path:
     sys.path.insert(0, _BASE_DIR)
 
-try:
-    import config
-    DEFAULT_URL = config.CONTROLLER_URL
-except ImportError:
-    DEFAULT_URL = os.environ.get("SDN_CONTROLLER_URL", "http://localhost:8080")
+def _resolve_default_url():
+    explicit = os.environ.get("SDN_CONTROLLER_URL")
+    if explicit:
+        return explicit
+    try:
+        import config
+        return config.CONTROLLER_URL
+    except Exception:
+        pass
+    for port in [8081, 8080]:
+        try:
+            req = urllib.request.Request(f"http://127.0.0.1:{port}/api/health", method='GET')
+            with urllib.request.urlopen(req, timeout=0.5) as resp:
+                if resp.status == 200:
+                    return f"http://127.0.0.1:{port}"
+        except Exception:
+            pass
+    return "http://127.0.0.1:8080"
+
+DEFAULT_URL = _resolve_default_url()
 
 
 def http_get(endpoint, base_url=DEFAULT_URL):
