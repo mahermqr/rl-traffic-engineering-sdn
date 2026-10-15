@@ -462,41 +462,7 @@ def run_blind_topology_stress_tests(model_path=None, json_path=None, plots_dir=N
     print(f" • Saved Benchmark Plot to: {bench_plot}")
 
     # Radar Chart
-    categories = ['Congestion Relief (%)', 'Offload Rate (%)', 'Fairness (x100)', 'Latency Avoidance (%)', 'Jitter Suppression (%)']
-    N_cat = len(categories)
-    angles = [n / float(N_cat) * 2 * math.pi for n in range(N_cat)]
-    angles += angles[:1]
-
-    fig_r, ax_r = plt.subplots(figsize=(8, 8), subplot_kw=dict(polar=True))
-    colors_radar = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
-
-    for idx, t in enumerate(topo_order):
-        s1 = results_summary[t]["scenario_1_core_jamming"]
-        s2 = results_summary[t]["scenario_2_concurrency_burst"]
-        s4 = results_summary[t]["scenario_4_latency_degradation"]
-        s5 = results_summary[t]["scenario_5_jitter_and_loss"]
-
-        lat_pct = max(0.0, ((s4['spf_latency_ms'] - s4['dqn_latency_ms']) / max(1.0, s4['spf_latency_ms'])) * 100.0)
-        values = [
-            min(100.0, max(0.0, s1['congestion_reduction_pct'] * 2.0)),
-            min(100.0, s1['autonomous_offload_rate_pct']),
-            min(100.0, s2['jains_fairness_dqn'] * 100.0),
-            min(100.0, lat_pct),
-            min(100.0, s5['jitter_suppression_pct'])
-        ]
-        values += values[:1]
-        ax_r.plot(angles, values, lw=2, label=topo_labels[t], color=colors_radar[idx])
-        ax_r.fill(angles, values, color=colors_radar[idx], alpha=0.10)
-
-    ax_r.set_xticks(angles[:-1])
-    ax_r.set_xticklabels(categories, fontweight='bold', fontsize=10)
-    ax_r.set_ylim(0, 100)
-    plt.title('Multi-Topology Resilience & Generalization Radar', size=13, fontweight='bold', y=1.08)
-    plt.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1), fontsize=9)
-    radar_plot = os.path.join(plots_dir, 'blind_topologies_radar.png')
-    plt.savefig(radar_plot, dpi=300, bbox_inches='tight')
-    plt.close()
-    print(f" • Saved Radar Plot to: {radar_plot}")
+    radar_plot = plot_blind_radar(results_summary, plots_dir, topo_order, topo_labels)
 
     # Save summary JSON
     with open(out_json, 'w') as f:
@@ -505,6 +471,84 @@ def run_blind_topology_stress_tests(model_path=None, json_path=None, plots_dir=N
     print("=" * 85)
     print(" ALL 5 TOPOLOGY BLIND STRESS BENCHMARKS COMPLETED SUCCESSFULLY!")
     print("=" * 85)
+
+
+def plot_blind_radar(results_summary, plots_dir, topo_order=None, topo_labels=None):
+    """Generates the publication-grade multi-topology radar chart with non-overlapping labels."""
+    if topo_order is None:
+        topo_order = ['tree', 'fattree', 'abilene', 'nsfnet', 'spineleaf']
+    if topo_labels is None:
+        topo_labels = {
+            'tree': 'Hierarchical Tree',
+            'fattree': 'Fat-Tree Clos (k=4)',
+            'abilene': 'Abilene US Backbone',
+            'nsfnet': 'NSFNet Continental',
+            'spineleaf': 'Spine-Leaf Fabric'
+        }
+
+    categories = ['Congestion Relief (%)', 'Offload Rate (%)', 'Fairness (x100)', 'Latency Avoidance (%)', 'Jitter Suppression (%)']
+    N_cat = len(categories)
+    angles = [n / float(N_cat) * 2 * math.pi for n in range(N_cat)]
+    angles += angles[:1]
+
+    fig_r, ax_r = plt.subplots(figsize=(8.5, 8.5), subplot_kw=dict(polar=True), dpi=300)
+    colors_radar = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
+
+    for idx, t in enumerate(topo_order):
+        if t not in results_summary:
+            continue
+        s1 = results_summary[t].get("scenario_1_core_jamming", {})
+        s2 = results_summary[t].get("scenario_2_concurrency_burst", {})
+        s4 = results_summary[t].get("scenario_4_latency_degradation", {})
+        s5 = results_summary[t].get("scenario_5_jitter_and_loss", {})
+
+        spf_lat = max(1.0, s4.get('spf_latency_ms', 1.0))
+        dqn_lat = s4.get('dqn_latency_ms', 1.0)
+        lat_pct = max(0.0, ((spf_lat - dqn_lat) / spf_lat) * 100.0)
+        values = [
+            min(100.0, max(0.0, s1.get('congestion_reduction_pct', 0.0) * 2.0)),
+            min(100.0, s1.get('autonomous_offload_rate_pct', 0.0)),
+            min(100.0, s2.get('jains_fairness_dqn', 0.0) * 100.0),
+            min(100.0, lat_pct),
+            min(100.0, s5.get('jitter_suppression_pct', 0.0))
+        ]
+        values += values[:1]
+        ax_r.plot(angles, values, lw=2.2, label=topo_labels.get(t, t), color=colors_radar[idx % len(colors_radar)])
+        ax_r.fill(angles, values, color=colors_radar[idx % len(colors_radar)], alpha=0.10)
+
+    ax_r.set_theta_offset(math.pi / 2)
+    ax_r.set_theta_direction(-1)
+    ax_r.set_rlabel_position(36)
+    ax_r.tick_params(axis='x', pad=16)
+    ax_r.set_xticks(angles[:-1])
+    ax_r.set_xticklabels(categories, fontweight='bold', fontsize=10)
+    for label, angle in zip(ax_r.get_xticklabels(), angles[:-1]):
+        deg = math.degrees(angle) % 360
+        if abs(deg - 0) < 5 or abs(deg - 360) < 5:
+            label.set_horizontalalignment('center')
+            label.set_verticalalignment('bottom')
+        elif 0 < deg < 90:
+            label.set_horizontalalignment('left')
+            label.set_verticalalignment('center')
+        elif 90 <= deg < 180:
+            label.set_horizontalalignment('left')
+            label.set_verticalalignment('top')
+        elif 180 <= deg < 270:
+            label.set_horizontalalignment('right')
+            label.set_verticalalignment('top')
+        else:
+            label.set_horizontalalignment('right')
+            label.set_verticalalignment('center')
+    ax_r.set_ylim(0, 105)
+    ax_r.grid(True, linestyle='--', alpha=0.5)
+    plt.title('Multi-Topology Resilience & Generalization Radar', size=13, fontweight='bold', y=1.08)
+    plt.legend(loc='upper right', bbox_to_anchor=(1.30, 1.12), fontsize=9, frameon=True, facecolor='#ffffff')
+    radar_plot = os.path.join(plots_dir, 'blind_topologies_radar.png')
+    plt.savefig(radar_plot, dpi=300, bbox_inches='tight')
+    plt.close()
+    print(f" • Saved Radar Plot to: {radar_plot}")
+    return radar_plot
+
 
 if __name__ == '__main__':
     import argparse
@@ -515,13 +559,27 @@ if __name__ == '__main__':
     parser.add_argument('--topologies', nargs='+', default=None, help="Specific topologies to test")
     parser.add_argument('--burst-flows', type=int, default=500, help="Number of concurrent burst flows in Test 2 (default: 500)")
     parser.add_argument('--seed', type=int, default=None, help="Random seed for reproducibility")
+    parser.add_argument('--replot-only', action='store_true', help="Regenerate radar plot from existing JSON results without re-running tests")
     args = parser.parse_args()
 
-    run_blind_topology_stress_tests(
-        model_path=args.model_path,
-        json_path=args.output_json,
-        plots_dir=args.plots_dir,
-        topologies=args.topologies,
-        burst_flows=args.burst_flows,
-        seed=args.seed
-    )
+    plots_dir = args.plots_dir or os.path.join(BASE_DIR, 'logs', 'plots')
+    os.makedirs(plots_dir, exist_ok=True)
+    json_path = args.output_json or os.path.join(BASE_DIR, 'logs', 'blind_topologies_stress_results.json')
+
+    if args.replot_only:
+        if os.path.exists(json_path):
+            with open(json_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            plot_blind_radar(data, plots_dir)
+            print("Done replotting radar chart.")
+        else:
+            print(f"Error: {json_path} not found for replotting.")
+    else:
+        run_blind_topology_stress_tests(
+            model_path=args.model_path,
+            json_path=json_path,
+            plots_dir=plots_dir,
+            topologies=args.topologies,
+            burst_flows=args.burst_flows,
+            seed=args.seed
+        )

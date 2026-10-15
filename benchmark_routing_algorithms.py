@@ -217,19 +217,41 @@ def run_routing_tournament(model_path=None, json_path=None, plots_dir=None, topo
                     q_vals = router_agent.get_q_values(st) if hasattr(router_agent, 'get_q_values') else [0.0] * len(cand_paths)
                     q_min, q_max = min(q_vals), max(q_vals)
                     rng = max(1e-3, q_max - q_min)
-                    best_p = None
-                    best_score = -float('inf')
-                    for idx, cpath in enumerate(cand_paths):
-                        q_norm = (float(q_vals[idx]) - q_min) / rng if idx < len(q_vals) else 0.0
-                        pm = compute_path_metrics(cpath, sm_algo.link_utilization, sm_algo.link_delays, sm_algo.link_bandwidths)
-                        u_peak = pm['bottleneck_util']
-                        lat = pm['total_delay']
-                        loss = pm['packet_loss']
-                        score = 1.0 * q_norm - 2.4 * (u_peak ** 2) - 0.01 * lat - 1.8 * loss
-                        if score > best_score:
-                            best_score = score
-                            best_p = cpath
-                    p = best_p if best_p is not None else cand_paths[0]
+
+                    len_shortest = len(cand_paths[0])
+                    pm_shortest = compute_path_metrics(cand_paths[0], sm_algo.link_utilization, sm_algo.link_delays, sm_algo.link_bandwidths)
+
+                    # Step 1: Threshold-gated Congestion Avoidance (Watermarking)
+                    # If shortest path is completely uncongested (< 70% link utilization), avoid unnecessary detours
+                    if pm_shortest['bottleneck_util'] < 0.70:
+                        p = cand_paths[0]
+                    else:
+                        best_p = None
+                        best_score = -float('inf')
+                        for idx, cpath in enumerate(cand_paths):
+                            q_norm = (float(q_vals[idx]) - q_min) / rng if idx < len(q_vals) else 0.0
+                            pm = compute_path_metrics(cpath, sm_algo.link_utilization, sm_algo.link_delays, sm_algo.link_bandwidths)
+                            u_peak = pm['bottleneck_util']
+                            lat = pm['total_delay']
+                            loss = pm['packet_loss']
+                            hop_dilation = max(0, len(cpath) - len_shortest)
+
+                            # Step 3: Hop-dilation latency guard for low-diversity fabrics
+                            # Do not take winding detours that balloon propagation delay past 1.25x shortest path
+                            if hop_dilation > 0 and lat > 1.25 * pm_shortest['total_delay'] + 2.0:
+                                continue
+
+                            # Step 2: Calibrated Asymptotic Barrier Multi-Objective Scoring
+                            if u_peak > 0.70:
+                                c_pen = 12.0 * ((u_peak ** 1.8) / max(0.01, 1.02 - u_peak))
+                            else:
+                                c_pen = 1.5 * u_peak
+
+                            score = 1.0 * q_norm - 1.0 * c_pen - 0.08 * lat - 2.5 * loss - 0.50 * hop_dilation
+                            if score > best_score:
+                                best_score = score
+                                best_p = cpath
+                        p = best_p if best_p is not None else cand_paths[0]
                 else:
                     p = cand_paths[0]
                 t_dec = (time.perf_counter() - t0) * 1000.0

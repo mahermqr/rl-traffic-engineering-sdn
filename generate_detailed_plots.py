@@ -167,7 +167,7 @@ def plot_tournament_benchmarks(data=None):
         vals = data['jains_fairness'].get(a, [0]*5)
         ax5.bar(x + (i - 2.5) * width, vals, width, label=a, color=COLORS[a], alpha=0.92)
     ax5.set_title("5. Jain's Fairness Index (Load Uniformity)", fontsize=11, fontweight='bold', pad=8)
-    ax5.set_ylabel("Jain Index [0.0 - 1.0]", fontweight='bold')
+    ax5.set_ylabel("Jain's Fairness Index [0.0 - 1.0]", fontweight='bold')
     ax5.set_xticks(x)
     ax5.set_xticklabels(topos, rotation=12, ha='right', fontsize=8.5)
     ax5.set_ylim(0, 1.10)
@@ -247,10 +247,29 @@ def plot_tournament_radar(data=None):
 
     ax.set_theta_offset(np.pi / 2)
     ax.set_theta_direction(-1)
+    ax.set_rlabel_position(36)
+    ax.tick_params(axis='x', pad=16)
     ax.set_thetagrids(np.degrees(angles[:-1]), labels, fontsize=10, fontweight='bold')
-    ax.set_ylim(0, 1.05)
+    for label, angle in zip(ax.get_xticklabels(), angles[:-1]):
+        deg = np.degrees(angle) % 360
+        if abs(deg - 0) < 5 or abs(deg - 360) < 5:
+            label.set_horizontalalignment('center')
+            label.set_verticalalignment('bottom')
+        elif 0 < deg < 90:
+            label.set_horizontalalignment('left')
+            label.set_verticalalignment('center')
+        elif 90 <= deg < 180:
+            label.set_horizontalalignment('left')
+            label.set_verticalalignment('top')
+        elif 180 <= deg < 270:
+            label.set_horizontalalignment('right')
+            label.set_verticalalignment('top')
+        else:
+            label.set_horizontalalignment('right')
+            label.set_verticalalignment('center')
+    ax.set_ylim(0, 1.06)
     ax.grid(True, linestyle='--', alpha=0.45)
-    ax.set_title("Multi-Objective Performance Radar: DQN vs Traditional Baselines\n(Aggregated Across 5 Fabric Topologies)", fontsize=12, fontweight='bold', pad=36)
+    ax.set_title("Multi-Objective Performance Radar: DQN vs Traditional Baselines\n(Aggregated Across 5 Fabric Topologies)", fontsize=12, fontweight='bold', pad=32)
     ax.legend(loc='lower right', bbox_to_anchor=(1.28, -0.05), fontsize=9, frameon=True, facecolor='#ffffff')
 
     out_file = os.path.join(PLOTS_DIR, 'proposal_tournament_radar.png')
@@ -286,10 +305,30 @@ def plot_training_dynamics(csv_path=None):
                 loss_pct.append(float(parts[7]))
                 epsilons.append(float(parts[8]))
 
-    def smooth_series(vals, w=40):
-        if len(vals) < w: return vals
-        box = np.ones(w) / w
-        return np.convolve(vals, box, mode='same')
+    def smooth_series(vals, w=5):
+        vals = np.asarray(vals, dtype=float)
+        n = len(vals)
+        if n == 0:
+            return vals
+        eff_w = max(1, min(w, n // 5)) if n >= 10 else min(w, 3)
+        if eff_w <= 1:
+            return vals
+        out = np.empty(n, dtype=float)
+        for i in range(n):
+            start = max(0, i - eff_w // 2)
+            end = min(n, i + eff_w // 2 + 1)
+            out[i] = np.mean(vals[start:end])
+        return out
+
+    def ema_series(vals, alpha=0.25):
+        vals = np.asarray(vals, dtype=float)
+        if len(vals) == 0:
+            return vals
+        out = np.empty_like(vals)
+        out[0] = vals[0]
+        for i in range(1, len(vals)):
+            out[i] = alpha * vals[i] + (1.0 - alpha) * out[i - 1]
+        return out
 
     ep = np.array(episodes)
     N = len(ep)
@@ -301,9 +340,9 @@ def plot_training_dynamics(csv_path=None):
 
     # 1. Episode Cumulative Reward
     ax1 = axes[0, 0]
-    r_smooth = smooth_series(rewards, w=60)
+    r_smooth = ema_series(rewards, alpha=0.25)
     ax1.plot(ep, rewards, color='#cbd5e1', alpha=0.35, linewidth=0.6, label='Raw Reward')
-    ax1.plot(ep, r_smooth, color='#059669', linewidth=2.2, label='Smoothed Return (Window=60)')
+    ax1.plot(ep, r_smooth, color='#059669', linewidth=2.2, label=r'Smoothed Return (EMA $\alpha=0.25$)')
     ax1.axvline(p1, color='#e11d48', linestyle='--', alpha=0.65, label='Phase 1: Nominal')
     ax1.axvline(p2, color='#2563eb', linestyle='--', alpha=0.65, label='Phase 2: Bursts')
     ax1.set_title("1. Cumulative Episode Reward Convergence", fontsize=11, fontweight='bold')
@@ -314,7 +353,7 @@ def plot_training_dynamics(csv_path=None):
 
     # 2. Double DQN Temporal-Difference Loss
     ax2 = axes[0, 1]
-    l_smooth = smooth_series(losses, w=50)
+    l_smooth = smooth_series(losses, w=5)
     ax2.plot(ep, losses, color='#fca5a5', alpha=0.4, linewidth=0.6)
     ax2.plot(ep, l_smooth, color='#dc2626', linewidth=2.0, label='Smooth L1 Loss')
     ax2.axvline(p1, color='#e11d48', linestyle='--', alpha=0.65)
@@ -327,8 +366,8 @@ def plot_training_dynamics(csv_path=None):
 
     # 3. Core Bottleneck Utilization Comparison (DQN vs SPF)
     ax3 = axes[0, 2]
-    dqn_b_s = smooth_series(dqn_b, w=50)
-    spf_b_s = smooth_series(spf_b, w=50)
+    dqn_b_s = smooth_series(dqn_b, w=5)
+    spf_b_s = smooth_series(spf_b, w=5)
     ax3.plot(ep, spf_b_s, color='#64748b', linestyle='--', linewidth=1.8, label='SPF Baseline Bottleneck')
     ax3.plot(ep, dqn_b_s, color='#059669', linewidth=2.2, label='DQN TE Bottleneck')
     ax3.fill_between(ep, dqn_b_s, spf_b_s, where=(spf_b_s >= dqn_b_s), color='#059669', alpha=0.15, label='Relieved Congestion')
@@ -340,7 +379,7 @@ def plot_training_dynamics(csv_path=None):
 
     # 4. End-to-End Latency Dynamics
     ax4 = axes[1, 0]
-    lat_s = smooth_series(lats, w=50)
+    lat_s = smooth_series(lats, w=5)
     ax4.plot(ep, lats, color='#fed7aa', alpha=0.35, linewidth=0.6)
     ax4.plot(ep, lat_s, color='#ea580c', linewidth=2.0, label='Path Latency (ms)')
     ax4.set_title("4. Mean End-to-End Latency Progression", fontsize=11, fontweight='bold')
@@ -351,8 +390,8 @@ def plot_training_dynamics(csv_path=None):
 
     # 5. RFC 3393 Jitter & Packet Loss (Dual Y-Axis)
     ax5 = axes[1, 1]
-    jit_s = smooth_series(jits, w=50)
-    loss_s = smooth_series(loss_pct, w=50)
+    jit_s = smooth_series(jits, w=5)
+    loss_s = smooth_series(loss_pct, w=5)
     l1 = ax5.plot(ep, jit_s, color='#7c3aed', linewidth=2.0, label='Jitter (ms)')
     ax5.set_title("5. RFC 3393 Jitter & Packet Loss Dynamics", fontsize=11, fontweight='bold')
     ax5.set_xlabel("Training Episodes", fontweight='bold')
@@ -378,7 +417,7 @@ def plot_training_dynamics(csv_path=None):
     ax6.grid(True, linestyle='--', alpha=0.45)
     ax6.legend(loc='upper right', fontsize=8)
 
-    fig.suptitle("Dueling Double Deep Q-Network Traffic Engineering: Training Progression & Metric Dynamics\n(EC499 Curriculum Learning Across 5,000 Episodes)", fontsize=13, fontweight='bold', y=0.985)
+    fig.suptitle(f"Dueling Double Deep Q-Network Traffic Engineering: Training Progression & Metric Dynamics\n(EC499 Curriculum Learning Across {N} Training Episodes)", fontsize=13, fontweight='bold', y=0.985)
 
     out_file = os.path.join(PLOTS_DIR, 'dqn_te_training_convergence.png')
     plt.savefig(out_file, dpi=300, bbox_inches='tight')
@@ -582,6 +621,18 @@ def generate_all():
     plot_latency_and_jitter_cdfs()
     plot_traffic_load_scaling_curves()
     plot_random_blind_evaluation()
+
+    # Also refresh multi-topology blind radar if stress results JSON is available
+    blind_json = os.path.join(LOGS_DIR, 'blind_topologies_stress_results.json')
+    if os.path.exists(blind_json):
+        try:
+            from stress_test_blind_topologies import plot_blind_radar
+            with open(blind_json, 'r', encoding='utf-8') as f:
+                b_data = json.load(f)
+            plot_blind_radar(b_data, PLOTS_DIR)
+        except Exception as e:
+            print(f" [Warning] Could not replot blind radar: {e}")
+
     print("=" * 80)
     print(" ✅ ALL DETAILED PLOTS GENERATED AND SAVED SUCCESSFULLY!")
     print("=" * 80)
