@@ -64,7 +64,7 @@
   /home/maher/Downloads/EC499t/.venv/bin/python3 -c "from simulation.environment import NetworkEnvironment; env = NetworkEnvironment(); env.apply_stress('jam_core', 0.95); print('Core jammed to 95%')"
   ```
 - **What to say:**
-  > *"Now, we subject the fabric to severe stress: the central core trunks (s1-s2, s1-s3) are jammed to 95% utilization. Under classical OSPF and Dijkstra, new flows are blindly forced through the jammed core, causing massive buffer queuing and 21.9% packet loss. Watch what our D3QN agent does: our Pareto reward function includes an asymptotic barrier penalty $\Phi_{\text{cong}}$. The moment utilization crosses 70%, the barrier explodes. D3QN immediately shifts elephant flows onto lateral cross-links s4-s6 and s5-s7, dropping core bottleneck load down to 53% and cutting loss to zero."*
+  > *"Now, we subject the fabric to severe stress: the central core trunks (s1-s2, s1-s3) are jammed to 95% utilization. Under classical OSPF and Dijkstra, new flows are blindly forced through the jammed core, causing massive buffer queuing and 21.9% packet loss. Watch what our D3QN agent does: our Pareto reward function includes an asymptotic barrier penalty Phi_cong. The moment utilization crosses 70%, the barrier explodes. D3QN immediately shifts elephant flows onto lateral cross-links s4-s6 and s5-s7, dropping core bottleneck load down to 53% and cutting loss to zero."*
 
 #### Minute 4: Head-to-Head Versus Tournament Arena
 - **Action:** Click the **Tournament Arena** tab on the dashboard. Click **Run Tournament Match**.
@@ -106,8 +106,8 @@ Memorize these exact figures—these are from our official Mininet validation lo
 
 ### Q1: "How can you claim to measure jitter and packet loss in real time without specialized hardware PTP timestamps?"
 > **Bulletproof Answer:**  
-> *"That is an insightful question regarding SDN telemetry constraints. Standard OpenFlow 1.3 switches provide port counter statistics (`rx_bytes`, `tx_bytes`, `rx_packets`, `duration_sec`) via `OFPPortStatsRequest`. From these counters, we compute exact differential arrival rates $\lambda_e = \Delta\text{bytes} / \Delta t$ relative to link capacity $\mu_e$.  
-> Because hardware timestamping across emulated virtual switches is subject to kernel scheduling noise, we supplement telemetry with analytical $M/M/1/K$ queueing models to compute exact queue buffer occupancy $Q_e = \frac{\rho_e}{1 - \rho_e}$ and theoretical buffer drop probability $P_{\text{loss}} = \frac{1 - \rho_e}{1 - \rho_e^{K+1}} \cdot \rho_e^K$. For packet jitter, we implement RFC 3550 exponential smoothing: $J_t = J_{t-1} + \frac{|D_t - D_{t-1}| - J_{t-1}}{16}$. In our official Mininet emulation, these analytical metrics directly matched our physical iperf3 measurements: 1.71 ms vs 6.97 ms jitter, validating our mathematical model."*
+> *"That is an insightful question regarding SDN telemetry constraints. Standard OpenFlow 1.3 switches provide port counter statistics (`rx_bytes`, `tx_bytes`, `rx_packets`, `duration_sec`) via `OFPPortStatsRequest`. From these counters, we compute exact differential arrival rates: Arrival_Rate = (delta bytes) / (delta time) relative to link capacity.  
+> Because hardware timestamping across emulated virtual switches is subject to kernel scheduling noise, we supplement telemetry with analytical M/M/1/K queueing models to compute exact queue buffer occupancy: Buffer_Occupancy = rho / (1 - rho) and theoretical buffer drop probability: P_loss = [(1 - rho) / (1 - rho^(K+1))] * rho^K. For packet jitter, we implement RFC 3550 exponential smoothing: J_t = J_(t-1) + (|D_t - D_(t-1)| - J_(t-1)) / 16. In our official Mininet emulation, these analytical metrics directly matched our physical iperf3 measurements: 1.71 ms vs 6.97 ms jitter, validating our mathematical model."*
 
 ---
 
@@ -115,7 +115,7 @@ Memorize these exact figures—these are from our official Mininet validation lo
 > **Bulletproof Answer:**  
 > *"While greedy heuristics appear attractive due to simplicity, they suffer from a fatal theoretical flaw: **Greedy Herd Behavior**.  
 > Because LLR and WSP possess zero memory and evaluate only the instantaneous state, they route every single consecutive arriving flow to the exact same lowest-loaded link. In our Fat-Tree benchmarks, this caused LLR to immediately oversaturate the chosen link to 76.4% utilization, triggering cascading oscillations.  
-> In contrast, our D3QN agent optimizes **discounted long-term cumulative return** with discount factor $\gamma = 0.95$. Combined with our asymptotic barrier penalty $\Phi_{\text{cong}}$, the neural network anticipates that assigning multiple flows to a bypass will build downstream queuing delay. It proactively distributes traffic across candidate paths, maintaining a low 65.9% bottleneck load and achieving superior Pareto stability."*
+> In contrast, our D3QN agent optimizes **discounted long-term cumulative return** with discount factor gamma = 0.95. Combined with our asymptotic barrier penalty Phi_cong, the neural network anticipates that assigning multiple flows to a bypass will build downstream queuing delay. It proactively distributes traffic across candidate paths, maintaining a low 65.9% bottleneck load and achieving superior Pareto stability."*
 
 ---
 
@@ -123,10 +123,10 @@ Memorize these exact figures—these are from our official Mininet validation lo
 > **Bulletproof Answer:**  
 > *"We specifically designed the agent's observation space to prevent topological overfitting. The agent's 10-dimensional state vector contains **zero node identifiers, zero IP addresses, and zero switch DPIDs**.  
 > Every feature is mathematically normalized:
-> 1. Shortest hop count is normalized by 10: $d_{\text{hop}} / 10.0 \in [0, 1]$.
-> 2. Bottleneck utilization along candidate paths is naturally bounded in $[0, 1]$.
-> 3. Path latency is normalized by 50 ms: $D_k / 50.0 \in [0, 1]$.
-> 4. Peak fabric load is bounded in $[0, 1]$.  
+> 1. Shortest hop count is normalized by 10: d_hop / 10.0 (strictly bounded between 0.0 and 1.0).
+> 2. Bottleneck utilization along candidate paths is naturally bounded between 0.0 and 1.0.
+> 3. Path latency is normalized by 50 ms: Delay / 50.0 ms (bounded between 0.0 and 1.0).
+> 4. Peak fabric load is bounded between 0.0 and 1.0.  
 > Because the input space is strictly scale-invariant, the policy learns the abstract relationship between path utilization, hop distance, and queuing latency. To prove zero-shot transferability, we tested the pre-trained agent on 10 completely unseen Erdős–Rényi random graphs ranging from 15 to 35 nodes with zero retraining. The agent outperformed OSPF, ECMP, and greedy baselines on all 10 blind topologies, achieving a 100% win rate."*
 
 ---
@@ -134,7 +134,7 @@ Memorize these exact figures—these are from our official Mininet validation lo
 ### Q4: "In dynamic SDN routing, how do you mathematically guarantee that your agent will never create forwarding loops?"
 > **Bulletproof Answer:**  
 > *"Forwarding loops are prevented through two complementary layers:
-> 1. **Candidate Path Representation:** Rather than using hop-by-hop action selection—where an agent picks the next hop at each switch independently—our action space selects from $K=4$ pre-synthesized end-to-end paths generated via Yen's K-Shortest Path algorithm. By definition, Yen's algorithm enforces simple, acyclic paths with no repeated vertices.
+> 1. **Candidate Path Representation:** Rather than using hop-by-hop action selection—where an agent picks the next hop at each switch independently—our action space selects from K = 4 pre-synthesized end-to-end paths generated via Yen's K-Shortest Path algorithm. By definition, Yen's algorithm enforces simple, acyclic paths with no repeated vertices.
 > 2. **Atomic Multi-Hop FlowMod Installation:** When the agent selects an action, the Ryu controller pushes OpenFlow 1.3 `OFPFlowMod` rules atomically to all switches along the entire selected path before returning the packet. Flow entries include explicit 5-tuple match criteria and a 30-second `idle_timeout`, guaranteeing deterministic, loop-free packet forwarding."*
 
 ---
@@ -142,8 +142,8 @@ Memorize these exact figures—these are from our official Mininet validation lo
 ### Q5: "What is the computational overhead of running Yen's algorithm and neural inference? Doesn't the SDN controller become a bottleneck?"
 > **Bulletproof Answer:**  
 > *"To prevent control plane bottlenecks, we completely decoupled topological path synthesis from real-time packet forwarding:
-> 1. **In-Memory Path Caching:** Yen's algorithm ($O(K \cdot |V| \cdot (|E| + |V| \log |V|))$) is executed **once** upon switch connection or topology discovery. All candidate paths are cached in memory in `_routing_path_cache`.
-> 2. **Sub-Millisecond Inference:** For arriving packets, candidate path retrieval is an $O(1)$ memory lookup. Forward neural inference through our 3-layer PyTorch network takes **less than 0.05 milliseconds** on a standard CPU.
+> 1. **In-Memory Path Caching:** Yen's algorithm (complexity O(K * |V| * (|E| + |V| log |V|))) is executed **once** upon switch connection or topology discovery. All candidate paths are cached in memory in `_routing_path_cache`.
+> 2. **Sub-Millisecond Inference:** For arriving packets, candidate path retrieval is an O(1) memory lookup. Forward neural inference through our 3-layer PyTorch network takes **less than 0.05 milliseconds** (0.048 ms) on a standard CPU.
 > 3. **High Decision Throughput:** Our benchmark demonstrates sustained throughput of over **2,400 routing decisions per second**, easily handling real-world enterprise edge flow-arrival rates.
 > 4. **Reactive Cache Invalidation:** When an OpenFlow `EventPortStatus` link failure occurs, only affected cache entries are purged and recomputed in under 2.3 ms."*
 
@@ -153,7 +153,7 @@ Memorize these exact figures—these are from our official Mininet validation lo
 > **Bulletproof Answer:**  
 > *"We rigorously evaluated policy gradient methods before selecting Dueling Double DQN:
 > 1. **Sample Efficiency:** On-policy methods like PPO require continuous interaction and discard trajectories after each update, demanding millions of environment interactions. Double DQN leverages off-policy **Prioritized Experience Replay (SumTree)**, allowing rare congestion surge transitions to be replayed thousands of times.
-> 2. **Decoupled State Value:** In network routing, many network states exhibit high global congestion regardless of which candidate path is chosen. The Dueling architecture decomposes $Q(s,a) = V(s) + (A(s,a) - \frac{1}{|A|}\sum A(s,a'))$. Learning the scalar state value $V(s)$ independently enables the network to accurately learn subtle path advantage differences $A(s,a)$ much faster.
+> 2. **Decoupled State Value:** In network routing, many network states exhibit high global congestion regardless of which candidate path is chosen. The Dueling architecture decomposes Q(s, a) = V(s) + [A(s, a) - mean(A(s, a'))]. Learning the scalar state value V(s) independently enables the network to accurately learn subtle path advantage differences A(s, a) much faster.
 > 3. **Overestimation Elimination:** Double Q-learning decouples greedy action selection (online network) from target evaluation (target network), preventing the positive maximization bias that plagues standard DQN in stochastic queueing systems."*
 
 ---
@@ -162,7 +162,7 @@ Memorize these exact figures—these are from our official Mininet validation lo
 > **Bulletproof Answer:**  
 > *"In production systems, safety fallbacks are critical. Our architecture incorporates a two-tier safety fallback:
 > 1. **Offline Pre-Training:** The agent is never deployed 'cold' to production. It is trained offline in our discrete-event network simulator across diverse Poisson and bursty traffic distributions until its policy achieves parity with optimal ILP solutions.
-> 2. **Safety Fallback Interceptor:** In the Ryu controller, if an inference anomaly or neural timeout occurs, the controller automatically falls back to Action 0 (Candidate Path $P_0$, which is the validated Dijkstra shortest path). This guarantees that routing never fails even under unexpected controller edge conditions."*
+> 2. **Safety Fallback Interceptor:** In the Ryu controller, if an inference anomaly or neural timeout occurs, the controller automatically falls back to Action 0 (Candidate Path P_0, which is the validated Dijkstra shortest path). This guarantees that routing never fails even under unexpected controller edge conditions."*
 
 ---
 
@@ -170,15 +170,15 @@ Memorize these exact figures—these are from our official Mininet validation lo
 > **Bulletproof Answer:**  
 > *"Yes, this is known as the **Detour Latency Trade-Off**, which we explicitly analyze in Chapter 9 of the thesis.  
 > Taking a 3-hop lateral path increases fiber propagation delay by approximately 0.5 to 1.5 milliseconds compared to a 2-hop shortest path. However, under high load, an oversaturated core link causes queuing delay to explode asymptotically:
-> $$D_{\text{queue}} = \frac{1}{\mu(1 - \rho)}$$
-> When utilization $\rho$ reaches 98%, queuing delay exceeds 50 ms, accompanied by massive buffer dropouts. Therefore, accepting a modest 1 ms propagation increase across a clear lateral bypass saves 45 ms of queuing delay and completely eliminates packet loss. Our multi-objective Pareto reward function explicitly balances this trade-off with weights $w_{\text{util}} = 4.0$ and $w_{\text{lat}} = 0.5$."*
+> Queue_Delay = 1 / [mu * (1 - rho)]
+> When utilization rho reaches 98%, queuing delay exceeds 50 ms, accompanied by massive buffer dropouts. Therefore, accepting a modest 1 ms propagation increase across a clear lateral bypass saves 45 ms of queuing delay and completely eliminates packet loss. Our multi-objective Pareto reward function explicitly balances this trade-off with weights w_util = 4.0 and w_lat = 0.5."*
 
 ---
 
 ### Q9: "How does this solution scale to carrier networks with hundreds of switches?"
 > **Bulletproof Answer:**  
 > *"Our architecture addresses carrier scalability through three design principles:
-> 1. **Candidate Path Bounding:** Regardless of whether the network has 10 or 1,000 switches, the action space remains bounded at $K=4$ candidate paths between any ingress-egress pair. The neural network's complexity never grows with network diameter.
+> 1. **Candidate Path Bounding:** Regardless of whether the network has 10 or 1,000 switches, the action space remains bounded at K = 4 candidate paths between any ingress-egress pair. The neural network's complexity never grows with network diameter.
 > 2. **Distributed Control Clustering:** Standard SDN architectures (such as ONOS or OpenDaylight) use hierarchical distributed controllers where each controller manages an autonomous cluster. Our D3QN policy engine can run as an independent microservice per cluster.
 > 3. **Future Migration to Segment Routing (SRv6):** In carrier WANs, switch TCAM tables can be eliminated entirely by encoding candidate paths as SRv6 segment lists directly in the packet header at the ingress edge switch, achieving stateless core forwarding."*
 
