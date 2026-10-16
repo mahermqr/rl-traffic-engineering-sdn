@@ -148,9 +148,18 @@ class RoutingModule:
                          src_ip or src_mac, dst_ip or dst_mac, selected_path, action, decision_time_ms)
 
         # Install OpenFlow 1.3 flow rules along the entire path
-        self._install_path(selected_path, dst_port, eth_dst=dst_mac, ip_src=src_ip, ip_dst=dst_ip)
+        is_elephant = False
+        flow_key = (dpid, src_ip, dst_ip)
+        if flow_key in self.state_manager.flow_stats:
+            flow_mbps = self.state_manager.flow_stats[flow_key].get('mbps', 0.0)
+            is_elephant = bool(flow_mbps >= 5.0)
+
+        self._install_path(selected_path, dst_port, eth_dst=dst_mac, ip_src=src_ip, ip_dst=dst_ip, is_elephant=is_elephant)
         if src_ip and dst_ip:
             self.state_manager.record_flow_path(dpid, src_ip, dst_ip, selected_path)
+
+        # Active Closed-Loop Shadow Reservation to damp micro-herd pileup between telemetry polls
+        self.state_manager.record_flow_reservation(selected_path)
 
         # Forward the current packet out of the first hop
         first_hop = selected_path[1]
@@ -199,9 +208,19 @@ class RoutingModule:
         reward = - (w_h * hops + w_d * total_delay + congestion_penalty + w_j * total_jitter + w_l * max_loss)
         return float(reward)
 
-    def _install_path(self, path, final_port, eth_dst, ip_src=None, ip_dst=None):
-        """Pushes flow rules across all switches along the calculated path."""
-        idle_to = getattr(config, 'FLOW_IDLE_TIMEOUT', 60)
+    def _install_path(self, path, final_port, eth_dst, ip_src=None, ip_dst=None, is_elephant=False):
+        """
+        Pushes flow rules across all switches along the calculated path.
+        Implements Hierarchical TCAM-Conscious Flow Table Allocation:
+        - Elephant flows (>5 Mbps) receive fine-grained priority=20 rules with 60s idle timeout.
+        - Mice/standard flows receive priority=10 rules with aggressive 15s idle timeout to prevent TCAM exhaustion.
+        """
+        if is_elephant:
+            idle_to = getattr(config, 'FLOW_IDLE_TIMEOUT_ELEPHANT', 60)
+            priority = 20
+        else:
+            idle_to = getattr(config, 'FLOW_IDLE_TIMEOUT_MICE', 15)
+            priority = 10
         hard_to = getattr(config, 'FLOW_HARD_TIMEOUT', 120)
 
         for i in range(len(path)):
@@ -228,7 +247,7 @@ class RoutingModule:
             else:
                 match = parser.OFPMatch(eth_dst=eth_dst)
 
-            self.controller.add_flow(dp, priority=10, match=match, actions=actions, idle_timeout=idle_to, hard_timeout=hard_to)
+            self.controller.add_flow(dp, priority=priority, match=match, actions=actions, idle_timeout=idle_to, hard_timeout=hard_to)
 
     def calculate_wcmp_weights(self, candidate_paths, beta=None):
         """

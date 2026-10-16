@@ -100,10 +100,53 @@ class StateManager:
         # Routing candidate path cache: (src_dpid, dst_dpid) -> list of candidate paths
         self._routing_path_cache = {}
 
+        # Closed-loop shadow reservation tracking to eliminate micro-herd pileups during telemetry polling interval:
+        self.shadow_reservations = collections.defaultdict(float)
+        self.shadow_last_update = collections.defaultdict(float)
+        self.shadow_decay_half_life = float(getattr(config, 'SHADOW_DECAY_HALF_LIFE', 1.5))
+
         # Active topology metadata tracking
         default_topo = getattr(config, 'DEFAULT_TOPOLOGY_ID', 'tree')
         self.current_topology_id = default_topo
         self.current_topology_meta = {'name': f'Default Topology ({default_topo})', 'id': default_topo}
+
+    def record_flow_reservation(self, path, estimated_rate_mbps=None):
+        """
+        Records an immediate shadow reservation along the routed path to damp
+        micro-herd pileup between OpenFlow port statistics polling intervals.
+        """
+        if not path or len(path) <= 1:
+            return
+        if estimated_rate_mbps is None:
+            estimated_rate_mbps = float(getattr(self, 'traffic_flow_rate_mbps', 15.0))
+
+        now = time.time()
+        for i in range(len(path) - 1):
+            edge = (path[i], path[i+1])
+            cap = max(1.0, self.link_bandwidths.get(edge, self.default_capacity))
+            add_ratio = float(estimated_rate_mbps) / cap
+            self.shadow_reservations[edge] = min(1.0, self.shadow_reservations[edge] + add_ratio)
+            self.shadow_last_update[edge] = now
+
+    def get_effective_utilization(self, edge):
+        """
+        Returns effective link utilization combining physical OpenFlow polled byte counters
+        with decaying shadow reservations to eradicate micro-burst herding.
+        """
+        polled_u = float(self.link_utilization.get(edge, 0.0))
+        shadow_u = self.shadow_reservations.get(edge, 0.0)
+        if shadow_u > 0.0:
+            last_t = self.shadow_last_update.get(edge, 0.0)
+            elapsed = max(0.0, time.time() - last_t)
+            decayed_shadow = shadow_u * (0.5 ** (elapsed / max(0.5, self.shadow_decay_half_life)))
+            self.shadow_reservations[edge] = decayed_shadow
+            return min(1.0, max(polled_u, polled_u + decayed_shadow))
+        return min(1.0, polled_u)
+
+    def clear_shadow_reservations(self):
+        """Clears shadow reservations upon global topology reset or manual flush."""
+        self.shadow_reservations.clear()
+        self.shadow_last_update.clear()
 
     def set_topology(self, topo_id, graph, meta):
         """Sets active topology and initializes links, attributes, and routing cache."""
@@ -544,6 +587,24 @@ class StateManager:
                         break
                     if p not in paths:
                         paths.append(p)
+
+                # On-Demand Saturated Core Detour Synthesis (eliminates shared-bottleneck trap):
+                if len(paths) >= 2:
+                    bottlenecks = [max([self.get_effective_utilization((p[idx], p[idx+1])) for idx in range(len(p)-1)]) if len(p) > 1 else 0.0 for p in paths[:2]]
+                    if all(b >= 0.70 for b in bottlenecks):
+                        try:
+                            def detour_penalty(u, v, d):
+                                eff_u = self.get_effective_utilization((u, v))
+                                base_lat = d.get('delay', self.default_delay)
+                                return base_lat * (1.0 + 50.0 * max(0.0, eff_u - 0.70))
+                            detour_p = nx.dijkstra_path(self.graph, src_dpid, dst_dpid, weight=detour_penalty)
+                            if detour_p not in paths:
+                                if len(paths) >= k:
+                                    paths[k-1] = detour_p
+                                else:
+                                    paths.append(detour_p)
+                        except Exception:
+                            pass
         except Exception:
             paths = [[src_dpid, dst_dpid]]
 
@@ -557,9 +618,9 @@ class StateManager:
         """
         Builds a normalized 10-dimensional state vector for DQN Traffic Engineering Agent:
         [0]: Normalized shortest path length (hops / 10.0) in (0, 1]
-        [1-4]: Bottleneck link utilization of Candidate Paths 0, 1, 2, 3 [0.0 - 1.0]
+        [1-4]: Bottleneck link utilization of Candidate Paths 0, 1, 2, 3 [0.0 - 1.0] (effective utilization)
         [5-8]: Normalized end-to-end latency of Candidate Paths 0, 1, 2, 3 [0.0 - 1.0] (delay / 50.0)
-        [9]: Network-wide peak link utilization [0.0 - 1.0]
+        [9]: Network-wide peak link utilization [0.0 - 1.0] (effective utilization)
         """
         state = np.zeros(10, dtype=np.float32)
         if not self.graph.has_node(src_dpid) or not self.graph.has_node(dst_dpid):
@@ -574,13 +635,13 @@ class StateManager:
         else:
             state[0] = 0.1
 
-        # 1-4: Bottleneck link utilization on each candidate path
+        # 1-4: Effective bottleneck link utilization on each candidate path
         # 5-8: Normalized delay on each candidate path
         for i in range(4):
             if i < len(candidate_paths):
                 p = candidate_paths[i]
                 if len(p) > 1:
-                    utils = [self.link_utilization.get((p[j], p[j+1]), 0.0) for j in range(len(p)-1)]
+                    utils = [self.get_effective_utilization((p[j], p[j+1])) for j in range(len(p)-1)]
                     delays = [self.link_delays.get((p[j], p[j+1]), self.default_delay) for j in range(len(p)-1)]
                     state[1 + i] = min(1.0, max(0.0, float(max(utils) if utils else 0.0)))
                     state[5 + i] = min(1.0, max(0.0, float(sum(delays) / 50.0)))
@@ -591,8 +652,8 @@ class StateManager:
                 state[1 + i] = 1.0
                 state[5 + i] = 1.0
 
-        # 9: Peak network utilization
-        all_utils = list(self.link_utilization.values())
+        # 9: Peak effective network utilization across all active links
+        all_utils = [self.get_effective_utilization(edge) for edge in self.link_bandwidths.keys()]
         state[9] = min(1.0, max(0.0, float(max(all_utils)))) if all_utils else 0.0
 
         return state
