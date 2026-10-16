@@ -144,8 +144,8 @@ Maher_Alqadhi_2210249576_EC499_Final_Graduation_Submission/
 ├── CHECKSUMS_SHA256.txt                   <- Cryptographic SHA256 integrity hashes
 │
 ├── 01_Final_Thesis_Report/
-│   ├── Project_Report_EC499_Final.pdf     <- Authoritative 108-Page Master Thesis PDF
-│   ├── Project_Report_EC499_Monolithic.tex<- Monolithic LaTeX document (3,795 lines)
+│   ├── Project_Report_EC499_Final.pdf     <- Authoritative 107-Page Master Thesis PDF
+│   ├── Project_Report_EC499_Monolithic.tex<- Monolithic LaTeX document (3,861 lines)
 │   ├── references.bib                     <- Complete academic bibliography
 │   ├── chapters/                          <- All 11 thesis chapters (Modular LaTeX)
 │   └── appendices/                        <- All 5 technical appendices (Modular LaTeX)
