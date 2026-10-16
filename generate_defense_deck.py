@@ -92,7 +92,7 @@ def main():
     prs.slide_height = Inches(7.5)
     blank_layout = prs.slide_layouts[6]
 
-    print("[*] Generating 29-Slide Defense Presentation...")
+    print("[*] Generating 30-Slide Defense Presentation...")
 
     # -------------------------------------------------------------
     # SLIDE 1: Title Slide (Dark Cover)
@@ -781,7 +781,24 @@ def main():
     tf.text = "• Detour Latency Trade-Off:\nWhen core links suffer delay spikes, D3QN proactively detours flows across multi-hop perimeter paths. On WANs with high perimeter propagation delay, congestion avoidance incurs a propagation delay penalty.\n\n• Localized Fairness Variance:\nOn continental meshes, D3QN repeatedly steers offloaded traffic to the highest-capacity lateral bypass, protecting the core at the cost of secondary edge load variance."
 
     # -------------------------------------------------------------
-    # SLIDE 27: Anticipated Committee Defense Q&A
+    # SLIDE 27: Pareto Sensitivity & Architectural Flaw Remediations (Figure 14)
+    # -------------------------------------------------------------
+    slide = prs.slides.add_slide(blank_layout)
+    set_slide_background(slide, COLOR_LIGHT_BG)
+    add_header(slide, "Pareto Sensitivity Ablation & Systematic Flaw Remediation")
+
+    fig_path = PLOTS_DIR / "pareto_weight_sensitivity.png"
+    if fig_path.exists():
+        slide.shapes.add_picture(str(fig_path), Inches(0.8), Inches(1.7), width=Inches(7.2))
+
+    add_card(slide, Inches(8.3), Inches(1.7), Inches(4.2), Inches(5.2), title="5 Systematic Flaw Remediations")
+    tx = slide.shapes.add_textbox(Inches(8.5), Inches(2.2), Inches(3.8), Inches(4.5))
+    tf = tx.text_frame
+    tf.word_wrap = True
+    tf.text = "1. On-Demand Detour Synthesizer:\nIf candidate paths suffer >70% load, dynamically computes penalty-routed detours around saturated trunks.\n\n2. Receptive Field Equivalence:\n10D state vector captures 1-hop MPNN cut capacity in 0.048 ms (vs 15 ms for GNN).\n\n3. Active Shadow Reservations:\nDamps micro-burst pileups during 1-2s telemetry polling intervals via exponential decay (half-life=1.5s).\n\n4. Hierarchical TCAM Allocation:\nAggregates mice flows into subnet wildcard rules (15s timeout); pins elephant flows (>5 Mbps, 60s timeout), cutting TCAM usage by >85%.\n\n5. Barrier Necessity Theorem:\nWithout exponential barrier, latency spikes 3x (32.9 ms) and loss explodes by 2,100x (2.15%)."
+
+    # -------------------------------------------------------------
+    # SLIDE 28: Anticipated Committee Defense Q&A
     # -------------------------------------------------------------
     slide = prs.slides.add_slide(blank_layout)
     set_slide_background(slide, COLOR_LIGHT_BG)
@@ -811,7 +828,7 @@ def main():
         p2.font.color.rgb = COLOR_TEXT_MAIN
 
     # -------------------------------------------------------------
-    # SLIDE 28: Conclusions & Future Roadmap
+    # SLIDE 29: Conclusions & Future Roadmap
     # -------------------------------------------------------------
     slide = prs.slides.add_slide(blank_layout)
     set_slide_background(slide, COLOR_LIGHT_BG)
@@ -821,7 +838,7 @@ def main():
     tx = slide.shapes.add_textbox(Inches(1.0), Inches(2.2), Inches(5.2), Inches(4.5))
     tf = tx.text_frame
     tf.word_wrap = True
-    tf.text = "• 100% Proposal Objective Fulfillment\nDelivered a fully integrated platform satisfying all 5 approved objectives and 6 procedures.\n\n• Empirically Proven Performance\nD3QN consistently outperforms OSPF, ECMP, Dijkstra SPF, LLR, and WSP, cutting latency by up to 73.5% and eliminating buffer dropouts.\n\n• Zero-Shot Transferability\nDemonstrated robust out-of-distribution transfer to arbitrary unseen topologies up to 35 nodes.\n\n• Carrier-Grade Software Deliverable\n106-Page Technical Report, 32 passing unit tests, and live interactive HTML5 Web Dashboard."
+    tf.text = "• 100% Proposal Objective Fulfillment\nDelivered a fully integrated platform satisfying all 5 approved objectives and 6 procedures.\n\n• Empirically Proven Performance\nD3QN consistently outperforms OSPF, ECMP, Dijkstra SPF, LLR, and WSP, cutting latency by up to 73.5% and eliminating buffer dropouts.\n\n• Zero-Shot Transferability\nDemonstrated robust out-of-distribution transfer to arbitrary unseen topologies up to 35 nodes.\n\n• Carrier-Grade Software Deliverable\n108-Page Technical Report, 32 passing unit tests, and live interactive HTML5 Web Dashboard."
 
     add_card(slide, Inches(6.9), Inches(1.7), Inches(5.6), Inches(5.2), title="Future Research Roadmap")
     tx = slide.shapes.add_textbox(Inches(7.1), Inches(2.2), Inches(5.2), Inches(4.5))
@@ -830,7 +847,7 @@ def main():
     tf.text = "• Multi-Agent DRL (MADRL)\nDecentralized execution where each switch runs an edge DRL agent communicating via message passing.\n\n• Segment Routing over IPv6 (SRv6)\nReplace switch TCAM match-action rules with source-routed SRv6 segment lists, reducing table state to zero.\n\n• Graph Neural Networks (GNN)\nReplace fixed 10D state vectors with Message Passing Neural Networks (MPNN) for topological graph embeddings.\n\n• P4 Programmable Data Planes\nHardware acceleration via P4 switch pipelines (Intel Tofino)."
 
     # -------------------------------------------------------------
-    # SLIDE 29: Acknowledgments & Conclusion (Dark Outro)
+    # SLIDE 30: Acknowledgments & Conclusion (Dark Outro)
     # -------------------------------------------------------------
     slide = prs.slides.add_slide(blank_layout)
     set_slide_background(slide, COLOR_NAVY)

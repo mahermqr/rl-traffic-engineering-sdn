@@ -36,6 +36,7 @@ def main():
     img_dash_versus = get_base64_image("dashboard_versus_tournament.png")
     img_dash_inspector = get_base64_image("dashboard_model_inspector.png")
     img_dash_settings = get_base64_image("dashboard_network_settings.png")
+    img_pareto = get_base64_image("pareto_weight_sensitivity.png")
 
     html_content = f"""<!DOCTYPE html>
 <html lang="en">
@@ -1383,7 +1384,33 @@ def main():
   </div>
 
   <!-- ============================================================== -->
-  <!-- SLIDE 27: Anticipated Committee Defense Q&A -->
+  <!-- SLIDE 27: Pareto Sensitivity & Architectural Flaw Remediations (Figure 14) -->
+  <!-- ============================================================== -->
+  <div class="slide theme-light" data-notes="In this slide, we present the Pareto weight sensitivity ablation and our five systematic flaw remediations. Sweeping the congestion barrier weight theta from 0 to 1 proves that removing the barrier causes latency to explode by 3x and packet loss to jump by 2,100x. We also present our five concrete architectural remediations: on-demand detour synthesis, receptive field equivalence, active shadow reservations, hierarchical TCAM flow allocation, and the barrier necessity proof.">
+    <div class="header-pill">Rigorous Validation & Flaw Remediation</div>
+    <div class="slide-title">Pareto Sensitivity Ablation & Architectural Flaw Remediations (Figure 14)</div>
+    <div class="title-divider"></div>
+
+    <div style="display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 1.2rem; align-items: center; height: calc(100% - 70px);">
+      <div style="text-align: center;">
+        <img src="{img_pareto}" alt="Figure 14: Pareto Sensitivity Ablation" style="max-width: 100%; max-height: 480px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border: 1px solid var(--border-light);">
+      </div>
+
+      <div class="card" style="padding: 1rem 1.2rem; height: 100%; display: flex; flex-direction: column; justify-content: space-around;">
+        <div class="card-title" style="margin-bottom: 0.5rem; color: var(--violet-primary);">5 Systematic Architectural Remediations</div>
+        <ul style="font-size: 0.82rem; line-height: 1.45; margin: 0; padding-left: 1.2rem;">
+          <li style="margin-bottom: 0.4rem;"><strong>1. On-Demand Detour Synthesizer:</strong> If top-K paths exceed 70% load, dynamically computes penalty-routed detours bypassing congested links.</li>
+          <li style="margin-bottom: 0.4rem;"><strong>2. Receptive Field Equivalence:</strong> Normalized 10D vector captures 1-hop MPNN cut capacity in 0.048 ms (vs 15 ms for heavy GNNs).</li>
+          <li style="margin-bottom: 0.4rem;"><strong>3. Active Shadow Reservations:</strong> Damps micro-burst pileups during 1–2s telemetry polling lag via exponential decay (half-life = 1.5s).</li>
+          <li style="margin-bottom: 0.4rem;"><strong>4. Hierarchical TCAM Allocation:</strong> Aggregates mice flows into wildcard rules (15s timeout); pins elephant flows (&gt;5 Mbps, 60s timeout), cutting TCAM by &gt;85%.</li>
+          <li style="margin-bottom: 0.4rem;"><strong>5. Barrier Necessity Theorem:</strong> Removing the barrier (&theta; = 1.0) causes latency to spike 3x (32.9 ms) and loss to surge 2,100x (2.15%).</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- SLIDE 28: Anticipated Committee Defense Q&A -->
   <!-- ============================================================== -->
   <div class="slide theme-light" data-notes="Here are four of the most critical questions anticipated from the committee, along with our rigorous answers. Question 1 addresses OpenFlow telemetry without hardware timestamps. Question 2 justifies DRL over simple heuristics like LLR. Question 3 proves topological normalization prevents overfitting. Question 4 demonstrates loop-freedom via candidate simple paths and atomic FlowMod installation.">
     <div class="header-pill">Committee Preparation</div>
@@ -1430,9 +1457,9 @@ def main():
   </div>
 
   <!-- ============================================================== -->
-  <!-- SLIDE 28: Conclusions & Future Roadmap -->
+  <!-- SLIDE 29: Conclusions & Future Roadmap -->
   <!-- ============================================================== -->
-  <div class="slide theme-light" data-notes="In conclusion, this project delivered an end-to-end, carrier-grade adaptive traffic engineering platform. We met 100% of all proposal objectives, proved empirical superiority over classical protocols, demonstrated zero-shot transferability, and produced a 106-page technical report and passing test suite. Looking forward, promising directions include multi-agent DRL, SRv6, and P4 programmable data planes.">
+  <div class="slide theme-light" data-notes="In conclusion, this project delivered an end-to-end, carrier-grade adaptive traffic engineering platform. We met 100% of all proposal objectives, proved empirical superiority over classical protocols, demonstrated zero-shot transferability, and produced a 108-page technical report and passing test suite. Looking forward, promising directions include multi-agent DRL, SRv6, and P4 programmable data planes.">
     <div class="header-pill">Summary & Outlook</div>
     <div class="slide-title">Conclusions, Contributions & Future Research Directions</div>
     <div class="title-divider"></div>
@@ -1444,7 +1471,7 @@ def main():
           <li><strong>100% Proposal Objective Fulfillment:</strong> Delivered a fully integrated platform satisfying all 5 approved objectives and 6 procedures.</li>
           <li><strong>Empirically Proven Performance:</strong> D3QN consistently outperforms OSPF, ECMP, Dijkstra SPF, LLR, and WSP, cutting latency by up to 73.5% and eliminating buffer dropouts.</li>
           <li><strong>Zero-Shot Transferability:</strong> Demonstrated robust out-of-distribution transfer to arbitrary unseen topologies up to 35 nodes.</li>
-          <li><strong>Carrier-Grade Software Deliverable:</strong> 106-Page Technical Report, 32 passing unit tests, and live interactive HTML5 Web Dashboard.</li>
+          <li><strong>Carrier-Grade Software Deliverable:</strong> 108-Page Technical Report, 32 passing unit tests, and live interactive HTML5 Web Dashboard.</li>
         </ul>
       </div>
 
@@ -1461,7 +1488,7 @@ def main():
   </div>
 
   <!-- ============================================================== -->
-  <!-- SLIDE 29: Acknowledgments & Conclusion (Dark Outro) -->
+  <!-- SLIDE 30: Acknowledgments & Conclusion (Dark Outro) -->
   <!-- ============================================================== -->
   <div class="slide theme-dark" data-notes="Thank you very much Dr. Suad El-Geder and members of the examination committee for your guidance and attention. I am now open to your questions and discussion.">
     <div style="text-align: center; margin-top: 2rem;">
@@ -1478,7 +1505,7 @@ def main():
           <li><strong>Author:</strong> Maher Abdulnasir Alqadhi (Student ID: 2210249576)</li>
           <li><strong>Project Supervisor:</strong> Dr. Suad El-Geder</li>
           <li><strong>Institution:</strong> Department of Computer Engineering, Faculty of Engineering, University of Tripoli</li>
-          <li><strong>Master Report:</strong> <a href="Project_Report_EC499_Final.pdf" target="_blank" style="color: #38bdf8; text-decoration: underline;">docs/Project_Report_EC499_Final.pdf</a> (106 Pages, 9.8 MB)</li>
+          <li><strong>Master Report:</strong> <a href="Project_Report_EC499_Final.pdf" target="_blank" style="color: #38bdf8; text-decoration: underline;">docs/Project_Report_EC499_Final.pdf</a> (108 Pages, 10.2 MB)</li>
           <li><strong>Web Dashboard:</strong> <a href="http://localhost:8080" target="_blank" style="color: #a78bfa; text-decoration: underline;">controller/web_dashboard.py</a> (Active on http://localhost:8080)</li>
         </ul>
       </div>
@@ -1492,8 +1519,9 @@ def main():
     <div style="display: flex; gap: 0.5rem; align-items: center;">
       <button class="btn-nav" id="btnPrev">&larr; Prev</button>
       <button class="btn-nav" id="btnNext">Next &rarr;</button>
-      <span id="slideCounter" style="font-weight: 700; color: #f1f5f9; margin-left: 0.5rem;">Slide 1 of 29</span>
+      <span id="slideCounter" style="font-weight: 700; color: #f1f5f9; margin-left: 0.5rem;">Slide 1 of 30</span>
     </div>
+
 
     <div class="hint-keys">
       <span>Keys: <kbd>&larr;</kbd> <kbd>&rarr;</kbd> or <kbd>Space</kbd> | Fullscreen: <kbd>F</kbd> | Speaker Notes: <kbd>N</kbd></span>

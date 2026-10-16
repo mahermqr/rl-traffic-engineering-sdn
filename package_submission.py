@@ -6,10 +6,10 @@ Supervisor: Dr. Suad El-Geder
 Department of Computer Engineering, University of Tripoli.
 
 Creates a structured, timestamped, self-contained submission archive containing:
-- 106-page Master Thesis PDF & LaTeX sources
-- 29-slide PowerPoint deck & standalone interactive HTML slides
+- 108-page Master Thesis PDF & LaTeX sources
+- 30-slide PowerPoint deck & standalone interactive HTML slides
 - Defense quick-reference cheat sheet & live demo runbook
-- All 13 publication-grade experimental plots & dashboard captures
+- All 14 publication-grade experimental plots & dashboard captures
 - Official Mininet validation logs and benchmark matrices
 - Trained PyTorch D3QN model weights
 - Carrier-grade source code, tests, and web dashboard
@@ -62,7 +62,7 @@ def main():
         shutil.copytree(DOCS_DIR / "chapters", dir_thesis / "chapters")
     if (DOCS_DIR / "appendices").exists():
         shutil.copytree(DOCS_DIR / "appendices", dir_thesis / "appendices")
-    print("  [+] Staged 01_Final_Thesis_Report (106-Page PDF & Complete LaTeX Sources)")
+    print("  [+] Staged 01_Final_Thesis_Report (108-Page PDF & Complete LaTeX Sources)")
 
     # 2. 02_Defense_Presentation
     dir_defense = BUNDLE_ROOT / "02_Defense_Presentation"
@@ -85,7 +85,7 @@ def main():
     matrix_src = LOGS_DIR / "mininet_matrix" / "validation_matrix_S7_udp_20261015_075319.csv"
     if matrix_src.exists():
         shutil.copy2(matrix_src, dir_logs / "validation_matrix_S7_udp_20261015_075319.csv")
-    for log_name in ["training_metrics.csv", "evaluation_results.json", "routing_tournament_results.json"]:
+    for log_name in ["training_metrics.csv", "evaluation_results.json", "routing_tournament_results.json", "pareto_sensitivity_ablation.json"]:
         p = LOGS_DIR / log_name
         if p.exists():
             shutil.copy2(p, dir_logs / log_name)
@@ -105,11 +105,12 @@ def main():
         shutil.copytree(CONTROLLER_DIR, dir_code / "controller", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
     if SIMULATION_DIR.exists():
         shutil.copytree(SIMULATION_DIR, dir_code / "simulation", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
-    for script in ["benchmark_routing_algorithms.py", "stress_test_blind_topologies.py", "audit_dqn_agent_deep.py", "generate_defense_deck.py", "build_html_slides.py", "run_tests.sh", "requirements.txt"]:
+    for script in ["benchmark_routing_algorithms.py", "stress_test_blind_topologies.py", "audit_dqn_agent_deep.py", "generate_defense_deck.py", "build_html_slides.py", "ablate_reward_weights.py", "run_tests.sh", "requirements.txt"]:
         p = BASE_DIR / script
         if p.exists():
             shutil.copy2(p, dir_code / script)
     print("  [+] Staged 06_Source_Code_and_Dashboard (Controller, Simulation, Tests, Tools)")
+
 
     # 7. Generate README_GRADUATION_SUBMISSION.md
     readme_path = BUNDLE_ROOT / "README_GRADUATION_SUBMISSION.md"
@@ -143,18 +144,18 @@ Maher_Alqadhi_2210249576_EC499_Final_Graduation_Submission/
 ├── CHECKSUMS_SHA256.txt                   <- Cryptographic SHA256 integrity hashes
 │
 ├── 01_Final_Thesis_Report/
-│   ├── Project_Report_EC499_Final.pdf     <- Authoritative 106-Page Master Thesis PDF
-│   ├── Project_Report_EC499_Monolithic.tex<- Monolithic LaTeX document (3,677 lines)
+│   ├── Project_Report_EC499_Final.pdf     <- Authoritative 108-Page Master Thesis PDF
+│   ├── Project_Report_EC499_Monolithic.tex<- Monolithic LaTeX document (3,795 lines)
 │   ├── references.bib                     <- Complete academic bibliography
 │   ├── chapters/                          <- All 11 thesis chapters (Modular LaTeX)
 │   └── appendices/                        <- All 5 technical appendices (Modular LaTeX)
 │
 ├── 02_Defense_Presentation/
-│   ├── EC499_Graduation_Defense_Presentation.pptx <- 29-Slide PowerPoint Presentation Deck
+│   ├── EC499_Graduation_Defense_Presentation.pptx <- 30-Slide PowerPoint Presentation Deck
 │   ├── EC499_Graduation_Defense_Slides.html       <- Standalone Interactive HTML5 Deck
-│   └── DEFENSE_CHEAT_SHEET.md                     <- 5-Minute Demo Runbook & 10 Committee Q&As
+│   └── DEFENSE_CHEAT_SHEET.md                     <- 5-Minute Demo Runbook & 11 Committee Q&As
 │
-├── 03_Experimental_Figures_and_Plots/     <- All 13 High-Resolution Publication Plots
+├── 03_Experimental_Figures_and_Plots/     <- All 14 High-Resolution Publication Plots
 │   ├── proposal_benchmarks_all_metrics.png
 │   ├── proposal_tournament_radar.png
 │   ├── dqn_te_training_convergence.png
@@ -167,13 +168,15 @@ Maher_Alqadhi_2210249576_EC499_Final_Graduation_Submission/
 │   ├── dashboard_topology_telemetry.png
 │   ├── dashboard_versus_tournament.png
 │   ├── dashboard_model_inspector.png
-│   └── dashboard_network_settings.png
+│   ├── dashboard_network_settings.png
+│   └── pareto_weight_sensitivity.png
 │
 ├── 04_Validation_Logs_and_Metrics/        <- Empirical Validation Matrices
 │   ├── validation_matrix_S7_udp_20261015_075319.csv <- Official Mininet Emulation Matrix
 │   ├── training_metrics.csv               <- 500-Episode D3QN Training Convergence Log
 │   ├── evaluation_results.json            <- Multi-topology evaluation records
-│   └── routing_tournament_results.json    <- 6-protocol tournament benchmark records
+│   ├── routing_tournament_results.json    <- 6-protocol tournament benchmark records
+│   └── pareto_sensitivity_ablation.json   <- Pareto weight sensitivity ablation records
 │
 ├── 05_Trained_D3QN_Model/
 │   └── dqn_router.pth                     <- Optimized PyTorch Neural Network Weights
@@ -183,6 +186,7 @@ Maher_Alqadhi_2210249576_EC499_Final_Graduation_Submission/
     ├── simulation/                        <- Network environment, flow generator, topologies
     ├── benchmark_routing_algorithms.py    <- 6-Protocol Tournament Benchmark Runner
     ├── stress_test_blind_topologies.py    <- Zero-Shot Generalization Test Runner
+    ├── ablate_reward_weights.py           <- Pareto Sensitivity Ablation Suite
     ├── audit_dqn_agent_deep.py            <- Deep Mathematical & Policy Audit Suite
     ├── run_tests.sh                       <- 32-Test Automated Unit & Integration Suite
     └── requirements.txt                   <- Python Dependencies Manifest
