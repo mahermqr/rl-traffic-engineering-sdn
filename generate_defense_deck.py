@@ -876,7 +876,7 @@ def main():
     p.font.bold = True
     p.font.color.rgb = COLOR_WHITE
     p2 = tf.add_paragraph()
-    p2.text = "• Author: Maher Abdulnasir Alqadhi (Student ID: 2210249576)\n• Project Supervisor: Dr. Suad El-Geder\n• Institution: Department of Computer Engineering, University of Tripoli\n• Master Report: docs/Project_Report_EC499_Final.pdf (106 Pages, 9.8 MB)\n• Web Dashboard: controller/web_dashboard.py (Active at http://localhost:8080)"
+    p2.text = "• Author: Maher Abdulnasir Alqadhi (Student ID: 2210249576)\n• Project Supervisor: Dr. Suad El-Geder\n• Institution: Department of Computer Engineering, University of Tripoli\n• Master Report: docs/Project_Report_EC499_Final.pdf (108 Pages, 10.2 MB)\n• Web Dashboard: controller/web_dashboard.py (Active at http://localhost:8080)"
     p2.font.size = Pt(11)
     p2.font.color.rgb = RGBColor(203, 213, 225)
 

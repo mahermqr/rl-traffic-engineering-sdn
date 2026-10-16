@@ -124,3 +124,47 @@ Subtracting the base transmission delay $1/\mu$, the average queuing delay $W_q$
     W_q = W - \frac{1}{\mu} = \frac{1}{\mu - \lambda} - \frac{1}{\mu} = \frac{\lambda}{\mu(\mu - \lambda)} = \frac{\rho}{\mu(1 - \rho)}
 \end{equation}
 This establishes the theoretical foundation for Equation~\ref{eq:queuing_delay_formula}.
+
+\section{Proof of Congestion Avoidance via Asymptotic Barrier Function}
+\label{sec:proof_barrier}
+Let $\mathcal{P}$ denote the set of simple paths connecting ingress switch $s$ and egress switch $d$. For each path $P \in \mathcal{P}$, let $\rho_{\max}(P) = \max_{e \in P} \rho_e$ denote its bottleneck link utilization. The multi-objective reward includes an exponential congestion barrier:
+\begin{equation}
+    \Phi_{\text{cong}}(P) = \begin{cases}
+        \exp\left(\frac{\rho_{\max}(P) - \rho_{\text{thresh}}}{1.0 - \rho_{\max}(P)}\right) - 1, & \text{if } \rho_{\max}(P) > \rho_{\text{thresh}} \\
+        0, & \text{otherwise}
+    \end{cases}
+\end{equation}
+where $\rho_{\text{thresh}} = 0.70$.
+
+\begin{theorem}[Asymptotic Congestion Barrier Divergence]
+As the bottleneck utilization of any path $P$ approaches link capacity ($\rho_{\max}(P) \to 1^-$), the barrier penalty diverges to positive infinity:
+\begin{equation}
+    \lim_{\rho_{\max}(P) \to 1^-} \Phi_{\text{cong}}(P) = +\infty
+\end{equation}
+Furthermore, if there exists at least one alternate candidate path $P_{\text{alt}} \in \mathcal{P}$ with $\rho_{\max}(P_{\text{alt}}) \le \rho_{\text{thresh}}$, then under optimal Q-values, the policy satisfies:
+\begin{equation}
+    \lim_{\rho_{\max}(P) \to 1^-} \mathbb{P}\left(\pi(s) = P\right) = 0
+\end{equation}
+guaranteeing deterministic avoidance of saturated links.
+\end{theorem}
+
+\begin{proof}
+Let $x = \rho_{\max}(P)$. For $x \in (\rho_{\text{thresh}}, 1)$:
+\begin{equation}
+    \lim_{x \to 1^-} \frac{x - \rho_{\text{thresh}}}{1 - x} = \lim_{\epsilon \to 0^+} \frac{1 - \epsilon - \rho_{\text{thresh}}}{\epsilon} = +\infty
+\end{equation}
+Because the exponential function $\exp(u)$ is strictly monotonically increasing on $\mathbb{R}$ and $\lim_{u \to \infty} \exp(u) = \infty$, it follows that:
+\begin{equation}
+    \lim_{x \to 1^-} \Phi_{\text{cong}}(P) = \lim_{u \to \infty} (\exp(u) - 1) = +\infty
+\end{equation}
+The reward function is defined as $\mathcal{R}(s, P) = - [w_{\text{util}} \rho_{\max}(P) + w_{\text{lat}} D(P) + w_{\text{jit}} J(P) + w_{\text{loss}} P_{\text{loss}}(P) + w_{\text{cong}} \Phi_{\text{cong}}(P)]$. As $\rho_{\max}(P) \to 1^-$, $\mathcal{R}(s, P) \to -\infty$.
+
+By the Bellman optimality equation, $Q^*(s, P) = \mathcal{R}(s, P) + \gamma \sum_{s'} \mathcal{P}(s' \mid s, P) V^*(s')$. Since all subsequent state values $V^*(s')$ are bounded, $\lim_{\rho_{\max}(P) \to 1^-} Q^*(s, P) = -\infty$.
+
+Conversely, for $P_{\text{alt}}$, $\Phi_{\text{cong}}(P_{\text{alt}}) = 0$, so $\mathcal{R}(s, P_{\text{alt}})$ is strictly finite. Under the greedy or softmax policy $\pi(a \mid s) = \frac{\exp(Q(s, a)/\tau)}{\sum_{b} \exp(Q(s, b)/\tau)}$, as $Q^*(s, P) \to -\infty$:
+\begin{equation}
+    \mathbb{P}\left(\pi(s) = P\right) = \frac{\exp(Q^*(s, P)/\tau)}{\exp(Q^*(s, P_{\text{alt}})/\tau) + \sum_{b \ne P, P_{\text{alt}}} \exp(Q^*(s, b)/\tau)} \to 0
+\end{equation}
+which guarantees that the agent will never choose a saturated path when an uncongested alternative exists.
+\end{proof}
+

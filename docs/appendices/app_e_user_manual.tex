@@ -208,3 +208,25 @@ sudo ovs-ofctl -O OpenFlow13 dump-groups s1
 sudo ovs-ofctl -O OpenFlow13 dump-ports-desc s1
 sudo ovs-ofctl -O OpenFlow13 dump-ports s1
 \end{lstlisting}
+
+\section{Pareto Sensitivity Ablation and Dynamic Telemetry Tuning}
+The platform provides automated ablation tooling to evaluate the trade-offs of the multi-objective reward formulation:
+
+\begin{lstlisting}[language=bash, caption={Executing the Pareto Sensitivity Ablation Suite}]
+# Execute 50-episode sweep across 6 SLA weight configurations:
+python3 ablate_reward_weights.py
+
+# Expected outputs:
+# - logs/pareto_sensitivity_ablation.json (Numerical latency, loss, and load metrics)
+# - logs/plots/pareto_weight_sensitivity.png (Publication-grade 4-panel figure)
+\end{lstlisting}
+
+\subsection{Configuring Shadow Reservations and TCAM Allocation}
+Operators can tune active shadow reservation parameters and TCAM allocation timeouts directly in \texttt{config.py} or via environment variables:
+\begin{itemize}
+    \item \texttt{SHADOW\_DECAY\_HALF\_LIFE}: Half-life decay duration in seconds (default: $1.5\text{ s}$). Controls how fast temporary flow reservations decay between OpenFlow telemetry polling cycles.
+    \item \texttt{ELEPHANT\_FLOW\_THRESHOLD\_MBPS}: Rate threshold for elephant flow classification (default: $5.0\text{ Mbps}$). Flows exceeding this rate receive dedicated 5-tuple TCAM rules.
+    \item \texttt{MICE\_IDLE\_TIMEOUT}: Idle timeout for wildcard aggregated mice flows (default: $15\text{ s}$).
+    \item \texttt{ELEPHANT\_IDLE\_TIMEOUT}: Idle timeout for pinned elephant flows (default: $60\text{ s}$).
+\end{itemize}
+

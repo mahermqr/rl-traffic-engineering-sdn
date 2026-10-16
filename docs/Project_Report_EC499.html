@@ -2206,7 +2206,44 @@ Subtracting the base transmission delay $1/\mu$, the average queuing delay $W_q$
 <div class="math-block">$$
     W_q = W - \frac{1}{\mu} = \frac{1}{\mu - \lambda} - \frac{1}{\mu} = \frac{\lambda}{\mu(\mu - \lambda)} = \frac{\rho}{\mu(1 - \rho)}
 $$</div>
-This establishes the theoretical foundation for Equation~<strong>eq:queuing_delay_formula</strong>.</p></section><section class="appendix-section"><div class="chapter-divider"></div><h1 class="chapter-title">OpenFlow 1.3 Protocol Technical Reference</h1>
+This establishes the theoretical foundation for Equation~<strong>eq:queuing_delay_formula</strong>.</p>
+<h2 class="section-title">Proof of Congestion Avoidance via Asymptotic Barrier Function</h2>
+<p class="academic-p">Let $\mathcal{P}$ denote the set of simple paths connecting ingress switch $s$ and egress switch $d$. For each path $P \in \mathcal{P}$, let $\rho_{\max}(P) = \max_{e \in P} \rho_e$ denote its bottleneck link utilization. The multi-objective reward includes an exponential congestion barrier:
+<div class="math-block">$$
+    \Phi_{\text{cong}}(P) = \begin{cases}
+        \exp\left(\frac{\rho_{\max}(P) - \rho_{\text{thresh}}}{1.0 - \rho_{\max}(P)}\right) - 1, & \text{if } \rho_{\max}(P) > \rho_{\text{thresh}} \\
+        0, & \text{otherwise}
+    \end{cases}
+$$</div>
+where $\rho_{\text{thresh}} = 0.70$.</p>
+<p class="academic-p">\begin{theorem}[Asymptotic Congestion Barrier Divergence]
+As the bottleneck utilization of any path $P$ approaches link capacity ($\rho_{\max}(P) \to 1^-$), the barrier penalty diverges to positive infinity:
+<div class="math-block">$$
+    \lim_{\rho_{\max}(P) \to 1^-} \Phi_{\text{cong}}(P) = +\infty
+$$</div>
+Furthermore, if there exists at least one alternate candidate path $P_{\text{alt}} \in \mathcal{P}$ with $\rho_{\max}(P_{\text{alt}}) \le \rho_{\text{thresh}}$, then under optimal Q-values, the policy satisfies:
+<div class="math-block">$$
+    \lim_{\rho_{\max}(P) \to 1^-} \mathbb{P}\left(\pi(s) = P\right) = 0
+$$</div>
+guaranteeing deterministic avoidance of saturated links.
+\end{theorem}</p>
+<p class="academic-p">\begin{proof}
+Let $x = \rho_{\max}(P)$. For $x \in (\rho_{\text{thresh}}, 1)$:
+<div class="math-block">$$
+    \lim_{x \to 1^-} \frac{x - \rho_{\text{thresh}}}{1 - x} = \lim_{\epsilon \to 0^+} \frac{1 - \epsilon - \rho_{\text{thresh}}}{\epsilon} = +\infty
+$$</div>
+Because the exponential function $\exp(u)$ is strictly monotonically increasing on $\mathbb{R}$ and $\lim_{u \to \infty} \exp(u) = \infty$, it follows that:
+<div class="math-block">$$
+    \lim_{x \to 1^-} \Phi_{\text{cong}}(P) = \lim_{u \to \infty} (\exp(u) - 1) = +\infty
+$$</div>
+The reward function is defined as $\mathcal{R}(s, P) = - [w_{\text{util}} \rho_{\max}(P) + w_{\text{lat}} D(P) + w_{\text{jit}} J(P) + w_{\text{loss}} P_{\text{loss}}(P) + w_{\text{cong}} \Phi_{\text{cong}}(P)]$. As $\rho_{\max}(P) \to 1^-$, $\mathcal{R}(s, P) \to -\infty$.</p>
+<p class="academic-p">By the Bellman optimality equation, $Q^*(s, P) = \mathcal{R}(s, P) + \gamma \sum_{s'} \mathcal{P}(s' \mid s, P) V^*(s')$. Since all subsequent state values $V^*(s')$ are bounded, $\lim_{\rho_{\max}(P) \to 1^-} Q^*(s, P) = -\infty$.</p>
+<p class="academic-p">Conversely, for $P_{\text{alt}}$, $\Phi_{\text{cong}}(P_{\text{alt}}) = 0$, so $\mathcal{R}(s, P_{\text{alt}})$ is strictly finite. Under the greedy or softmax policy $\pi(a \mid s) = \frac{\exp(Q(s, a)/\tau)}{\sum_{b} \exp(Q(s, b)/\tau)}$, as $Q^*(s, P) \to -\infty$:
+<div class="math-block">$$
+    \mathbb{P}\left(\pi(s) = P\right) = \frac{\exp(Q^*(s, P)/\tau)}{\exp(Q^*(s, P_{\text{alt}})/\tau) + \sum_{b \ne P, P_{\text{alt}}} \exp(Q^*(s, b)/\tau)} \to 0
+$$</div>
+which guarantees that the agent will never choose a saturated path when an uncongested alternative exists.
+\end{proof}</p></section><section class="appendix-section"><div class="chapter-divider"></div><h1 class="chapter-title">OpenFlow 1.3 Protocol Technical Reference</h1>
 <h2 class="section-title">OpenFlow 1.3 Common Header Specification</h2>
 All OpenFlow 1.3 protocol messages begin with an 8-byte common header. The binary wire format is detailed in Table~<strong>tab:ofp_header_format</strong>.
 <div class="table-container"><div class="table-caption"><strong>Table:</strong> OpenFlow 1.3 Common Header Binary Structure</div><table class="academic-table"><tr><th>{c c c X}
@@ -2484,7 +2521,22 @@ mininet&gt; link s1 s5 down     # Simulate physical link failure between core an
 sudo ovs-ofctl -O OpenFlow13 dump-flows s1
 sudo ovs-ofctl -O OpenFlow13 dump-groups s1
 sudo ovs-ofctl -O OpenFlow13 dump-ports-desc s1
-sudo ovs-ofctl -O OpenFlow13 dump-ports s1</code></pre></p></section>
+sudo ovs-ofctl -O OpenFlow13 dump-ports s1</code></pre></p>
+<h2 class="section-title">Pareto Sensitivity Ablation and Dynamic Telemetry Tuning</h2>
+The platform provides automated ablation tooling to evaluate the trade-offs of the multi-objective reward formulation:
+<pre class="code-box"><code># Execute 50-episode sweep across 6 SLA weight configurations:
+python3 ablate_reward_weights.py
+<p class="academic-p"># Expected outputs:
+# - logs/pareto_sensitivity_ablation.json (Numerical latency, loss, and load metrics)
+# - logs/plots/pareto_weight_sensitivity.png (Publication-grade 4-panel figure)</code></pre></p>
+<h3 class="subsection-title">Configuring Shadow Reservations and TCAM Allocation</h3>
+Operators can tune active shadow reservation parameters and TCAM allocation timeouts directly in <code>config.py</code> or via environment variables:
+<ul class="academic-list">
+    <li><code>SHADOW\_DECAY\_HALF\_LIFE</code>: Half-life decay duration in seconds (default: $1.5\text{ s}$). Controls how fast temporary flow reservations decay between OpenFlow telemetry polling cycles.
+    </li><li><code>ELEPHANT\_FLOW\_THRESHOLD\_MBPS</code>: Rate threshold for elephant flow classification (default: $5.0\text{ Mbps}$). Flows exceeding this rate receive dedicated 5-tuple TCAM rules.
+    </li><li><code>MICE\_IDLE\_TIMEOUT</code>: Idle timeout for wildcard aggregated mice flows (default: $15\text{ s}$).
+    </li><li><code>ELEPHANT\_IDLE\_TIMEOUT</code>: Idle timeout for pinned elephant flows (default: $60\text{ s}$).
+</li></ul></section>
     <section class="plots-gallery-section">
         <h1 class="chapter-title">Empirical Benchmark Plot Studio & Figure Compendium</h1>
         <p class="academic-p">High-resolution scientific telemetry plots and interactive dashboard interfaces generated across multi-topology stress tournaments:</p>
