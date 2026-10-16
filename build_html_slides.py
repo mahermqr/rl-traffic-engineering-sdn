@@ -37,6 +37,7 @@ def main():
     img_dash_inspector = get_base64_image("dashboard_model_inspector.png")
     img_dash_settings = get_base64_image("dashboard_network_settings.png")
     img_pareto = get_base64_image("pareto_weight_sensitivity.png")
+    img_vmware = get_base64_image("vmware_virtual_machine_specs.png")
 
     html_content = f"""<!DOCTYPE html>
 <html lang="en">
@@ -999,49 +1000,65 @@ def main():
   </div>
 
   <!-- ============================================================== -->
-  <!-- SLIDE 14: Experimental Testbeds & Network Topologies -->
+  <!-- SLIDE 14: Experimental Testbeds & Host Provisioning -->
   <!-- ============================================================== -->
-  <div class="slide theme-light" data-notes="To rigorously validate our model, we evaluated it across 5 distinct topological families: Hierarchical Tree with lateral bypasses, k=4 Fat-Tree datacenter fabric, Abilene continental WAN, NSFNet continental mesh, and Leaf-Spine cloud fabric. This diversity ensures our evaluation is not biased toward any single topological structure.">
+  <div class="slide theme-light" data-notes="To rigorously validate our model, we evaluated it across 5 distinct topological families: Hierarchical Tree with lateral bypasses, k=4 Fat-Tree datacenter fabric, Abilene continental WAN, NSFNet continental mesh, and Leaf-Spine cloud fabric. This diversity ensures our evaluation is not biased toward any single topological structure. All experiments are executed inside a dedicated VMware Workstation virtual machine provisioned with 4 vCPUs, 8 GB RAM, and high-speed SCSI storage on Ubuntu Linux.">
     <div class="header-pill">Evaluation Framework</div>
-    <div class="slide-title">Standardized Multi-Topology Evaluation Testbeds</div>
+    <div class="slide-title">Standardized Multi-Topology Evaluation Testbeds & Host Provisioning</div>
     <div class="title-divider"></div>
 
-    <table class="academic-table" style="background: white; border-radius: 8px; overflow: hidden;">
-      <thead>
-        <tr>
-          <th>Topology Family</th>
-          <th>Graph Scale (Nodes / Edges)</th>
-          <th>Topological Features & Bottleneck Characteristics</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td><strong>Hierarchical Tree (S7)</strong></td>
-          <td>7 Switches, 8 Hosts, 8 Links</td>
-          <td>Core-aggregation-edge hierarchy with lateral cross-links (s4-s6, s5-s7)</td>
-        </tr>
-        <tr>
-          <td><strong>Clos Fat-Tree (k=4)</strong></td>
-          <td>20 Switches, 16 Hosts, 32 Links</td>
-          <td>Multi-stage datacenter fabric with redundant core trunks and multi-pod aggregation</td>
-        </tr>
-        <tr>
-          <td><strong>Abilene US Backbone</strong></td>
-          <td>12 Nodes, 30 Directed Links</td>
-          <td>Continental academic WAN with asymmetric geographic propagation delays</td>
-        </tr>
-        <tr>
-          <td><strong>NSFNet Mesh</strong></td>
-          <td>14 Nodes, 42 Directed Links</td>
-          <td>High-degree cross-connected continental mesh with complex path diversity</td>
-        </tr>
-        <tr>
-          <td><strong>Spine-Leaf Fabric</strong></td>
-          <td>12 Switches (4 Spine, 8 Leaf), 64 Links</td>
-          <td>Modern cloud datacenter fabric with massive all-to-all bisection bandwidth</td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="col-side-by-side">
+      <table class="academic-table" style="background: white; border-radius: 8px; overflow: hidden; font-size: 0.82rem;">
+        <thead>
+          <tr>
+            <th>Topology Family</th>
+            <th>Graph Scale (Nodes / Edges)</th>
+            <th>Topological Features & Bottleneck Characteristics</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Hierarchical Tree (S7)</strong></td>
+            <td>7 Switches, 8 Hosts, 8 Links</td>
+            <td>Core-aggregation-edge hierarchy with lateral cross-links (s4-s6, s5-s7)</td>
+          </tr>
+          <tr>
+            <td><strong>Clos Fat-Tree (k=4)</strong></td>
+            <td>20 Switches, 16 Hosts, 32 Links</td>
+            <td>Multi-stage datacenter fabric with redundant core trunks and multi-pod aggregation</td>
+          </tr>
+          <tr>
+            <td><strong>Abilene US Backbone</strong></td>
+            <td>12 Nodes, 30 Directed Links</td>
+            <td>Continental academic WAN with asymmetric geographic propagation delays</td>
+          </tr>
+          <tr>
+            <td><strong>NSFNet Mesh</strong></td>
+            <td>14 Nodes, 42 Directed Links</td>
+            <td>High-degree cross-connected continental mesh with complex path diversity</td>
+          </tr>
+          <tr>
+            <td><strong>Spine-Leaf Fabric</strong></td>
+            <td>12 Switches (4 Spine, 8 Leaf), 64 Links</td>
+            <td>Modern cloud datacenter fabric with massive all-to-all bisection bandwidth</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="card" style="display: flex; flex-direction: column; justify-content: space-between; padding: 0.8rem 1rem;">
+        <div class="card-title" style="font-size: 0.9rem;">Host Virtualization Environment</div>
+        <div style="text-align: center; margin: 0.2rem 0;">
+          <img src="{img_vmware}" alt="VMware Workstation Specifications" style="max-height: 125px; border-radius: 6px; border: 1px solid var(--border-light); object-fit: contain;">
+        </div>
+        <ul style="font-size: 0.74rem; line-height: 1.4; margin-bottom: 0;">
+          <li><strong>Virtualization:</strong> VMware Workstation 17 Pro</li>
+          <li><strong>Guest OS:</strong> Ubuntu 22.04 LTS (64-bit)</li>
+          <li><strong>vCPUs / RAM:</strong> 4 Cores @ 2.6 GHz | 8.0 GB</li>
+          <li><strong>Storage:</strong> 60 GB Pre-allocated SCSI Disk</li>
+          <li><strong>Network / Stack:</strong> NAT | Linux 6.8, OVS 2.17.9, Mininet 2.3.0, Ryu 4.34, PyTorch 2.2.0</li>
+        </ul>
+      </div>
+    </div>
   </div>
 
   <!-- ============================================================== -->
