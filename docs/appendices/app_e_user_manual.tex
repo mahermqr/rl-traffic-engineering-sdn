@@ -7,12 +7,15 @@
 \section{System Prerequisites and Dependencies}
 The Adaptive SDN Traffic Engineering Platform is engineered to run natively on Linux-based environments (Ubuntu 20.04 LTS, Ubuntu 22.04 LTS, Ubuntu 24.04 LTS, or Debian 11/12). 
 
-\subsection{Hardware Requirements}
+\subsection{Hardware Requirements \& Reference Deployment Environment}
+The reference production deployment was hosted inside a dedicated 64-bit Ubuntu virtual machine running under the VMware hypervisor (see Figure~\ref{fig:vmware_specs}):
 \begin{itemize}
-    \item \textbf{Processor}: Modern x86\_64 or ARM64 multi-core CPU (Intel Core i5/i7/Xeon, AMD Ryzen/EPYC, or Apple Silicon via Linux VM). Minimum: 4 physical cores. Recommended: 8 cores.
-    \item \textbf{System Memory (RAM)}: Minimum 4~GB. Recommended: 8~GB or 16~GB for 20-switch Clos emulations.
-    \item \textbf{Storage}: Minimum 2~GB of available disk space for dependencies, logs, and pre-trained models.
+    \item \textbf{Virtual Processors}: 4 virtual CPU cores (vCPUs) with hardware virtualization extensions enabled.
+    \item \textbf{System Memory (RAM)}: 8.0~GB of dedicated memory (minimum: 4~GB; 8~GB recommended for 20-switch Clos emulations).
+    \item \textbf{Disk Storage}: 60.0~GB SCSI virtual disk (minimum: 10~GB free space for dependencies, dataset logs, and model checkpoints).
+    \item \textbf{Network Adapter}: NAT virtual adapter with isolated internal loopback for OpenFlow and REST dashboard communication.
 \end{itemize}
+
 
 \subsection{Software Requirements}
 \begin{itemize}

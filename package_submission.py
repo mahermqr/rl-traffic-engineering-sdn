@@ -6,10 +6,10 @@ Supervisor: Dr. Suad El-Geder
 Department of Computer Engineering, University of Tripoli.
 
 Creates a structured, timestamped, self-contained submission archive containing:
-- 108-page Master Thesis PDF & LaTeX sources
+- 111-page Master Thesis PDF & LaTeX sources
 - 30-slide PowerPoint deck & standalone interactive HTML slides
 - Defense quick-reference cheat sheet & live demo runbook
-- All 14 publication-grade experimental plots & dashboard captures
+- All 15 publication-grade experimental plots & environment captures
 - Official Mininet validation logs and benchmark matrices
 - Trained PyTorch D3QN model weights
 - Carrier-grade source code, tests, and web dashboard
@@ -62,7 +62,8 @@ def main():
         shutil.copytree(DOCS_DIR / "chapters", dir_thesis / "chapters")
     if (DOCS_DIR / "appendices").exists():
         shutil.copytree(DOCS_DIR / "appendices", dir_thesis / "appendices")
-    print("  [+] Staged 01_Final_Thesis_Report (108-Page PDF & Complete LaTeX Sources)")
+    print("  [+] Staged 01_Final_Thesis_Report (111-Page PDF & Complete LaTeX Sources)")
+
 
     # 2. 02_Defense_Presentation
     dir_defense = BUNDLE_ROOT / "02_Defense_Presentation"
@@ -144,8 +145,8 @@ Maher_Alqadhi_2210249576_EC499_Final_Graduation_Submission/
 ├── CHECKSUMS_SHA256.txt                   <- Cryptographic SHA256 integrity hashes
 │
 ├── 01_Final_Thesis_Report/
-│   ├── Project_Report_EC499_Final.pdf     <- Authoritative 107-Page Master Thesis PDF
-│   ├── Project_Report_EC499_Monolithic.tex<- Monolithic LaTeX document (3,861 lines)
+│   ├── Project_Report_EC499_Final.pdf     <- Authoritative 111-Page Master Thesis PDF
+│   ├── Project_Report_EC499_Monolithic.tex<- Monolithic LaTeX document (3,886 lines)
 │   ├── references.bib                     <- Complete academic bibliography
 │   ├── chapters/                          <- All 11 thesis chapters (Modular LaTeX)
 │   └── appendices/                        <- All 5 technical appendices (Modular LaTeX)
@@ -155,7 +156,7 @@ Maher_Alqadhi_2210249576_EC499_Final_Graduation_Submission/
 │   ├── EC499_Graduation_Defense_Slides.html       <- Standalone Interactive HTML5 Deck
 │   └── DEFENSE_CHEAT_SHEET.md                     <- 5-Minute Demo Runbook & 11 Committee Q&As
 │
-├── 03_Experimental_Figures_and_Plots/     <- All 14 High-Resolution Publication Plots
+├── 03_Experimental_Figures_and_Plots/     <- All 15 High-Resolution Publication Plots
 │   ├── proposal_benchmarks_all_metrics.png
 │   ├── proposal_tournament_radar.png
 │   ├── dqn_te_training_convergence.png
@@ -169,7 +170,8 @@ Maher_Alqadhi_2210249576_EC499_Final_Graduation_Submission/
 │   ├── dashboard_versus_tournament.png
 │   ├── dashboard_model_inspector.png
 │   ├── dashboard_network_settings.png
-│   └── pareto_weight_sensitivity.png
+│   ├── pareto_weight_sensitivity.png
+│   └── vmware_virtual_machine_specs.png
 │
 ├── 04_Validation_Logs_and_Metrics/        <- Empirical Validation Matrices
 │   ├── validation_matrix_S7_udp_20261015_075319.csv <- Official Mininet Emulation Matrix

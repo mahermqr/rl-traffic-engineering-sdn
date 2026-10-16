@@ -15,8 +15,30 @@ Our quality assurance framework guarantees software correctness across four deco
     \item \textbf{Headless Dashboard and REST API Testing (\texttt{test\_dashboard\_headless.py})}: Web telemetry verification via automated HTTP client test harnesses asserting schema compliance, JSON serialization, and sub-millisecond inference endpoints.
 \end{enumerate}
 
+\section{Experimental Virtualization Environment \& Host Provisioning}
+\label{sec:vm_environment}
+To guarantee a completely deterministic, reproducible experimental testbed and avoid host-level OS interference with network namespaces and Open vSwitch kernel sockets, all Mininet emulations, Ryu OpenFlow controllers, and D3QN agent training loops were executed inside a dedicated 64-bit Ubuntu virtual machine.
+
+Figure~\ref{fig:vmware_specs} presents the exact hypervisor hardware configuration provisioned for this research.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.65\textwidth]{vmware_virtual_machine_specs.png}
+\caption{VMware Virtual Machine Hardware Configuration for the Experimental SDN-DRL Platform (Ubuntu 64-bit, 4 vCPUs, 8~GB RAM, 60~GB SCSI Storage).}
+\label{fig:vmware_specs}
+\end{figure}
+
+The virtual machine parameters were configured as follows:
+\begin{itemize}
+    \item \textbf{Virtual CPUs (vCPUs)}: 4 processor cores allocated to ensure parallel execution of the multi-threaded Ryu controller event dispatcher, asynchronous PyTorch neural gradient backpropagation threads, and background Mininet traffic generation.
+    \item \textbf{System Memory (vRAM)}: 8~GB of dedicated RAM, providing sufficient memory headroom for the $50,000$-transition binary SumTree replay buffer, NetworkX in-memory topology graphs, and multi-switch flow tables without memory swapping.
+    \item \textbf{Storage Subsystem}: 60~GB SCSI virtual disk, accommodating operating system packages, Python virtual environments, historical benchmark JSON logs, high-resolution 300~DPI publication figures, and PyTorch checkpoint weights.
+    \item \textbf{Network Adapter}: NAT virtual networking adapter configured with internal loopback and host-only interfaces, isolating OpenFlow control traffic (port 6633) and HTTP REST dashboard telemetry (port 8080) from external broadcast noise.
+\end{itemize}
+
 \section{Automated Test Suite Verification (\texttt{test\_suite.py})}
 The primary automated test suite (\texttt{test\_suite.py}) executes 32 comprehensive unit and integration tests across eight specialized test fixture classes. All 32 tests pass with a 100\% success rate in approximately 2.4 seconds.
+
 
 \begin{lstlisting}[basicstyle=\ttfamily\scriptsize, caption={Full Execution Log of the Automated Test Suite (test\_suite.py)}]
 ======================================================================
