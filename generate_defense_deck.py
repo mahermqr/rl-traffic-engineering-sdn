@@ -838,7 +838,7 @@ def main():
     tx = slide.shapes.add_textbox(Inches(1.0), Inches(2.2), Inches(5.2), Inches(4.5))
     tf = tx.text_frame
     tf.word_wrap = True
-    tf.text = "• 100% Proposal Objective Fulfillment\nDelivered a fully integrated platform satisfying all 5 approved objectives and 6 procedures.\n\n• Empirically Proven Performance\nD3QN consistently outperforms OSPF, ECMP, Dijkstra SPF, LLR, and WSP, cutting latency by up to 73.5% and eliminating buffer dropouts.\n\n• Zero-Shot Transferability\nDemonstrated robust out-of-distribution transfer to arbitrary unseen topologies up to 35 nodes.\n\n• Carrier-Grade Software Deliverable\n108-Page Technical Report, 32 passing unit tests, and live interactive HTML5 Web Dashboard."
+    tf.text = "• 100% Proposal Objective Fulfillment\nDelivered a fully integrated platform satisfying all 5 approved objectives and 6 procedures.\n\n• Empirically Proven Performance\nD3QN consistently outperforms OSPF, ECMP, Dijkstra SPF, LLR, and WSP, cutting latency by up to 73.5% and eliminating buffer dropouts.\n\n• Zero-Shot Transferability\nDemonstrated robust out-of-distribution transfer to arbitrary unseen topologies up to 35 nodes.\n\n• Carrier-Grade Software Deliverable\n143-Page Technical Report, 32 passing unit tests, and live interactive HTML5 Web Dashboard."
 
     add_card(slide, Inches(6.9), Inches(1.7), Inches(5.6), Inches(5.2), title="Future Research Roadmap")
     tx = slide.shapes.add_textbox(Inches(7.1), Inches(2.2), Inches(5.2), Inches(4.5))

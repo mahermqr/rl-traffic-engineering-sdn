@@ -29,7 +29,7 @@ This platform integrates a **Dueling Double Deep Q-Network (D3QN)** with **Prior
 | **Objective 5** | Evaluate performance using packet loss and control overhead metrics | M/M/1/K buffer overflow loss model and OpenFlow message accounting (`OFPPacketIn`, `OFPFlowMod`, decision latency) |
 | **Procedure 4** | Train DQN agent using synthetic traffic patterns to simulate load | Poisson burst generator, elephant flows, and core jamming stress tests (`topology/traffic_generator.sh`) |
 | **Procedure 5** | Benchmark RL agent against OSPF and greedy routing baselines | Automated tournament benchmark (`benchmark_routing_algorithms.py`) comparing DQN against OSPF (RFC 2328), Dijkstra SPF, ECMP, WSP, and LLR |
-| **Procedure 6** | Document findings and prepare final technical report and source code | Complete 108-page graduation thesis (`docs/Project_Report_EC499_Final.pdf`), 30-slide defense decks (`docs/EC499_Graduation_Defense_Presentation.pptx` & `.html`), 32 passing unit tests (`test_suite.py`), and 14 publication plots in `logs/plots/` |
+| **Procedure 6** | Document findings and prepare final technical report and source code | Complete 143-page graduation thesis (`docs/Project_Report_EC499_Final.pdf`), 30-slide defense decks (`docs/EC499_Graduation_Defense_Presentation.pptx` & `.html`), 32 passing unit tests (`test_suite.py`), and 14 publication plots in `logs/plots/` |
 
 ---
 
@@ -99,7 +99,7 @@ Evaluated under **closed-loop dynamic flow accumulation and lifecycle stepping**
 │       └── pareto_weight_sensitivity.png           # Figure 14: Pareto sensitivity ablation
 │
 ├── docs/
-│   ├── Project_Report_EC499_Final.pdf  # 108-Page Official Graduation Project Master Thesis
+│   ├── Project_Report_EC499_Final.pdf  # 143-Page Official Graduation Project Master Thesis
 │   ├── Project_Report_EC499_Monolithic.tex # Monolithic LaTeX document (11 chapters + 5 appendices)
 │   ├── EC499_Graduation_Defense_Presentation.pptx # 30-Slide Defense PowerPoint Presentation
 │   ├── EC499_Graduation_Defense_Slides.html       # 30-Slide Interactive Standalone HTML5 Deck

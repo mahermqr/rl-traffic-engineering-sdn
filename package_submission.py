@@ -6,7 +6,7 @@ Supervisor: Dr. Suad El-Geder
 Department of Computer Engineering, University of Tripoli.
 
 Creates a structured, timestamped, self-contained submission archive containing:
-- 111-page Master Thesis PDF & LaTeX sources
+- 143-page Master Thesis PDF & LaTeX sources
 - 30-slide PowerPoint deck & standalone interactive HTML slides
 - Defense quick-reference cheat sheet & live demo runbook
 - All 15 publication-grade experimental plots & environment captures
@@ -62,7 +62,7 @@ def main():
         shutil.copytree(DOCS_DIR / "chapters", dir_thesis / "chapters")
     if (DOCS_DIR / "appendices").exists():
         shutil.copytree(DOCS_DIR / "appendices", dir_thesis / "appendices")
-    print("  [+] Staged 01_Final_Thesis_Report (111-Page PDF & Complete LaTeX Sources)")
+    print("  [+] Staged 01_Final_Thesis_Report (143-Page PDF & Complete LaTeX Sources)")
 
 
     # 2. 02_Defense_Presentation
@@ -145,7 +145,7 @@ Maher_Alqadhi_2210249576_EC499_Final_Graduation_Submission/
 ├── CHECKSUMS_SHA256.txt                   <- Cryptographic SHA256 integrity hashes
 │
 ├── 01_Final_Thesis_Report/
-│   ├── Project_Report_EC499_Final.pdf     <- Authoritative 111-Page Master Thesis PDF
+│   ├── Project_Report_EC499_Final.pdf     <- Authoritative 143-Page Master Thesis PDF
 │   ├── Project_Report_EC499_Monolithic.tex<- Monolithic LaTeX document (3,886 lines)
 │   ├── references.bib                     <- Complete academic bibliography
 │   ├── chapters/                          <- All 11 thesis chapters (Modular LaTeX)

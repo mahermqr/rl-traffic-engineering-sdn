@@ -1476,7 +1476,7 @@ def main():
   <!-- ============================================================== -->
   <!-- SLIDE 29: Conclusions & Future Roadmap -->
   <!-- ============================================================== -->
-  <div class="slide theme-light" data-notes="In conclusion, this project delivered an end-to-end, carrier-grade adaptive traffic engineering platform. We met 100% of all proposal objectives, proved empirical superiority over classical protocols, demonstrated zero-shot transferability, and produced a 108-page technical report and passing test suite. Looking forward, promising directions include multi-agent DRL, SRv6, and P4 programmable data planes.">
+  <div class="slide theme-light" data-notes="In conclusion, this project delivered an end-to-end, carrier-grade adaptive traffic engineering platform. We met 100% of all proposal objectives, proved empirical superiority over classical protocols, demonstrated zero-shot transferability, and produced a 143-page technical report and passing test suite. Looking forward, promising directions include multi-agent DRL, SRv6, and P4 programmable data planes.">
     <div class="header-pill">Summary & Outlook</div>
     <div class="slide-title">Conclusions, Contributions & Future Research Directions</div>
     <div class="title-divider"></div>
@@ -1488,7 +1488,7 @@ def main():
           <li><strong>100% Proposal Objective Fulfillment:</strong> Delivered a fully integrated platform satisfying all 5 approved objectives and 6 procedures.</li>
           <li><strong>Empirically Proven Performance:</strong> D3QN consistently outperforms OSPF, ECMP, Dijkstra SPF, LLR, and WSP, cutting latency by up to 73.5% and eliminating buffer dropouts.</li>
           <li><strong>Zero-Shot Transferability:</strong> Demonstrated robust out-of-distribution transfer to arbitrary unseen topologies up to 35 nodes.</li>
-          <li><strong>Carrier-Grade Software Deliverable:</strong> 108-Page Technical Report, 32 passing unit tests, and live interactive HTML5 Web Dashboard.</li>
+          <li><strong>Carrier-Grade Software Deliverable:</strong> 143-Page Technical Report, 32 passing unit tests, and live interactive HTML5 Web Dashboard.</li>
         </ul>
       </div>
 
