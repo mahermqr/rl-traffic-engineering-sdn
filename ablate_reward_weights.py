@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Formal Pareto Frontier & Reward Hyperparameter Sensitivity Analysis
-Ablates reward formulation weights across 6 distinct SLA regimes to prove
-that the chosen D3QN Pareto configuration achieves optimal multi-objective balance.
+Routing Objective Hyperparameter Sensitivity Analysis.
+Evaluates six SLA weight regimes over reproducible flows on project topologies.
+This is an objective-policy sensitivity test, not a D3QN retraining experiment.
 """
 
 import os
@@ -11,6 +11,11 @@ import json
 import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
+
+sys.path.extend([str(Path(__file__).resolve().parent / 'controller'), str(Path(__file__).resolve().parent / 'topology')])
+from state_manager import StateManager
+from topology_library import get_topology
+from traditional_routing import compute_path_metrics
 
 BASE_DIR = Path(__file__).resolve().parent
 LOGS_DIR = BASE_DIR / "logs"
@@ -59,10 +64,11 @@ CONFIGS = [
 ]
 
 def simulate_regime(cfg, episodes=50):
-    """Simulates network dynamics under the given reward hyperparameter weights."""
-    np.random.seed(42)
+    """Evaluate the configured objective on real project graphs and queue metrics."""
+    rng = np.random.default_rng(42)
     w_u = cfg["w_util"]
     w_d = cfg["w_lat"]
+    w_j = cfg["w_jit"]
     w_l = cfg["w_loss"]
     theta = cfg["barrier_theta"]
 
@@ -71,61 +77,74 @@ def simulate_regime(cfg, episodes=50):
     losses = []
     jitters = []
 
+    topology_ids = ('tree', 'abilene', 'spineleaf')
     for ep in range(episodes):
-        # Base offered traffic escalating from 40 to 95 Mbps
-        offered = np.random.uniform(40.0, 95.0)
+        topology_id = topology_ids[ep % len(topology_ids)]
+        graph, meta = get_topology(topology_id)
+        sm = StateManager()
+        sm.set_topology(topology_id, graph, meta)
+        for edge in sm.link_utilization:
+            sm.link_utilization[edge] = float(rng.uniform(0.20, 0.92))
+            sm._recalculate_link_metrics(edge)
 
-        # Core bottleneck dynamics under the policy
-        if theta < 0.75:
-            # Active barrier forces detour onto lateral bypasses
-            b_load = min(0.68, offered * 0.007 + np.random.normal(0.0, 0.02))
-            detour_hops = 3.2
-            base_lat = detour_hops * 3.5
-            q_delay = (b_load / max(0.08, 1.0 - b_load)) * 1.5
-            lat = base_lat + q_delay
-            loss = 0.001 if b_load < 0.70 else (b_load - 0.70) * 0.05
-            jit = 0.8 + 0.4 * b_load
-        elif theta >= 0.95:
-            # No barrier: flows pile on core trunks
-            b_load = min(0.96, offered * 0.011 + np.random.normal(0.0, 0.03))
-            base_lat = 2.0 * 3.5 # Shorter path
-            q_delay = (b_load / max(0.04, 1.0 - b_load)) * 4.5
-            lat = base_lat + q_delay
-            loss = 0.0 if b_load < 0.70 else min(15.0, ((b_load - 0.70) / 0.30) ** 2 * 12.0)
-            jit = 1.2 + 2.5 * (b_load ** 2)
-        else:
-            # Balanced proposed regime
-            b_load = min(0.62, offered * 0.0065 + np.random.normal(0.0, 0.015))
-            base_lat = 2.8 * 3.5
-            q_delay = (b_load / max(0.1, 1.0 - b_load)) * 1.8
-            lat = base_lat + q_delay
-            loss = 0.002 if b_load < 0.70 else (b_load - 0.70) * 0.08
-            jit = 0.9 + 0.5 * b_load
+        endpoints = meta.get('edge_nodes', list(graph.nodes()))
+        src = endpoints[int(rng.integers(0, len(endpoints)))]
+        dst_options = [node for node in endpoints if node != src]
+        dst = dst_options[int(rng.integers(0, len(dst_options)))]
+        demand = float(rng.uniform(5.0, 25.0))
+        candidates = sm.get_candidate_paths(src, dst, k=4)
+        if not candidates:
+            continue
 
-        bottlenecks.append(float(b_load * 100.0))
-        latencies.append(float(lat))
-        losses.append(float(loss))
-        jitters.append(float(jit))
+        scored = []
+        for path in candidates:
+            projected = dict(sm.link_utilization)
+            for u, v in zip(path, path[1:]):
+                projected[(u, v)] = projected.get((u, v), 0.0) + demand / max(1.0, sm.link_bandwidths[(u, v)])
+            metrics = compute_path_metrics(
+                path, projected, sm.base_link_delays, sm.link_bandwidths,
+                queue_depth=sm.switch_queue_depth, observed_delays=False,
+            )
+            barrier = 0.0 if theta >= 1.0 else 10.0 * w_u * max(0.0, metrics['bottleneck_util'] - theta) ** 2
+            cost = (
+                w_u * metrics['bottleneck_util'] ** 2
+                + w_d * metrics['total_delay']
+                + w_j * metrics['jitter']
+                + w_l * metrics['packet_loss']
+                + barrier
+            )
+            scored.append((cost, path))
+        _, chosen = min(scored, key=lambda item: item[0])
+        sm.allocate_dynamic_flow(f"ablation_{ep}", chosen, mbps=demand, duration_sec=1.0)
+        observed = compute_path_metrics(
+            chosen, sm.link_utilization, sm.base_link_delays, sm.link_bandwidths,
+            queue_depth=sm.switch_queue_depth, observed_delays=False,
+        )
+        bottlenecks.append(observed['bottleneck_util'] * 100.0)
+        latencies.append(observed['total_delay'])
+        losses.append(observed['packet_loss'])
+        jitters.append(observed['jitter'])
 
     mean_b = float(np.mean(bottlenecks))
     mean_lat = float(np.mean(latencies))
     mean_loss = float(np.mean(losses))
     mean_jit = float(np.mean(jitters))
 
-    # Pareto Score: Normalized harmonic distance to ideal frontier (lower is better)
-    # Ideal: Bottleneck 50%, Latency 10ms, Loss 0%
-    score = (mean_b / 50.0) * 0.4 + (mean_lat / 12.0) * 0.3 + (max(0.01, mean_loss) / 0.1) * 0.3
+    # A reporting score only; routing choices above use each ablated objective.
+    score = (mean_b / 100.0) * 0.4 + (mean_lat / 50.0) * 0.25 + (mean_jit / 20.0) * 0.15 + (mean_loss / 100.0) * 0.20
 
     return {
         "mean_bottleneck_pct": round(mean_b, 2),
         "mean_latency_ms": round(mean_lat, 2),
         "mean_loss_pct": round(mean_loss, 3),
         "mean_jitter_ms": round(mean_jit, 2),
-        "pareto_rank_score": round(float(score), 3)
+        "pareto_rank_score": round(float(score), 3),
+        "samples": len(bottlenecks),
+        "method": "deterministic multi-topology routing-objective sensitivity; no retraining"
     }
 
 def main():
-    print("[*] Running formal Pareto sensitivity ablation across 6 reward configurations...")
+    print("[*] Running reproducible routing-objective sensitivity analysis across 6 configurations...")
     results = {}
     for cfg in CONFIGS:
         cid = cfg["id"]

@@ -1,0 +1,134 @@
+{
+  "theta_0.6_relief_1.0": {
+    "theta_congestion": 0.6,
+    "w_relief": 1.0,
+    "metrics": {
+      "bottleneck_util_mean": 250.19,
+      "latency_mean_ms": 1044.87,
+      "p95_latency_ms": 2744.04,
+      "packet_loss_pct": 21.6054,
+      "jains_fairness": 0.8795
+    }
+  },
+  "theta_0.6_relief_2.0": {
+    "theta_congestion": 0.6,
+    "w_relief": 2.0,
+    "metrics": {
+      "bottleneck_util_mean": 231.08,
+      "latency_mean_ms": 525.6,
+      "p95_latency_ms": 1498.35,
+      "packet_loss_pct": 15.0365,
+      "jains_fairness": 0.8461
+    }
+  },
+  "theta_0.6_relief_4.0": {
+    "theta_congestion": 0.6,
+    "w_relief": 4.0,
+    "metrics": {
+      "bottleneck_util_mean": 263.43,
+      "latency_mean_ms": 1224.27,
+      "p95_latency_ms": 2860.89,
+      "packet_loss_pct": 25.292,
+      "jains_fairness": 0.8844
+    }
+  },
+  "theta_0.6_relief_8.0": {
+    "theta_congestion": 0.6,
+    "w_relief": 8.0,
+    "metrics": {
+      "bottleneck_util_mean": 234.45,
+      "latency_mean_ms": 512.48,
+      "p95_latency_ms": 1496.21,
+      "packet_loss_pct": 14.8177,
+      "jains_fairness": 0.8521
+    }
+  },
+  "theta_0.7_relief_1.0": {
+    "theta_congestion": 0.7,
+    "w_relief": 1.0,
+    "metrics": {
+      "bottleneck_util_mean": 258.47,
+      "latency_mean_ms": 1144.62,
+      "p95_latency_ms": 2778.89,
+      "packet_loss_pct": 23.653,
+      "jains_fairness": 0.89
+    }
+  },
+  "theta_0.7_relief_2.0": {
+    "theta_congestion": 0.7,
+    "w_relief": 2.0,
+    "metrics": {
+      "bottleneck_util_mean": 231.01,
+      "latency_mean_ms": 776.45,
+      "p95_latency_ms": 2385.85,
+      "packet_loss_pct": 17.4593,
+      "jains_fairness": 0.8871
+    }
+  },
+  "theta_0.7_relief_4.0": {
+    "theta_congestion": 0.7,
+    "w_relief": 4.0,
+    "metrics": {
+      "bottleneck_util_mean": 243.28,
+      "latency_mean_ms": 543.26,
+      "p95_latency_ms": 1569.1,
+      "packet_loss_pct": 15.6348,
+      "jains_fairness": 0.8246
+    }
+  },
+  "theta_0.7_relief_8.0": {
+    "theta_congestion": 0.7,
+    "w_relief": 8.0,
+    "metrics": {
+      "bottleneck_util_mean": 244.28,
+      "latency_mean_ms": 1054.76,
+      "p95_latency_ms": 2666.04,
+      "packet_loss_pct": 21.4432,
+      "jains_fairness": 0.9133
+    }
+  },
+  "theta_0.8_relief_1.0": {
+    "theta_congestion": 0.8,
+    "w_relief": 1.0,
+    "metrics": {
+      "bottleneck_util_mean": 285.66,
+      "latency_mean_ms": 1270.98,
+      "p95_latency_ms": 2908.0,
+      "packet_loss_pct": 25.4954,
+      "jains_fairness": 0.9171
+    }
+  },
+  "theta_0.8_relief_2.0": {
+    "theta_congestion": 0.8,
+    "w_relief": 2.0,
+    "metrics": {
+      "bottleneck_util_mean": 250.72,
+      "latency_mean_ms": 536.43,
+      "p95_latency_ms": 1587.21,
+      "packet_loss_pct": 15.779,
+      "jains_fairness": 0.8137
+    }
+  },
+  "theta_0.8_relief_4.0": {
+    "theta_congestion": 0.8,
+    "w_relief": 4.0,
+    "metrics": {
+      "bottleneck_util_mean": 242.96,
+      "latency_mean_ms": 1082.08,
+      "p95_latency_ms": 2666.87,
+      "packet_loss_pct": 22.3958,
+      "jains_fairness": 0.9127
+    }
+  },
+  "theta_0.8_relief_8.0": {
+    "theta_congestion": 0.8,
+    "w_relief": 8.0,
+    "metrics": {
+      "bottleneck_util_mean": 231.2,
+      "latency_mean_ms": 524.11,
+      "p95_latency_ms": 1474.89,
+      "packet_loss_pct": 14.9576,
+      "jains_fairness": 0.8423
+    }
+  }
+}

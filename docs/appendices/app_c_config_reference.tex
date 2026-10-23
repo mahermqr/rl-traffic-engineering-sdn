@@ -40,21 +40,21 @@ Table~\ref{tab:full_config_dictionary} provides the exhaustive specification for
 \texttt{memory\_size} & \texttt{--memory-size} & \texttt{RL\_MEMORY\_SIZE} & \texttt{5000} & Capacity of binary SumTree Prioritized Replay buffer. \\
 \texttt{batch\_size} & \texttt{--batch-size} & \texttt{RL\_BATCH\_SIZE} & \texttt{32} & Number of transitions sampled per gradient backpropagation. \\
 \texttt{tau} & \texttt{--tau} & \texttt{RL\_TAU} & \texttt{0.005} & Polyak soft target network tracking parameter ($\tau \in (0, 1)$). \\
-\texttt{epsilon\_start} & \texttt{--eps-start} & \texttt{RL\_EPS_START} & \texttt{1.0} & Initial exploration rate for $\epsilon$-greedy curriculum. \\
-\texttt{epsilon\_end} & \texttt{--eps-end} & \texttt{RL\_EPS_END} & \texttt{0.01} & Minimum exploration rate floor for pure exploitation. \\
-\texttt{epsilon\_decay} & \texttt{--eps-decay} & \texttt{RL\_EPS_DECAY} & \texttt{750} & Episode threshold where exploration reaches minimum floor. \\
-\texttt{per\_alpha} & \texttt{--per-alpha} & \texttt{RL\_PER_ALPHA} & \texttt{0.6} & Prioritization exponent in PER ($P(i) \propto p_i^\alpha$). \\
-\texttt{per\_beta\_start} & \texttt{--per-beta-start} & \texttt{RL\_PER_BETA_START} & \texttt{0.4} & Initial importance sampling bias correction exponent. \\
-\texttt{per\_beta\_end} & \texttt{--per-beta-end} & \texttt{RL\_PER_BETA_END} & \texttt{1.0} & Final importance sampling exponent at convergence. \\
+\texttt{epsilon\_start} & \texttt{--eps-start} & \texttt{RL\_EPS\_START} & \texttt{1.0} & Initial exploration rate for $\epsilon$-greedy curriculum. \\
+\texttt{epsilon\_end} & \texttt{--eps-end} & \texttt{RL\_EPS\_END} & \texttt{0.01} & Minimum exploration rate floor for pure exploitation. \\
+\texttt{epsilon\_decay} & \texttt{--eps-decay} & \texttt{RL\_EPS\_DECAY} & \texttt{750} & Episode threshold where exploration reaches minimum floor. \\
+\texttt{per\_alpha} & \texttt{--per-alpha} & \texttt{RL\_PER\_ALPHA} & \texttt{0.6} & Prioritization exponent in PER ($P(i) \propto p_i^\alpha$). \\
+\texttt{per\_beta\_start} & \texttt{--per-beta-start} & \texttt{RL\_PER\_BETA\_START} & \texttt{0.4} & Initial importance sampling bias correction exponent. \\
+\texttt{per\_beta\_end} & \texttt{--per-beta-end} & \texttt{RL\_PER\_BETA\_END} & \texttt{1.0} & Final importance sampling exponent at convergence. \\
 \addlinespace
 \texttt{wcmp\_beta} & \texttt{--wcmp-beta} & \texttt{SDN\_WCMP\_BETA} & \texttt{4.0} & Softmax exponent for inverse load multi-path weighting. \\
-\texttt{weight\_hop} & \texttt{--weight-hop} & \texttt{RL\_WEIGHT_HOP} & \texttt{0.35} & Multi-objective penalty weight for candidate path hop count. \\
-\texttt{weight\_latency} & \texttt{--weight-lat} & \texttt{RL\_WEIGHT_LAT} & \texttt{0.06} & Multi-objective penalty weight for cumulative path latency. \\
-\texttt{weight\_jitter} & \texttt{--weight-jit} & \texttt{RL\_WEIGHT_JIT} & \texttt{0.25} & Multi-objective penalty weight for packet delay variation. \\
-\texttt{weight\_loss} & \texttt{--weight-loss} & \texttt{RL\_WEIGHT_LOSS} & \texttt{0.50} & Multi-objective penalty weight for buffer drop probability. \\
-\texttt{cong\_thresh} & \texttt{--cong-thresh} & \texttt{RL\_CONG_THRESH} & \texttt{0.70} & Utilization threshold where barrier penalty activates ($70\%$). \\
-\texttt{barrier\_scale} & \texttt{--barrier-scale} & \texttt{RL\_BARRIER_SCALE} & \texttt{12.0} & Scaling constant for asymptotic congestion penalty. \\
-\texttt{barrier\_power} & \texttt{--barrier-power} & \texttt{RL\_BARRIER_POWER} & \texttt{1.8} & Exponent of link utilization in barrier numerator. \\
+\texttt{weight\_hop} & \texttt{--weight-hop} & \texttt{RL\_WEIGHT\_HOP} & \texttt{0.35} & Multi-objective penalty weight for candidate path hop count. \\
+\texttt{weight\_latency} & \texttt{--weight-lat} & \texttt{RL\_WEIGHT\_LAT} & \texttt{0.06} & Multi-objective penalty weight for cumulative path latency. \\
+\texttt{weight\_jitter} & \texttt{--weight-jit} & \texttt{RL\_WEIGHT\_JIT} & \texttt{0.25} & Multi-objective penalty weight for packet delay variation. \\
+\texttt{weight\_loss} & \texttt{--weight-loss} & \texttt{RL\_WEIGHT\_LOSS} & \texttt{0.50} & Multi-objective penalty weight for buffer drop probability. \\
+\texttt{cong\_thresh} & \texttt{--cong-thresh} & \texttt{RL\_CONG\_THRESH} & \texttt{0.70} & Utilization threshold where barrier penalty activates ($70\%$). \\
+\texttt{barrier\_scale} & \texttt{--barrier-scale} & \texttt{RL\_BARRIER\_SCALE} & \texttt{12.0} & Scaling constant for asymptotic congestion penalty. \\
+\texttt{barrier\_power} & \texttt{--barrier-power} & \texttt{RL\_BARRIER\_POWER} & \texttt{1.8} & Exponent of link utilization in barrier numerator. \\
 \bottomrule
 \end{tabularx}
 \end{table}

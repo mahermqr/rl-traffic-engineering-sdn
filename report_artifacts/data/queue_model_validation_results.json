@@ -1,0 +1,380 @@
+{
+  "metadata": {
+    "mu_pps": 2000.0,
+    "K_tested": [
+      20,
+      50,
+      100
+    ],
+    "rho_tested": [
+      0.4,
+      0.7,
+      0.85,
+      0.95,
+      1.1
+    ],
+    "sim_packets": 80000,
+    "warmup_packets": 10000,
+    "description": "Validation of analytical M/M/1/K vs Poisson vs Heavy-Tailed Pareto packet queues"
+  },
+  "queue_evaluations": {
+    "K_20": {
+      "rho_0.40": {
+        "rho": 0.4,
+        "arrival_rate_pps": 800.0,
+        "analytical_mm1k": {
+          "p_loss_pct": 0.0,
+          "mean_delay_ms": 0.83,
+          "mean_packets": 0.67
+        },
+        "empirical_poisson": {
+          "p_loss_pct": 0.0,
+          "mean_delay_ms": 0.83,
+          "p95_delay_ms": 2.47,
+          "mean_occupancy": 0.68
+        },
+        "empirical_bursty_pareto": {
+          "p_loss_pct": 0.0,
+          "mean_delay_ms": 1.035,
+          "p95_delay_ms": 3.126,
+          "p99_delay_ms": 4.648,
+          "mean_occupancy": 1.07
+        },
+        "burst_excess_loss_pct": 0.0
+      },
+      "rho_0.70": {
+        "rho": 0.7,
+        "arrival_rate_pps": 1400.0,
+        "analytical_mm1k": {
+          "p_loss_pct": 0.024,
+          "mean_delay_ms": 1.66,
+          "mean_packets": 2.32
+        },
+        "empirical_poisson": {
+          "p_loss_pct": 0.04,
+          "mean_delay_ms": 1.619,
+          "p95_delay_ms": 4.835,
+          "mean_occupancy": 2.05
+        },
+        "empirical_bursty_pareto": {
+          "p_loss_pct": 2.4114,
+          "mean_delay_ms": 3.967,
+          "p95_delay_ms": 10.039,
+          "p99_delay_ms": 12.755,
+          "mean_occupancy": 7.09
+        },
+        "burst_excess_loss_pct": 2.3874
+      },
+      "rho_0.85": {
+        "rho": 0.85,
+        "arrival_rate_pps": 1700.0,
+        "analytical_mm1k": {
+          "p_loss_pct": 0.6012,
+          "mean_delay_ms": 2.93,
+          "mean_packets": 4.95
+        },
+        "empirical_poisson": {
+          "p_loss_pct": 0.5143,
+          "mean_delay_ms": 2.823,
+          "p95_delay_ms": 7.904,
+          "mean_occupancy": 4.63
+        },
+        "empirical_bursty_pareto": {
+          "p_loss_pct": 10.0886,
+          "mean_delay_ms": 5.82,
+          "p95_delay_ms": 11.627,
+          "p99_delay_ms": 13.899,
+          "mean_occupancy": 11.51
+        },
+        "burst_excess_loss_pct": 9.4874
+      },
+      "rho_0.95": {
+        "rho": 0.95,
+        "arrival_rate_pps": 1900.0,
+        "analytical_mm1k": {
+          "p_loss_pct": 2.7181,
+          "mean_delay_ms": 4.41,
+          "mean_packets": 8.15
+        },
+        "empirical_poisson": {
+          "p_loss_pct": 2.3729,
+          "mean_delay_ms": 4.288,
+          "p95_delay_ms": 10.111,
+          "mean_occupancy": 7.83
+        },
+        "empirical_bursty_pareto": {
+          "p_loss_pct": 16.2729,
+          "mean_delay_ms": 6.66,
+          "p95_delay_ms": 12.095,
+          "p99_delay_ms": 14.168,
+          "mean_occupancy": 13.64
+        },
+        "burst_excess_loss_pct": 13.5548
+      },
+      "rho_1.10": {
+        "rho": 1.1,
+        "arrival_rate_pps": 2200.0,
+        "analytical_mm1k": {
+          "p_loss_pct": 10.5113,
+          "mean_delay_ms": 6.75,
+          "mean_packets": 13.28
+        },
+        "empirical_poisson": {
+          "p_loss_pct": 10.14,
+          "mean_delay_ms": 6.689,
+          "p95_delay_ms": 11.82,
+          "mean_occupancy": 13.15
+        },
+        "empirical_bursty_pareto": {
+          "p_loss_pct": 25.3857,
+          "mean_delay_ms": 7.426,
+          "p95_delay_ms": 12.562,
+          "p99_delay_ms": 14.572,
+          "mean_occupancy": 15.37
+        },
+        "burst_excess_loss_pct": 14.8744
+      }
+    },
+    "K_50": {
+      "rho_0.40": {
+        "rho": 0.4,
+        "arrival_rate_pps": 800.0,
+        "analytical_mm1k": {
+          "p_loss_pct": 0.0,
+          "mean_delay_ms": 0.83,
+          "mean_packets": 0.67
+        },
+        "empirical_poisson": {
+          "p_loss_pct": 0.0,
+          "mean_delay_ms": 0.83,
+          "p95_delay_ms": 2.47,
+          "mean_occupancy": 0.68
+        },
+        "empirical_bursty_pareto": {
+          "p_loss_pct": 0.0,
+          "mean_delay_ms": 1.035,
+          "p95_delay_ms": 3.126,
+          "p99_delay_ms": 4.648,
+          "mean_occupancy": 1.07
+        },
+        "burst_excess_loss_pct": 0.0
+      },
+      "rho_0.70": {
+        "rho": 0.7,
+        "arrival_rate_pps": 1400.0,
+        "analytical_mm1k": {
+          "p_loss_pct": 0.0,
+          "mean_delay_ms": 1.67,
+          "mean_packets": 2.33
+        },
+        "empirical_poisson": {
+          "p_loss_pct": 0.0,
+          "mean_delay_ms": 1.631,
+          "p95_delay_ms": 4.882,
+          "mean_occupancy": 2.07
+        },
+        "empirical_bursty_pareto": {
+          "p_loss_pct": 0.11,
+          "mean_delay_ms": 5.276,
+          "p95_delay_ms": 15.663,
+          "p99_delay_ms": 22.955,
+          "mean_occupancy": 9.48
+        },
+        "burst_excess_loss_pct": 0.11
+      },
+      "rho_0.85": {
+        "rho": 0.85,
+        "arrival_rate_pps": 1700.0,
+        "analytical_mm1k": {
+          "p_loss_pct": 0.0044,
+          "mean_delay_ms": 3.33,
+          "mean_packets": 5.65
+        },
+        "empirical_poisson": {
+          "p_loss_pct": 0.01,
+          "mean_delay_ms": 3.207,
+          "p95_delay_ms": 9.692,
+          "mean_occupancy": 5.28
+        },
+        "empirical_bursty_pareto": {
+          "p_loss_pct": 4.0586,
+          "mean_delay_ms": 12.719,
+          "p95_delay_ms": 25.816,
+          "p99_delay_ms": 29.602,
+          "mean_occupancy": 25.41
+        },
+        "burst_excess_loss_pct": 4.0542
+      },
+      "rho_0.95": {
+        "rho": 0.95,
+        "arrival_rate_pps": 1900.0,
+        "analytical_mm1k": {
+          "p_loss_pct": 0.4151,
+          "mean_delay_ms": 7.92,
+          "mean_packets": 14.98
+        },
+        "empirical_poisson": {
+          "p_loss_pct": 0.3314,
+          "mean_delay_ms": 7.077,
+          "p95_delay_ms": 19.705,
+          "mean_occupancy": 13.33
+        },
+        "empirical_bursty_pareto": {
+          "p_loss_pct": 10.5,
+          "mean_delay_ms": 16.279,
+          "p95_delay_ms": 27.814,
+          "p99_delay_ms": 30.926,
+          "mean_occupancy": 33.22
+        },
+        "burst_excess_loss_pct": 10.0849
+      },
+      "rho_1.10": {
+        "rho": 1.1,
+        "arrival_rate_pps": 2200.0,
+        "analytical_mm1k": {
+          "p_loss_pct": 9.1619,
+          "mean_delay_ms": 20.21,
+          "mean_packets": 40.4
+        },
+        "empirical_poisson": {
+          "p_loss_pct": 8.7571,
+          "mean_delay_ms": 20.028,
+          "p95_delay_ms": 28.17,
+          "mean_occupancy": 39.95
+        },
+        "empirical_bursty_pareto": {
+          "p_loss_pct": 20.2757,
+          "mean_delay_ms": 19.012,
+          "p95_delay_ms": 28.58,
+          "p99_delay_ms": 31.607,
+          "mean_occupancy": 39.56
+        },
+        "burst_excess_loss_pct": 11.1138
+      }
+    },
+    "K_100": {
+      "rho_0.40": {
+        "rho": 0.4,
+        "arrival_rate_pps": 800.0,
+        "analytical_mm1k": {
+          "p_loss_pct": 0.0,
+          "mean_delay_ms": 0.83,
+          "mean_packets": 0.67
+        },
+        "empirical_poisson": {
+          "p_loss_pct": 0.0,
+          "mean_delay_ms": 0.83,
+          "p95_delay_ms": 2.47,
+          "mean_occupancy": 0.68
+        },
+        "empirical_bursty_pareto": {
+          "p_loss_pct": 0.0,
+          "mean_delay_ms": 1.035,
+          "p95_delay_ms": 3.126,
+          "p99_delay_ms": 4.648,
+          "mean_occupancy": 1.07
+        },
+        "burst_excess_loss_pct": 0.0
+      },
+      "rho_0.70": {
+        "rho": 0.7,
+        "arrival_rate_pps": 1400.0,
+        "analytical_mm1k": {
+          "p_loss_pct": 0.0,
+          "mean_delay_ms": 1.67,
+          "mean_packets": 2.33
+        },
+        "empirical_poisson": {
+          "p_loss_pct": 0.0,
+          "mean_delay_ms": 1.631,
+          "p95_delay_ms": 4.882,
+          "mean_occupancy": 2.07
+        },
+        "empirical_bursty_pareto": {
+          "p_loss_pct": 0.0,
+          "mean_delay_ms": 5.368,
+          "p95_delay_ms": 15.958,
+          "p99_delay_ms": 24.504,
+          "mean_occupancy": 9.61
+        },
+        "burst_excess_loss_pct": 0.0
+      },
+      "rho_0.85": {
+        "rho": 0.85,
+        "arrival_rate_pps": 1700.0,
+        "analytical_mm1k": {
+          "p_loss_pct": 0.0,
+          "mean_delay_ms": 3.33,
+          "mean_packets": 5.67
+        },
+        "empirical_poisson": {
+          "p_loss_pct": 0.0,
+          "mean_delay_ms": 3.224,
+          "p95_delay_ms": 9.772,
+          "mean_occupancy": 5.31
+        },
+        "empirical_bursty_pareto": {
+          "p_loss_pct": 1.2571,
+          "mean_delay_ms": 20.537,
+          "p95_delay_ms": 47.409,
+          "p99_delay_ms": 53.388,
+          "mean_occupancy": 40.5
+        },
+        "burst_excess_loss_pct": 1.2571
+      },
+      "rho_0.95": {
+        "rho": 0.95,
+        "arrival_rate_pps": 1900.0,
+        "analytical_mm1k": {
+          "p_loss_pct": 0.0298,
+          "mean_delay_ms": 9.7,
+          "mean_packets": 18.43
+        },
+        "empirical_poisson": {
+          "p_loss_pct": 0.0157,
+          "mean_delay_ms": 8.196,
+          "p95_delay_ms": 26.811,
+          "mean_occupancy": 15.45
+        },
+        "empirical_bursty_pareto": {
+          "p_loss_pct": 6.8571,
+          "mean_delay_ms": 32.233,
+          "p95_delay_ms": 53.587,
+          "p99_delay_ms": 57.796,
+          "mean_occupancy": 65.84
+        },
+        "burst_excess_loss_pct": 6.8273
+      },
+      "rho_1.10": {
+        "rho": 1.1,
+        "arrival_rate_pps": 2200.0,
+        "analytical_mm1k": {
+          "p_loss_pct": 9.0915,
+          "mean_delay_ms": 45.0,
+          "mean_packets": 90.01
+        },
+        "empirical_poisson": {
+          "p_loss_pct": 8.6157,
+          "mean_delay_ms": 44.758,
+          "p95_delay_ms": 55.058,
+          "mean_occupancy": 89.63
+        },
+        "empirical_bursty_pareto": {
+          "p_loss_pct": 17.5586,
+          "mean_delay_ms": 39.262,
+          "p95_delay_ms": 55.251,
+          "p99_delay_ms": 59.559,
+          "mean_occupancy": 81.46
+        },
+        "burst_excess_loss_pct": 8.4671
+      }
+    }
+  },
+  "failover_transient": {
+    "failover_window_ms": 14.2,
+    "total_packets_dropped": 19,
+    "peak_queue_packets": 60.0,
+    "buffer_capacity_k": 60,
+    "conclusion": "Packets buffering during the 14.2ms controller reroute window cause transient queue spikes to 60 packets (100% buffer saturation), resulting in 18 dropped packets before traffic drains over alternate mesh link."
+  }
+}

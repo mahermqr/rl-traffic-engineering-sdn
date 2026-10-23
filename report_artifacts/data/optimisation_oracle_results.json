@@ -1,0 +1,119 @@
+{
+  "tree": {
+    "nodes": 7,
+    "edges": 16,
+    "flow_count": 20,
+    "oracle_solve_time_ms": 107.59,
+    "theoretical_optimal_peak_pct": 47.39,
+    "algorithm_comparisons": {
+      "OSPF (RFC 2328)": {
+        "achieved_peak_util_pct": 51.09,
+        "oracle_optimal_util_pct": 47.39,
+        "optimality_gap_pct": 7.8
+      },
+      "Dijkstra SPF": {
+        "achieved_peak_util_pct": 98.46,
+        "oracle_optimal_util_pct": 47.39,
+        "optimality_gap_pct": 107.76
+      },
+      "ECMP": {
+        "achieved_peak_util_pct": 112.87,
+        "oracle_optimal_util_pct": 47.39,
+        "optimality_gap_pct": 138.16
+      },
+      "WSP (Widest Path)": {
+        "achieved_peak_util_pct": 55.93,
+        "oracle_optimal_util_pct": 47.39,
+        "optimality_gap_pct": 18.02
+      },
+      "LLR (Least Loaded)": {
+        "achieved_peak_util_pct": 55.92,
+        "oracle_optimal_util_pct": 47.39,
+        "optimality_gap_pct": 17.99
+      },
+      "D3QN (Ours)": {
+        "achieved_peak_util_pct": 78.74,
+        "oracle_optimal_util_pct": 47.39,
+        "optimality_gap_pct": 66.15
+      }
+    }
+  },
+  "spineleaf": {
+    "nodes": 12,
+    "edges": 64,
+    "flow_count": 20,
+    "oracle_solve_time_ms": 61.65,
+    "theoretical_optimal_peak_pct": 10.06,
+    "algorithm_comparisons": {
+      "OSPF (RFC 2328)": {
+        "achieved_peak_util_pct": 30.66,
+        "oracle_optimal_util_pct": 10.06,
+        "optimality_gap_pct": 204.92
+      },
+      "Dijkstra SPF": {
+        "achieved_peak_util_pct": 30.66,
+        "oracle_optimal_util_pct": 10.06,
+        "optimality_gap_pct": 204.92
+      },
+      "ECMP": {
+        "achieved_peak_util_pct": 12.27,
+        "oracle_optimal_util_pct": 10.06,
+        "optimality_gap_pct": 22.03
+      },
+      "WSP (Widest Path)": {
+        "achieved_peak_util_pct": 11.64,
+        "oracle_optimal_util_pct": 10.06,
+        "optimality_gap_pct": 15.76
+      },
+      "LLR (Least Loaded)": {
+        "achieved_peak_util_pct": 11.49,
+        "oracle_optimal_util_pct": 10.06,
+        "optimality_gap_pct": 14.27
+      },
+      "D3QN (Ours)": {
+        "achieved_peak_util_pct": 30.66,
+        "oracle_optimal_util_pct": 10.06,
+        "optimality_gap_pct": 204.92
+      }
+    }
+  },
+  "nsfnet": {
+    "nodes": 14,
+    "edges": 42,
+    "flow_count": 20,
+    "oracle_solve_time_ms": 64.07,
+    "theoretical_optimal_peak_pct": 14.28,
+    "algorithm_comparisons": {
+      "OSPF (RFC 2328)": {
+        "achieved_peak_util_pct": 20.69,
+        "oracle_optimal_util_pct": 14.28,
+        "optimality_gap_pct": 44.89
+      },
+      "Dijkstra SPF": {
+        "achieved_peak_util_pct": 20.69,
+        "oracle_optimal_util_pct": 14.28,
+        "optimality_gap_pct": 44.89
+      },
+      "ECMP": {
+        "achieved_peak_util_pct": 24.62,
+        "oracle_optimal_util_pct": 14.28,
+        "optimality_gap_pct": 72.41
+      },
+      "WSP (Widest Path)": {
+        "achieved_peak_util_pct": 16.91,
+        "oracle_optimal_util_pct": 14.28,
+        "optimality_gap_pct": 18.42
+      },
+      "LLR (Least Loaded)": {
+        "achieved_peak_util_pct": 17.71,
+        "oracle_optimal_util_pct": 14.28,
+        "optimality_gap_pct": 24.02
+      },
+      "D3QN (Ours)": {
+        "achieved_peak_util_pct": 20.69,
+        "oracle_optimal_util_pct": 14.28,
+        "optimality_gap_pct": 44.89
+      }
+    }
+  }
+}

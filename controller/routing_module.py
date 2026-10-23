@@ -2,6 +2,7 @@ import sys
 import os
 import time
 import threading
+import zlib
 import numpy as np
 
 # Add agent and controller to path
@@ -15,6 +16,7 @@ except ImportError:
     config = None
 
 from dqn_router import DQNRoutingAgent
+from policy_selector import select_dqn_path
 from ryu.lib.packet import ethernet, ipv4, ether_types
 
 class RoutingModule:
@@ -32,7 +34,8 @@ class RoutingModule:
         state_size = getattr(config, 'STATE_SIZE', 10)
         action_size = getattr(config, 'ACTION_SIZE', 4)
         lr = getattr(config, 'LEARNING_RATE', 0.001)
-        self.k_candidate_paths = action_size
+        self.k_candidate_paths = min(action_size, getattr(config, 'K_CANDIDATE_PATHS', action_size))
+        self.policy_mode = getattr(config, 'POLICY_MODE', 'pure')
 
         self.agent = DQNRoutingAgent(state_size=state_size, action_size=action_size, lr=lr)
         self.prev_experience = {} # (src_dpid, dst_dpid) -> (state, action, candidate_paths)
@@ -41,8 +44,10 @@ class RoutingModule:
         default_ckpt = getattr(config, 'DEFAULT_MODEL_PATH', os.path.join(os.path.dirname(__file__), '..', 'models', 'dqn_router.pth'))
         ckpt_path = os.environ.get("SDN_MODEL_PATH", default_ckpt)
         if os.path.exists(ckpt_path):
-            self.agent.load(ckpt_path)
-            self.logger.info("[RoutingModule] Loaded pre-trained Double DQN checkpoint from %s", ckpt_path)
+            if self.agent.load(ckpt_path):
+                self.logger.info("[RoutingModule] Loaded pre-trained Double DQN checkpoint from %s", ckpt_path)
+            else:
+                self.logger.warning("[RoutingModule] Checkpoint is incompatible; using fresh weights: %s", ckpt_path)
 
         # Asynchronous background training worker to prevent blocking OpenFlow PacketIn processing
         self.model_lock = threading.Lock()
@@ -63,6 +68,8 @@ class RoutingModule:
     def stop_training_worker(self):
         """Halts background training worker gracefully."""
         self._training_active = False
+        if self._training_thread and self._training_thread.is_alive():
+            self._training_thread.join(timeout=3.0)
 
     def _training_loop(self):
         """Background thread executing periodic Double DQN policy updates."""
@@ -114,33 +121,37 @@ class RoutingModule:
             return
 
         # Case 2: Multi-hop routing across SDN fabric
-        t0 = time.time()
-        state = self.state_manager.get_routing_state(dpid, dst_dpid)
-        # Production traffic uses deterministic policy evaluation (explore=False)
-        with self.model_lock:
-            action = self.agent.act(state, explore=False)
-        decision_time_ms = (time.time() - t0) * 1000.0
-        self.state_manager.record_decision_latency(decision_time_ms)
-
         # Discover diversity-aware candidate paths using StateManager
         candidate_paths = self.state_manager.get_candidate_paths(dpid, dst_dpid, k=self.k_candidate_paths)
-        if not candidate_paths or len(candidate_paths[0]) <= 1:
-            self.logger.warning("[RoutingModule] No path found between switch %s and %s. Flooding.", dpid, dst_dpid)
-            self._flood(datapath, msg, in_port)
+        if not candidate_paths:
+            self.logger.warning("[RoutingModule] No path found between switch %s and %s; dropping known-destination packet.", dpid, dst_dpid)
             return
-
-        # Action selects from candidate paths (modulo candidate count)
-        selected_path = candidate_paths[action % len(candidate_paths)]
+        t0 = time.perf_counter()
+        with self.model_lock:
+            decision = select_dqn_path(
+                self.agent, self.state_manager, dpid, dst_dpid,
+                candidate_paths=candidate_paths,
+                demand_mbps=self.state_manager.traffic_flow_rate_mbps,
+                mode=self.policy_mode,
+            )
+        decision_time_ms = (time.perf_counter() - t0) * 1000.0
+        self.state_manager.record_decision_latency(decision_time_ms)
+        if decision['status'] != 'success':
+            self.logger.warning("[RoutingModule] Policy could not select a valid path: %s", decision['status'])
+            return
+        state = decision['state']
+        action = decision['action']
+        selected_path = decision['path']
 
         # Experience Replay Training: record transition with rigorous temporal credit assignment
         exp_key = (dpid, dst_dpid)
         if exp_key in self.prev_experience:
             prev_s, prev_a, prev_paths = self.prev_experience[exp_key]
             # Reward is calculated for previous action prev_a observed in current network state
-            chosen_prev_path = prev_paths[prev_a % len(prev_paths)]
-            reward = self._calculate_reward(chosen_prev_path)
-            with self.model_lock:
-                self.agent.remember(prev_s, prev_a, reward, state, done=False)
+            if 0 <= prev_a < len(prev_paths):
+                reward = self._calculate_reward(prev_paths[prev_a])
+                with self.model_lock:
+                    self.agent.remember(prev_s, prev_a, reward, state, done=False)
 
         self.prev_experience[exp_key] = (state, action, candidate_paths)
 
@@ -154,7 +165,20 @@ class RoutingModule:
             flow_mbps = self.state_manager.flow_stats[flow_key].get('mbps', 0.0)
             is_elephant = bool(flow_mbps >= 5.0)
 
-        self._install_path(selected_path, dst_port, eth_dst=dst_mac, ip_src=src_ip, ip_dst=dst_ip, is_elephant=is_elephant)
+        backup_path = next(
+            (path for path in candidate_paths
+             if path != selected_path and len(path) > 1 and path[1] != selected_path[1]),
+            None,
+        )
+        if getattr(config, 'ENABLE_FAST_FAILOVER', True) and backup_path:
+            group_key = f"{dpid}:{src_ip or src_mac}:{dst_ip or dst_mac}".encode('utf-8')
+            group_id = 600 + (zlib.crc32(group_key) % 100000)
+            self.install_fast_failover_path(
+                selected_path, backup_path, dst_port, dst_mac,
+                ip_src=src_ip, ip_dst=dst_ip, group_id=group_id,
+            )
+        else:
+            self._install_path(selected_path, dst_port, eth_dst=dst_mac, ip_src=src_ip, ip_dst=dst_ip, is_elephant=is_elephant)
         if src_ip and dst_ip:
             self.state_manager.record_flow_path(dpid, src_ip, dst_ip, selected_path)
 
@@ -164,7 +188,10 @@ class RoutingModule:
         # Forward the current packet out of the first hop
         first_hop = selected_path[1]
         edge_data = self.state_manager.graph.get_edge_data(dpid, first_hop)
-        out_port = edge_data['port'] if edge_data and 'port' in edge_data else ofproto.OFPP_FLOOD
+        if not edge_data or 'port' not in edge_data:
+            self.logger.error("[RoutingModule] Missing egress port for valid edge %s -> %s", dpid, first_hop)
+            return
+        out_port = edge_data['port']
 
         actions = [parser.OFPActionOutput(out_port)]
         self._send_packet_out(datapath, msg, actions)
@@ -192,13 +219,12 @@ class RoutingModule:
             total_jitter += jitter
             max_loss = max(max_loss, loss)
 
-        # Asymptotic barrier penalty when bottleneck utilization exceeds threshold
+        # Continuous quadratic congestion term also used by the offline trainer.
         thresh = getattr(self.state_manager, 'congestion_barrier_pct', 70.0) / 100.0
         w_gamma = getattr(self.state_manager, 'w_congestion', 1.0)
+        congestion_penalty = w_gamma * (max_util ** 2)
         if max_util > thresh:
-            congestion_penalty = 12.0 * w_gamma * ((max_util ** 1.8) / max(0.01, 1.02 - max_util))
-        else:
-            congestion_penalty = 1.5 * w_gamma * max_util
+            congestion_penalty += 12.0 * w_gamma * ((max_util - thresh) ** 2)
 
         w_h = getattr(self.state_manager, 'w_hops', 0.35)
         w_d = getattr(self.state_manager, 'w_delay', 0.06)
@@ -235,7 +261,10 @@ class RoutingModule:
             if i < len(path) - 1:
                 next_dpid = path[i+1]
                 edge_data = self.state_manager.graph.get_edge_data(cur_dpid, next_dpid)
-                out_port = edge_data['port'] if edge_data else dp.ofproto.OFPP_FLOOD
+                if not edge_data or 'port' not in edge_data:
+                    self.logger.error("[RoutingModule] Cannot install path: missing edge/port %s -> %s", cur_dpid, next_dpid)
+                    return False
+                out_port = edge_data['port']
             else:
                 out_port = final_port
 
@@ -248,6 +277,8 @@ class RoutingModule:
                 match = parser.OFPMatch(eth_dst=eth_dst)
 
             self.controller.add_flow(dp, priority=priority, match=match, actions=actions, idle_timeout=idle_to, hard_timeout=hard_to)
+            dp.send_msg(parser.OFPBarrierRequest(dp))
+        return True
 
     def calculate_wcmp_weights(self, candidate_paths, beta=None):
         """

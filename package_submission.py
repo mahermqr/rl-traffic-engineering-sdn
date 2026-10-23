@@ -29,7 +29,8 @@ LOGS_DIR = BASE_DIR / "logs"
 PLOTS_DIR = LOGS_DIR / "plots"
 MODELS_DIR = BASE_DIR / "models"
 CONTROLLER_DIR = BASE_DIR / "controller"
-SIMULATION_DIR = BASE_DIR / "simulation"
+AGENT_DIR = BASE_DIR / "agent"
+TOPOLOGY_DIR = BASE_DIR / "topology"
 
 BUNDLE_NAME = "Maher_Alqadhi_2210249576_EC499_Final_Graduation_Submission"
 DIST_DIR = BASE_DIR / "dist"
@@ -55,30 +56,52 @@ def main():
     # 1. 01_Final_Thesis_Report
     dir_thesis = BUNDLE_ROOT / "01_Final_Thesis_Report"
     dir_thesis.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(DOCS_DIR / "Project_Report_EC499_Final.pdf", dir_thesis / "Project_Report_EC499_Final.pdf")
-    shutil.copy2(DOCS_DIR / "Project_Report_EC499_Monolithic.tex", dir_thesis / "Project_Report_EC499_Monolithic.tex")
-    shutil.copy2(DOCS_DIR / "references.bib", dir_thesis / "references.bib")
+    report_artifacts_pdf = BASE_DIR / "report_artifacts" / "main.pdf"
+    if report_artifacts_pdf.exists():
+        shutil.copy2(report_artifacts_pdf, dir_thesis / "Project_Report_EC499_Final.pdf")
+        shutil.copy2(report_artifacts_pdf, dir_thesis / "main.pdf")
+        if (BASE_DIR / "report_artifacts" / "main.tex").exists():
+            shutil.copy2(BASE_DIR / "report_artifacts" / "main.tex", dir_thesis / "main.tex")
+        if (BASE_DIR / "report_artifacts" / "references.bib").exists():
+            shutil.copy2(BASE_DIR / "report_artifacts" / "references.bib", dir_thesis / "references.bib")
+    elif (DOCS_DIR / "Project_Report_EC499_Final.pdf").exists():
+        shutil.copy2(DOCS_DIR / "Project_Report_EC499_Final.pdf", dir_thesis / "Project_Report_EC499_Final.pdf")
+    if (DOCS_DIR / "Project_Report_EC499_Monolithic.tex").exists():
+        shutil.copy2(DOCS_DIR / "Project_Report_EC499_Monolithic.tex", dir_thesis / "Project_Report_EC499_Monolithic.tex")
+    if (DOCS_DIR / "references.bib").exists() and not (dir_thesis / "references.bib").exists():
+        shutil.copy2(DOCS_DIR / "references.bib", dir_thesis / "references.bib")
     if (DOCS_DIR / "chapters").exists():
         shutil.copytree(DOCS_DIR / "chapters", dir_thesis / "chapters")
     if (DOCS_DIR / "appendices").exists():
         shutil.copytree(DOCS_DIR / "appendices", dir_thesis / "appendices")
     print("  [+] Staged 01_Final_Thesis_Report (143-Page PDF & Complete LaTeX Sources)")
 
-
     # 2. 02_Defense_Presentation
     dir_defense = BUNDLE_ROOT / "02_Defense_Presentation"
     dir_defense.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(DOCS_DIR / "EC499_Graduation_Defense_Presentation.pptx", dir_defense / "EC499_Graduation_Defense_Presentation.pptx")
-    shutil.copy2(DOCS_DIR / "EC499_Graduation_Defense_Slides.html", dir_defense / "EC499_Graduation_Defense_Slides.html")
-    shutil.copy2(DOCS_DIR / "DEFENSE_CHEAT_SHEET.md", dir_defense / "DEFENSE_CHEAT_SHEET.md")
-    print("  [+] Staged 02_Defense_Presentation (PPTX Deck, Interactive HTML, Demo Runbook)")
+    if (DOCS_DIR / "EC499_Graduation_Defense_Presentation.pptx").exists():
+        shutil.copy2(DOCS_DIR / "EC499_Graduation_Defense_Presentation.pptx", dir_defense / "EC499_Graduation_Defense_Presentation.pptx")
+    if (DOCS_DIR / "EC499_Graduation_Defense_Slides.html").exists():
+        shutil.copy2(DOCS_DIR / "EC499_Graduation_Defense_Slides.html", dir_defense / "EC499_Graduation_Defense_Slides.html")
+    if (DOCS_DIR / "DEFENSE_CHEAT_SHEET.md").exists():
+        shutil.copy2(DOCS_DIR / "DEFENSE_CHEAT_SHEET.md", dir_defense / "DEFENSE_CHEAT_SHEET.md")
+    if (DOCS_DIR / "VIVA_DEFENSE_MASTER_GUIDE.md").exists():
+        shutil.copy2(DOCS_DIR / "VIVA_DEFENSE_MASTER_GUIDE.md", dir_defense / "VIVA_DEFENSE_MASTER_GUIDE.md")
+    print("  [+] Staged 02_Defense_Presentation (PPTX Deck, Interactive HTML, Viva Guide, Demo Runbook)")
 
     # 3. 03_Experimental_Figures_and_Plots
     dir_plots = BUNDLE_ROOT / "03_Experimental_Figures_and_Plots"
     dir_plots.mkdir(parents=True, exist_ok=True)
     for plot_file in PLOTS_DIR.glob("*.png"):
         shutil.copy2(plot_file, dir_plots / plot_file.name)
-    print(f"  [+] Staged 03_Experimental_Figures_and_Plots ({len(list(dir_plots.glob('*.png')))} figures)")
+    if (DOCS_DIR / "figures").exists():
+        for fig_file in (DOCS_DIR / "figures").glob("*.png"):
+            shutil.copy2(fig_file, dir_plots / fig_file.name)
+    artifacts_fig_dir = BASE_DIR / "report_artifacts" / "figures"
+    if artifacts_fig_dir.exists():
+        for fig_file in artifacts_fig_dir.glob("*.png"):
+            shutil.copy2(fig_file, dir_plots / fig_file.name)
+    print(f"  [+] Staged 03_Experimental_Figures_and_Plots ({len(list(dir_plots.glob('*.png')))} figures and UI captures)")
 
     # 4. 04_Validation_Logs_and_Metrics
     dir_logs = BUNDLE_ROOT / "04_Validation_Logs_and_Metrics"
@@ -90,6 +113,10 @@ def main():
         p = LOGS_DIR / log_name
         if p.exists():
             shutil.copy2(p, dir_logs / log_name)
+    artifacts_data_dir = BASE_DIR / "report_artifacts" / "data"
+    if artifacts_data_dir.exists():
+        for data_file in artifacts_data_dir.glob("*.json"):
+            shutil.copy2(data_file, dir_logs / data_file.name)
     print("  [+] Staged 04_Validation_Logs_and_Metrics (Official CSV Matrix & JSON Benchmarks)")
 
     # 5. 05_Trained_D3QN_Model
@@ -104,16 +131,37 @@ def main():
     dir_code.mkdir(parents=True, exist_ok=True)
     if CONTROLLER_DIR.exists():
         shutil.copytree(CONTROLLER_DIR, dir_code / "controller", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
-    if SIMULATION_DIR.exists():
-        shutil.copytree(SIMULATION_DIR, dir_code / "simulation", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
-    for script in ["benchmark_routing_algorithms.py", "stress_test_blind_topologies.py", "audit_dqn_agent_deep.py", "generate_defense_deck.py", "build_html_slides.py", "ablate_reward_weights.py", "run_tests.sh", "requirements.txt"]:
+    if AGENT_DIR.exists():
+        shutil.copytree(AGENT_DIR, dir_code / "agent", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+    if TOPOLOGY_DIR.exists():
+        shutil.copytree(TOPOLOGY_DIR, dir_code / "topology", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+    for script in [
+        "config.py", "test_suite.py", "benchmark_evaluation.py",
+        "benchmark_routing_algorithms.py", "stress_test_load_balancer.py",
+        "stress_test_blind_topologies.py", "evaluate_random_blind_topology.py",
+        "simulate_live_traffic.py", "audit_dqn_agent_deep.py",
+        "ablate_reward_weights.py", "generate_detailed_plots.py",
+        "experiment_phase1_suite.py", "experiment_phase2_packet_validation.py",
+        "generate_phase1_figures.py", "reproduce_mininet_packet_experiment.py",
+        "reproduce_all.sh", "run_tests.sh", "run_benchmarks.sh", "run_benchmarks.py",
+        "run_system.sh", "run_ha_test.sh", "run_random_blind_test.sh",
+        "test_ha_controller_failover.py", "test_dashboard_100_runs.py",
+        "requirements.txt", "pyproject.toml", "README.md", "LICENSE", "CITATION.cff",
+    ]:
         p = BASE_DIR / script
         if p.exists():
             shutil.copy2(p, dir_code / script)
     print("  [+] Staged 06_Source_Code_and_Dashboard (Controller, Simulation, Tests, Tools)")
 
+    # 7. 07_Live_Demo_and_Screenshots
+    dir_demo = BUNDLE_ROOT / "07_Live_Demo_and_Screenshots"
+    dir_demo.mkdir(parents=True, exist_ok=True)
+    demo_src = BASE_DIR.parent / "demo2026"
+    if demo_src.exists():
+        shutil.copytree(demo_src, dir_demo / "demo2026", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+        print(f"  [+] Staged 07_Live_Demo_and_Screenshots (Interactive Demo Suite & All Scenarios)")
 
-    # 7. Generate README_GRADUATION_SUBMISSION.md
+    # 8. Generate README_GRADUATION_SUBMISSION.md
     readme_path = BUNDLE_ROOT / "README_GRADUATION_SUBMISSION.md"
     readme_content = f"""# EC499 Final Graduation Project Submission Dossier
 
@@ -125,15 +173,10 @@ def main():
 
 ---
 
-## 1. Executive Summary & Abstract
-This graduation project addresses the fundamental traffic engineering challenges in modern Software-Defined Networks (SDN) under bursty, non-stationary traffic regimes. Classical shortest-path routing protocols (OSPF, ECMP, Dijkstra SPF) and myopic greedy heuristics (Least Loaded Routing, Widest Shortest Path) are structurally vulnerable to core trunk congestion, buffer overflow drops, and herd behavior.
+## 1. Project Abstract
+Static shortest-path routing frequently induces severe congestion along primary network trunks by assigning flows without considering real-time link loads or parallel capacity. This project presents an adaptive, closed-loop Software-Defined Networking (SDN) traffic engineering architecture combining a Ryu OpenFlow 1.3 controller, a NetworkX global topology model, and a PyTorch Dueling Double Deep Q-Network (D3QN) with Prioritized Experience Replay. Candidate paths are dynamically selected using a normalized ten-dimensional state representation capturing hop count, bottleneck utilization, propagation delay, and network-wide load.
 
-We design, implement, and empirically validate an end-to-end, closed-loop adaptive traffic engineering architecture combining:
-1. **Ryu SDN Controller (OpenFlow 1.3):** Real-time global network state estimation, non-intrusive port statistics polling, and candidate path synthesis via Yen's K-Shortest Paths.
-2. **Dueling Double Deep Q-Network (D3QN):** Scale-invariant 10-dimensional continuous state vector normalization, decoupling state value from candidate path advantage, and Prioritized Experience Replay via a non-recursive binary SumTree.
-3. **Multi-Objective Pareto Reward with Asymptotic Congestion Barrier:** Dynamically optimizes throughput, RFC 3393 delay variation, and M/M/1/K buffer loss, while imposing an exponential barrier when link utilization exceeds 70%.
-4. **Physical Mininet Emulation:** Proven line-rate delivery (64.89 Mbps of 65 Mbps UDP stream), 76.2% delay jitter suppression, and 450x packet loss eradication.
-5. **Interactive Operations Web Dashboard:** Real-time topology canvas, live route forecasting, chaos failover console, and head-to-head tournament arena.
+The architecture was evaluated against conventional baselines, including OSPF, Dijkstra SPF, Equal-Cost Multi-Path (ECMP), Widest Shortest Path (WSP), Least-Loaded Routing (LLR), and an exact Unsplittable Multi-Commodity Flow integer linear programming oracle solved via HiGHS. Across benchmark topologies and two-way cluster bootstrap analyses with 95% confidence intervals, the D3QN agent significantly outperformed static routing, achieving up to 23.07% bottleneck utilization relief while reducing latency and packet loss. An architectural ablation demonstrated that dueling streams drive the primary latency reduction, while hierarchical variance analysis across five independent seeds proved that weight initialization contributes only 0.73% to performance variance. Furthermore, zero-shot evaluation on held-out topologies confirmed robust out-of-distribution transfer without retraining. With sub-millisecond inference (0.04 ms), carrier-grade controller failover, and discrete-event queue validation, the system provides a mathematically grounded, reproducible foundation for intelligent software-defined networks.
 
 ---
 
@@ -185,7 +228,9 @@ Maher_Alqadhi_2210249576_EC499_Final_Graduation_Submission/
 │
 └── 06_Source_Code_and_Dashboard/          <- Carrier-Grade Python 3.10+ Codebase
     ├── controller/                        <- Ryu SDN controller, state manager, web dashboard
-    ├── simulation/                        <- Network environment, flow generator, topologies
+    ├── agent/                             <- D3QN model and replay buffer
+    ├── topology/                          <- Network graphs and Mininet fabrics
+    ├── config.py                          <- Centralized runtime configuration
     ├── benchmark_routing_algorithms.py    <- 6-Protocol Tournament Benchmark Runner
     ├── stress_test_blind_topologies.py    <- Zero-Shot Generalization Test Runner
     ├── ablate_reward_weights.py           <- Pareto Sensitivity Ablation Suite
@@ -198,12 +243,12 @@ Maher_Alqadhi_2210249576_EC499_Final_Graduation_Submission/
 
 ## 3. Quickstart & Verification Instructions
 
-### A. Running the Automated Test Suite (32 Tests)
+### A. Running the Automated Test Suite
 ```bash
 cd 06_Source_Code_and_Dashboard
 bash run_tests.sh
 ```
-*Expected Result:* `Ran 32 tests ... OK (100% Success)`
+*Expected Result:* all tests complete with `OK`.
 
 ### B. Launching the Interactive Web Dashboard
 ```bash
@@ -218,7 +263,10 @@ Open **Google Chrome** to `http://localhost:8080`.
 
 ---
 
-## 4. Key Performance Indicators (From Official Mininet Logs)
+## 4. Archived Performance Indicators
+
+The values below are historical results carried in the submitted logs. Re-run the bundled
+tests and benchmarks on the target environment before citing them as current measurements.
 
 | Metric | Classical Baseline (OSPF/ECMP) | Proposed D3QN Agent | Measured Benefit |
 | :--- | :--- | :--- | :--- |

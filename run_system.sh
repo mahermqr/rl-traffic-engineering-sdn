@@ -9,7 +9,7 @@ BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Configuration with environment variable overrides
 DASHBOARD_PORT="${SDN_REST_PORT:-8080}"
-DASHBOARD_HOST="${SDN_REST_HOST:-0.0.0.0}"
+DASHBOARD_HOST="${SDN_REST_HOST:-127.0.0.1}"
 CONTROLLER_PORT="${SDN_CONTROLLER_PORT:-6633}"
 TOPOLOGY_NAME="${SDN_DEFAULT_TOPOLOGY:-tree}"
 
@@ -54,19 +54,27 @@ else
     RYU_EXEC="$(command -v ryu-manager || echo ryu-manager)"
 fi
 
+if ! "$PYTHON_EXEC" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 9) else 1)'; then
+    echo "Error: the live Ryu 4.34 controller requires Python 3.9+."
+    echo "Selected interpreter: $PYTHON_EXEC ($("$PYTHON_EXEC" --version 2>&1))"
+    exit 2
+fi
+
 # Clean up stale mininet and ovs ports if sudo is available
 if sudo -n true 2>/dev/null; then
     echo "[2/3] Cleaning stale Mininet and OpenFlow state..."
     sudo mn -c 2>/dev/null || true
+    RUNTIME_MODE="live"
 else
     echo "[2/3] Skipping stale Mininet cleanup (passwordless sudo not active)."
+    RUNTIME_MODE="simulation"
 fi
 
 mkdir -p "$BASE_DIR/logs"
 
 echo "[3/3] Starting Ryu OpenFlow 1.3 Controller in background..."
 cd "$BASE_DIR/controller"
-PYTHONPATH="$BASE_DIR:$BASE_DIR/agent:$BASE_DIR/controller" SDN_REST_PORT="$DASHBOARD_PORT" SDN_REST_HOST="$DASHBOARD_HOST" "$RYU_EXEC" main_controller.py --observe-links --ofp-tcp-listen-port "$CONTROLLER_PORT" > "$BASE_DIR/logs/ryu_controller.log" 2>&1 &
+PYTHONPATH="$BASE_DIR:$BASE_DIR/agent:$BASE_DIR/controller" SDN_RUNTIME_MODE="$RUNTIME_MODE" SDN_REST_PORT="$DASHBOARD_PORT" SDN_REST_HOST="$DASHBOARD_HOST" "$RYU_EXEC" main_controller.py --observe-links --ofp-tcp-listen-port "$CONTROLLER_PORT" > "$BASE_DIR/logs/ryu_controller.log" 2>&1 &
 RYU_PID=$!
 echo "Ryu Controller started (PID: $RYU_PID). Waiting 3s for initialization..."
 sleep 3

@@ -71,6 +71,7 @@ for subdir in ['agent', 'controller', 'topology']:
 import numpy as np
 import torch
 import networkx as nx
+import config
 
 from dqn_router import DQNRoutingAgent, DuelingQNetwork
 from prioritized_replay import PrioritizedReplayBuffer, SumTree
@@ -80,6 +81,8 @@ from traditional_routing import (
     ospf_routing, dijkstra_spf, ecmp_routing, widest_shortest_path,
     least_loaded_routing, compute_path_metrics
 )
+from ha_controller_pool import HAControllerPool, ControllerNode
+from benchmark_routing_algorithms import generate_flow_specs
 
 
 class TestDQNAgent(unittest.TestCase):
@@ -193,6 +196,21 @@ class TestStateManager(unittest.TestCase):
             self.assertGreaterEqual(state[i], 0.0)
             self.assertLessEqual(state[i], 1.0)
 
+    def test_configurable_state_dimension_and_no_fake_route(self):
+        self.sm.state_size = 12
+        self.assertEqual(len(self.sm.get_routing_state(4, 3)), 12)
+        self.sm.register_switch(99)
+        self.assertEqual(self.sm.get_candidate_paths(4, 99), [])
+
+    def test_directional_dynamic_flow_accounting_and_release(self):
+        reverse_before = self.sm.link_utilization[(2, 1)]
+        self.assertTrue(self.sm.allocate_dynamic_flow('directional', [1, 2], mbps=25.0, duration_sec=5.0))
+        self.assertAlmostEqual(self.sm.link_utilization[(1, 2)], 0.25, places=5)
+        self.assertEqual(self.sm.link_utilization[(2, 1)], reverse_before)
+        self.sm.release_dynamic_flow('directional')
+        self.assertAlmostEqual(self.sm.link_utilization[(1, 2)], 0.0, places=5)
+        self.assertEqual(self.sm.link_utilization[(2, 1)], reverse_before)
+
     def test_host_location_tracking(self):
         self.sm.record_host(ip="10.0.0.1", mac="00:00:00:00:00:01", dpid=4, port=3)
         dpid, port = self.sm.get_host_location(ip="10.0.0.1")
@@ -275,14 +293,15 @@ class TestStateManager(unittest.TestCase):
         self.assertIsNotNone(rec)
         self.assertEqual(rec['duration'], 5.0)
 
-        # Verify burst does not explode latency with exponential compounding
+        # Verify repeated bursts accumulate offered load and finite-buffer delay monotonically.
         base_d = self.sm.base_link_delays.get((1, 2), 2.0)
         self.sm.inject_traffic_burst(1, 2, mbps=20.0)
         delay_1 = self.sm.link_delays.get((1, 2))
         self.sm.inject_traffic_burst(1, 2, mbps=20.0)
         delay_2 = self.sm.link_delays.get((1, 2))
-        self.assertAlmostEqual(delay_1, delay_2, places=2)
-        self.assertAlmostEqual(delay_2, base_d * 3.5, places=2)
+        self.assertGreater(delay_1, base_d)
+        self.assertGreater(delay_2, delay_1)
+        self.assertLessEqual(delay_2 - base_d, config.MAX_QUEUE_DELAY_MS)
 
 
 class TestTraditionalRoutingBaselines(unittest.TestCase):
@@ -391,6 +410,14 @@ class TestMultiTopologySupport(unittest.TestCase):
 class TestClosedLoopDynamicsAndUpgrades(unittest.TestCase):
     """Verifies architectural upgrades: Polyak soft updates, dynamic closed-loop flow dynamics, and generalized core congestion."""
 
+    def test_seeded_workloads_are_reproducible_and_distinct(self):
+        nodes = [1, 2, 3, 4]
+        seed_42_a = generate_flow_specs(nodes, topology_size=7, seed=42, count=12)
+        seed_42_b = generate_flow_specs(nodes, topology_size=7, seed=42, count=12)
+        seed_43 = generate_flow_specs(nodes, topology_size=7, seed=43, count=12)
+        self.assertEqual(seed_42_a, seed_42_b)
+        self.assertNotEqual(seed_42_a, seed_43)
+
     def test_polyak_soft_update_consistency(self):
         agent = DQNRoutingAgent(state_size=10, action_size=4, tau=0.01)
         # Store initial target weights
@@ -481,6 +508,17 @@ class TestCentralConfig(unittest.TestCase):
         self.assertGreater(sm.default_capacity, 0.0)
         self.assertGreater(sm.default_delay, 0.0)
 
+    def test_ha_config_presence(self):
+        import config
+        conf_dict = config.to_dict()
+        self.assertIn("ha_enabled", conf_dict["network"])
+        self.assertIn("backup_controllers", conf_dict["network"])
+        self.assertEqual(len(conf_dict["network"]["backup_controllers"]), 2)
+        self.assertEqual(config.CONTROLLER_PORT_BACKUP1, 6634)
+        self.assertEqual(config.CONTROLLER_PORT_BACKUP2, 6635)
+        self.assertEqual(config.REST_PORT_BACKUP1, 8081)
+        self.assertEqual(config.REST_PORT_BACKUP2, 8082)
+
 
 class TestWebDashboardAndVersusAPI(unittest.TestCase):
     """Automated tests for Web Dashboard, Connected Model Telemetry, and Versus Engine."""
@@ -505,6 +543,38 @@ class TestWebDashboardAndVersusAPI(unittest.TestCase):
         with urllib.request.urlopen(url, timeout=10) as resp:
             self.assertEqual(resp.status, 200)
             return json.loads(resp.read().decode('utf-8'))
+
+    def _post_json(self, path, data=None):
+        import urllib.request
+        import json
+        body = json.dumps(data or {}).encode('utf-8')
+        request = urllib.request.Request(
+            f"http://127.0.0.1:{self.test_port}{path}", data=body,
+            headers={'Content-Type': 'application/json'}, method='POST',
+        )
+        with urllib.request.urlopen(request, timeout=10) as resp:
+            return json.loads(resp.read().decode('utf-8'))
+
+    def test_mutations_require_post_and_flow_is_counted_once(self):
+        import urllib.error
+        import urllib.request
+        with self.assertRaises(urllib.error.HTTPError) as raised:
+            urllib.request.urlopen(
+                f"http://127.0.0.1:{self.test_port}/api/simulate/reset", timeout=10
+            )
+        self.assertEqual(raised.exception.code, 405)
+        raised.exception.close()
+
+        self._post_json('/api/simulate/reset')
+        result = self._post_json('/api/simulate/apply_flow?src=4&dst=7&demand=10&duration=5')
+        self.assertEqual(result['status'], 'success')
+        first_edge = tuple(result['chosen_path'][:2])
+        sm = self.server.state_manager
+        expected = 0.05 + 10.0 / sm.link_bandwidths[first_edge]
+        self.assertAlmostEqual(sm.link_utilization[first_edge], expected, places=6)
+        reverse = (first_edge[1], first_edge[0])
+        self.assertAlmostEqual(sm.link_utilization[reverse], 0.05, places=6)
+        self._post_json('/api/simulate/clear_flows')
 
     def test_dashboard_model_telemetry(self):
         rl = self._get_json("/api/rl_metrics")
@@ -552,6 +622,67 @@ class TestWebDashboardAndVersusAPI(unittest.TestCase):
         self.assertIn("DQN (Ours)", res["algorithms"])
         self.assertIn("OSPF (RFC 2328)", res["algorithms"])
         self.assertIn("ECMP Multi-Path", res["algorithms"])
+
+    def test_ha_status_endpoint(self):
+        res = self._get_json("/api/ha/status")
+        self.assertEqual(res["status"], "ok")
+        self.assertIn("role", res)
+        self.assertIn("ofp_port", res)
+        self.assertIn("rest_port", res)
+        self.assertIn("cluster_nodes", res)
+        self.assertEqual(res["cluster_nodes"], ["primary", "backup1", "backup2"])
+
+
+class TestHighAvailabilityClustering(unittest.TestCase):
+    """Verifies High Availability multi-controller pool management, health probing, and failover mechanics."""
+
+    def test_controller_node_properties(self):
+        node = ControllerNode(name="primary", host="127.0.0.1", ofp_port=6633, rest_port=8080)
+        self.assertEqual(node.name, "primary")
+        self.assertEqual(node.ofp_target, "tcp:127.0.0.1:6633")
+        self.assertEqual(node.rest_url, "http://127.0.0.1:8080")
+        self.assertEqual(node.status, "standby")
+
+    def test_ha_pool_init_and_active_leader(self):
+        pool = HAControllerPool()
+        self.assertEqual(len(pool.nodes), 3)
+        self.assertEqual(pool.nodes[0].name, "primary")
+        self.assertEqual(pool.nodes[1].name, "backup1")
+        self.assertEqual(pool.nodes[2].name, "backup2")
+        self.assertEqual(pool.active_index, 0)
+        self.assertEqual(pool.get_active_controller().name, "primary")
+
+    def test_ha_pool_cascaded_failovers(self):
+        pool = HAControllerPool()
+        self.assertEqual(pool.get_active_controller().name, "primary")
+
+        # First failover: Primary -> Backup 1
+        new_active = pool.failover(reason="simulated_primary_failure")
+        self.assertEqual(new_active.name, "backup1")
+        self.assertEqual(pool.total_failovers, 1)
+
+        # Second failover: Backup 1 -> Backup 2
+        new_active_2 = pool.failover(reason="simulated_backup1_failure")
+        self.assertEqual(new_active_2.name, "backup2")
+        self.assertEqual(pool.total_failovers, 2)
+
+        # Cluster status
+        status = pool.cluster_status()
+        self.assertEqual(status["active_controller"], "backup2")
+        self.assertEqual(status["total_failovers"], 2)
+        self.assertEqual(len(status["failover_history"]), 2)
+        self.assertEqual(status["failover_history"][0]["from"], "primary")
+        self.assertEqual(status["failover_history"][0]["to"], "backup1")
+        self.assertEqual(status["failover_history"][1]["from"], "backup1")
+        self.assertEqual(status["failover_history"][1]["to"], "backup2")
+
+    def test_ha_pool_ovs_targets_format(self):
+        pool = HAControllerPool()
+        targets = pool.get_ovs_controller_targets()
+        self.assertEqual(len(targets), 3)
+        self.assertTrue(targets[0].startswith("tcp:127.0.0.1:6633"))
+        self.assertTrue(targets[1].startswith("tcp:127.0.0.1:6634"))
+        self.assertTrue(targets[2].startswith("tcp:127.0.0.1:6635"))
 
 
 if __name__ == '__main__':

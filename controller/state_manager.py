@@ -4,6 +4,7 @@ import time
 import collections
 import os
 import sys
+import threading
 
 _BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _BASE_DIR not in sys.path:
@@ -13,6 +14,10 @@ try:
     import config
 except ImportError:
     config = None
+try:
+    from .queue_model import mm1k_metrics
+except ImportError:
+    from queue_model import mm1k_metrics
 
 class StateManager:
     """
@@ -21,6 +26,7 @@ class StateManager:
     host locations, network jitter (RFC 3393), packet loss modeling, and OpenFlow control overhead.
     """
     def __init__(self):
+        self._lock = threading.RLock()
         # Topology graph: nodes are switch DPIDs, edges have 'port', 'bandwidth', 'delay', 'loss'
         self.graph = nx.DiGraph()
 
@@ -30,7 +36,10 @@ class StateManager:
         self.default_jitter = getattr(config, 'DEFAULT_LINK_JITTER', 0.25)
         self.core_trunk_ratio = 1.0
         self.base_loss_pct = 0.0
-        self.default_k = getattr(config, 'ACTION_SIZE', 4)
+        self.default_k = min(getattr(config, 'K_CANDIDATE_PATHS', 4), getattr(config, 'ACTION_SIZE', 4))
+        self.state_size = int(getattr(config, 'STATE_SIZE', 10))
+        if self.state_size < 2:
+            raise ValueError("STATE_SIZE must be at least 2")
 
         # Link metric dictionaries: keyed by (src_dpid, dst_dpid)
         self.link_bandwidths = {}   # Capacity in Mbps
@@ -63,6 +72,8 @@ class StateManager:
         self.stats_reply_count = 0
         self.control_overhead_bytes = 0
         self.controller_decision_times = collections.deque(maxlen=1000) # latencies in ms
+        self.decision_count = 0
+        self.switch_rtt_ms = {}
         self.control_overhead_start_time = time.time()
 
         # Link failure & degradation recovery tracking: (u, v) -> edge_attributes
@@ -81,6 +92,7 @@ class StateManager:
         self.traffic_pattern = getattr(config, 'DEFAULT_TRAFFIC_PATTERN', 'uniform')
         self.traffic_flow_rate_mbps = getattr(config, 'DEFAULT_FLOW_RATE_MBPS', 15.0)
         self.diffserv_dscp = getattr(config, 'DEFAULT_DSCP', 'BE')
+        self.flow_duration_model = getattr(config, 'DEFAULT_FLOW_DURATION_MODEL', 'closed_loop')
 
         # OpenFlow 1.3 Control Plane defaults
         self.switch_queue_depth = getattr(config, 'SWITCH_QUEUE_DEPTH', 256)
@@ -125,7 +137,7 @@ class StateManager:
             edge = (path[i], path[i+1])
             cap = max(1.0, self.link_bandwidths.get(edge, self.default_capacity))
             add_ratio = float(estimated_rate_mbps) / cap
-            self.shadow_reservations[edge] = min(1.0, self.shadow_reservations[edge] + add_ratio)
+            self.shadow_reservations[edge] += add_ratio
             self.shadow_last_update[edge] = now
 
     def get_effective_utilization(self, edge):
@@ -140,8 +152,8 @@ class StateManager:
             elapsed = max(0.0, time.time() - last_t)
             decayed_shadow = shadow_u * (0.5 ** (elapsed / max(0.5, self.shadow_decay_half_life)))
             self.shadow_reservations[edge] = decayed_shadow
-            return min(1.0, max(polled_u, polled_u + decayed_shadow))
-        return min(1.0, polled_u)
+            return max(0.0, polled_u + decayed_shadow)
+        return max(0.0, polled_u)
 
     def clear_shadow_reservations(self):
         """Clears shadow reservations upon global topology reset or manual flush."""
@@ -150,23 +162,44 @@ class StateManager:
 
     def set_topology(self, topo_id, graph, meta):
         """Sets active topology and initializes links, attributes, and routing cache."""
-        self.current_topology_id = topo_id
-        self.current_topology_meta = meta or {'name': topo_id, 'id': topo_id}
-        self.active_core_nodes = list(meta.get('core_nodes', [])) if meta else []
-        self.active_edge_nodes = list(meta.get('edge_nodes', [])) if meta else []
-        self.graph = graph.copy()
-        self.link_bandwidths.clear()
-        self.link_delays.clear()
-        self.link_jitter.clear()
-        self.link_loss.clear()
-        self.link_utilization.clear()
-        self._routing_path_cache.clear()
-        self.failed_links.clear()
+        with self._lock:
+            self.current_topology_id = topo_id
+            self.current_topology_meta = meta or {'name': topo_id, 'id': topo_id}
+            self.active_core_nodes = list((meta or {}).get('core_nodes', []))
+            self.active_edge_nodes = list((meta or {}).get('edge_nodes', []))
+            self.graph = nx.DiGraph()
+            self.graph.add_nodes_from(graph.nodes(data=True))
+            for store in (
+                self.link_bandwidths, self.base_link_delays, self.link_delays,
+                self.link_jitter, self.link_loss, self.link_utilization,
+                self._prev_delays, self.failed_links, self.degraded_links,
+                self.raw_port_stats, self.port_rates, self.raw_flow_stats,
+                self.flow_stats, self.flow_paths, self.active_dynamic_flows,
+                self.switch_rtt_ms,
+            ):
+                store.clear()
+            self.clear_hosts()
+            self.clear_shadow_reservations()
+            self._routing_path_cache.clear()
+            self.active_simulation_mode = None
 
-        for u, v, d in graph.edges(data=True):
-            cap = d.get('capacity', 100.0)
-            lat = d.get('delay', 2.0)
-            self.update_link(u, v, src_port=1, dst_port=1, capacity_mbps=cap, delay_ms=lat)
+            host_port_max = collections.defaultdict(int)
+            for host in (meta or {}).get('hosts', []):
+                host_port_max[host.get('switch')] = max(host_port_max[host.get('switch')], int(host.get('port', 0)))
+            next_port = {node: host_port_max[node] + 1 for node in graph.nodes()}
+            port_map = {}
+            for u in sorted(graph.nodes(), key=str):
+                succs = graph.successors(u) if hasattr(graph, 'is_directed') and graph.is_directed() else graph.neighbors(u)
+                for v in sorted(succs, key=str):
+                    port_map[(u, v)] = next_port[u]
+                    next_port[u] += 1
+
+            for u, v, d in graph.edges(data=True):
+                self.update_link(
+                    u, v, src_port=port_map[(u, v)], dst_port=port_map.get((v, u)),
+                    capacity_mbps=d.get('capacity', self.default_capacity),
+                    delay_ms=d.get('delay', self.default_delay), loss=d.get('loss', 0.0),
+                )
 
     # --------------------------------------------------------------------------
     # Topology & Host Management
@@ -182,6 +215,25 @@ class StateManager:
         if self.graph.has_node(dpid):
             self.graph.remove_node(dpid)
             self._routing_path_cache.clear()
+        edge_stores = (self.link_bandwidths, self.base_link_delays, self.link_delays,
+                       self.link_jitter, self.link_loss, self.link_utilization,
+                       self._prev_delays, self.failed_links, self.degraded_links,
+                       self.shadow_reservations, self.shadow_last_update)
+        for store in edge_stores:
+            for key in [key for key in store if dpid in key]:
+                store.pop(key, None)
+        for key in [key for key in self.raw_port_stats if key[0] == dpid]:
+            self.raw_port_stats.pop(key, None)
+            self.port_rates.pop(key, None)
+        for ip, location in list(self.ip_to_location.items()):
+            if location[0] == dpid:
+                self.ip_to_location.pop(ip, None)
+                self.host_ip_to_mac.pop(ip, None)
+        for mac, location in list(self.host_locations.items()):
+            if location[0] == dpid:
+                self.host_locations.pop(mac, None)
+        for key in [key for key in self.mac_to_port if key[0] == dpid]:
+            self.mac_to_port.pop(key, None)
 
     def update_link(self, src_dpid, dst_dpid, src_port, dst_port=None, capacity_mbps=None, delay_ms=None, loss=0.0):
         """Adds or updates an inter-switch directional link."""
@@ -193,7 +245,8 @@ class StateManager:
         self.register_switch(src_dpid)
         self.register_switch(dst_dpid)
 
-        self.graph.add_edge(src_dpid, dst_dpid, port=src_port, peer_port=dst_port)
+        self.graph.add_edge(src_dpid, dst_dpid, port=src_port, peer_port=dst_port,
+                            capacity=float(capacity_mbps), delay=float(delay_ms), loss=float(loss))
         self._routing_path_cache.clear()
         self.link_bandwidths[(src_dpid, dst_dpid)] = float(capacity_mbps)
         self.base_link_delays[(src_dpid, dst_dpid)] = float(delay_ms)
@@ -222,7 +275,7 @@ class StateManager:
 
         for (u, v) in list(self.link_bandwidths.keys()):
             cap = float(self.default_capacity)
-            is_core = (u == 1 or v == 1) if self.current_topology_id == 'tree' else False
+            is_core = u in getattr(self, 'active_core_nodes', []) or v in getattr(self, 'active_core_nodes', [])
             if is_core and core_ratio > 1.0:
                 cap *= core_ratio
 
@@ -305,17 +358,9 @@ class StateManager:
                 edge_data = self.graph.get_edge_data(dpid, neighbor)
                 if edge_data and edge_data.get('port') == port_no:
                     capacity = self.link_bandwidths.get((dpid, neighbor), 100.0)
-                    util = min(1.0, tx_mbps / max(1.0, capacity))
+                    util = max(0.0, tx_mbps / max(1.0, capacity))
                     self.link_utilization[(dpid, neighbor)] = util
-
-                    # Mathematical Packet Loss modeling (Objective 5)
-                    # As link utilization approaches saturation, buffer queues overflow
-                    if util <= 0.70:
-                        loss_pct = util * 0.05
-                    else:
-                        excess = (util - 0.70) / 0.30
-                        loss_pct = min(35.0, 0.05 + 30.0 * (excess ** 2.2))
-                    self.link_loss[(dpid, neighbor)] = float(loss_pct)
+                    self._recalculate_link_metrics((dpid, neighbor))
 
         self.raw_port_stats[key] = {
             'rx_bytes': rx_bytes,
@@ -443,6 +488,11 @@ class StateManager:
     def record_decision_latency(self, latency_ms):
         """Records the time taken by the controller / RL agent to infer an optimal path."""
         self.controller_decision_times.append(float(latency_ms))
+        self.decision_count += 1
+
+    def record_switch_rtt(self, dpid, latency_ms):
+        """Records controller-to-switch echo RTT without mislabelling it as link delay."""
+        self.switch_rtt_ms[int(dpid)] = max(0.0, float(latency_ms))
 
     def get_control_overhead_summary(self):
         """
@@ -461,7 +511,7 @@ class StateManager:
         mean_time = float(np.mean(times)) if times else 0.45
         p95_time = float(np.percentile(times, 95)) if times else 0.85
         total_msgs = self.packet_in_count + self.flow_mod_count + self.stats_request_count + self.stats_reply_count
-        dps = (self.flow_mod_count / dt) if dt > 0 else 0.0
+        dps = (self.decision_count / dt) if dt > 0 else 0.0
 
         return {
             'packet_in_count': int(self.packet_in_count),
@@ -473,6 +523,8 @@ class StateManager:
             'mean_decision_latency_ms': round(mean_time, 3),
             'p95_decision_latency_ms': round(p95_time, 3),
             'decision_throughput_dps': round(float(dps), 1),
+            'flow_mod_rate_mps': round(float(self.flow_mod_count / dt), 2),
+            'switch_rtt_ms': {str(k): round(v, 3) for k, v in self.switch_rtt_ms.items()},
             'total_control_overhead_kb': round(float(self.control_overhead_bytes / 1024.0), 2)
         }
 
@@ -493,13 +545,22 @@ class StateManager:
           - Active Flows Count
           - Control Overhead Summary
         """
-        # Throughput: aggregate of tx_mbps across ports
-        total_mbps = sum(p.get('tx_mbps', 0.0) for p in self.port_rates.values())
+        # End-to-end offered throughput counts each active flow once, not once per hop.
+        total_mbps = sum(float(f.get('mbps', 0.0)) for f in self.active_dynamic_flows.values())
         if total_mbps == 0.0 and self.flow_stats:
-            total_mbps = sum(f.get('mbps', 0.0) for f in self.flow_stats.values())
+            unique_flows = {}
+            for (_dpid, src_ip, dst_ip), stats in self.flow_stats.items():
+                key = (src_ip, dst_ip)
+                unique_flows[key] = max(unique_flows.get(key, 0.0), float(stats.get('mbps', 0.0)))
+            total_mbps = sum(unique_flows.values())
+        aggregate_link_tx = sum(p.get('tx_mbps', 0.0) for p in self.port_rates.values())
 
         utils = list(self.link_utilization.values()) or [0.0]
-        delays = list(self.link_delays.values()) or [2.0]
+        path_delays = []
+        for path in self.flow_paths.values():
+            if len(path) > 1:
+                path_delays.append(sum(self.link_delays.get((u, v), self.default_delay) for u, v in zip(path, path[1:])))
+        delays = path_delays or list(self.link_delays.values()) or [self.default_delay]
         jitters = list(self.link_jitter.values()) or [0.25]
         losses = list(self.link_loss.values()) or [0.0]
 
@@ -516,18 +577,24 @@ class StateManager:
 
         summary = {
             'total_throughput_mbps': round(float(total_mbps), 2),
+            'aggregate_link_tx_mbps': round(float(aggregate_link_tx), 2),
             'bottleneck_utilization_pct': round(float(max_u * 100.0), 2),
+            'peak_bottleneck_util_pct': round(float(max_u * 100.0), 2),
             'mean_utilization_pct': round(float(mean_u * 100.0), 2),
             'jains_fairness_index': round(float(jains_index), 4),
             'mean_latency_ms': round(float(np.mean(delays)), 2),
             'mean_jitter_ms': round(float(np.mean(jitters)), 3),
             'mean_packet_loss_pct': round(float(np.mean(losses)), 3),
-            'active_flows_count': len(self.flow_stats),
+            'active_flows_count': len(self.active_dynamic_flows) if self.active_dynamic_flows else len({(k[1], k[2]) for k in self.flow_stats}),
             'control_overhead': self.get_control_overhead_summary(),
             'current_topology': getattr(self, 'current_topology_id', 'tree'),
             'topology_name': getattr(self, 'current_topology_meta', {}).get('name', 'Hierarchical Tree (Baseline)')
         }
         return summary
+
+    def get_traffic_engineering_summary(self):
+        """Alias for get_network_te_summary."""
+        return self.get_network_te_summary()
 
     # --------------------------------------------------------------------------
     # Feature Extractors for DQN Adaptive Routing
@@ -541,78 +608,56 @@ class StateManager:
         - Path 2: Diverse / Low-Overlap Bypass Path (routes around primary path edges)
         - Path 3: Widest Path (minimizes peak link utilization)
         """
-        if k is None:
-            k = self.default_k
-
+        k = max(1, int(k or self.default_k))
         if not self.graph.has_node(src_dpid) or not self.graph.has_node(dst_dpid):
-            return [[src_dpid, dst_dpid]]
+            return []
+        if src_dpid == dst_dpid:
+            return [[src_dpid]]
 
-        cache_key = (src_dpid, dst_dpid, k)
-        cached = self._routing_path_cache.get(cache_key)
-        if cached is not None:
-            return cached
+        cache_key = (src_dpid, dst_dpid)
+        with self._lock:
+            simple_paths = self._routing_path_cache.get(cache_key)
+            if simple_paths is None:
+                try:
+                    import itertools
+                    simple_paths = list(itertools.islice(
+                        nx.shortest_simple_paths(self.graph, src_dpid, dst_dpid), 16
+                    ))
+                except (nx.NetworkXNoPath, nx.NodeNotFound):
+                    simple_paths = []
+                self._routing_path_cache[cache_key] = simple_paths
+        if not simple_paths:
+            return []
 
-        paths = []
+        primary = simple_paths[0]
+        selected = [primary]
+        if len(simple_paths) > 1:
+            selected.append(simple_paths[1])
+
+        primary_edges = set(zip(primary, primary[1:]))
+        remaining = [p for p in simple_paths if p not in selected]
+        if remaining:
+            diverse = min(remaining, key=lambda p: (len(set(zip(p, p[1:])) & primary_edges), len(p)))
+            selected.append(diverse)
+
+        # The load-aware candidate is recomputed on every call; only topology paths are cached.
         try:
-            import itertools
-            simple_paths = list(itertools.islice(nx.shortest_simple_paths(self.graph, src_dpid, dst_dpid), 16))
-            if not simple_paths:
-                paths = [[src_dpid, dst_dpid]]
-            else:
-                p0 = simple_paths[0]
-                paths.append(p0)
+            def dynamic_cost(u, v, data):
+                util = self.get_effective_utilization((u, v))
+                delay = float(self.link_delays.get((u, v), data.get('delay', self.default_delay)))
+                return delay * (1.0 + 25.0 * max(0.0, util - 0.55) ** 2)
+            load_aware = nx.dijkstra_path(self.graph, src_dpid, dst_dpid, weight=dynamic_cost)
+            if load_aware not in selected:
+                selected.append(load_aware)
+        except (nx.NetworkXNoPath, nx.NodeNotFound):
+            pass
 
-                # Path 1: 2nd shortest simple path
-                if len(simple_paths) > 1:
-                    paths.append(simple_paths[1])
-
-                # Path 2: Edge-diverse / lateral bypass path (minimizing edge overlap with p0)
-                p0_edges = set((p0[idx], p0[idx+1]) for idx in range(len(p0)-1))
-                p0_edges.update((p0[idx+1], p0[idx]) for idx in range(len(p0)-1))
-                diverse_candidates = [p for p in simple_paths if p not in paths]
-                if diverse_candidates:
-                    diverse_candidates.sort(key=lambda p: sum(1 for idx in range(len(p)-1) if (p[idx], p[idx+1]) in p0_edges))
-                    paths.append(diverse_candidates[0])
-
-                # Path 3: Node-diverse path (minimizing intermediate transit node overlap with p0)
-                p0_nodes = set(p0[1:-1])
-                node_diverse = [p for p in simple_paths if p not in paths]
-                if node_diverse:
-                    node_diverse.sort(key=lambda p: len(set(p[1:-1]) & p0_nodes))
-                    paths.append(node_diverse[0])
-
-                # Fill remaining slots up to k
-                for p in simple_paths:
-                    if len(paths) >= k:
-                        break
-                    if p not in paths:
-                        paths.append(p)
-
-                # On-Demand Saturated Core Detour Synthesis (eliminates shared-bottleneck trap):
-                if len(paths) >= 2:
-                    bottlenecks = [max([self.get_effective_utilization((p[idx], p[idx+1])) for idx in range(len(p)-1)]) if len(p) > 1 else 0.0 for p in paths[:2]]
-                    if all(b >= 0.70 for b in bottlenecks):
-                        try:
-                            def detour_penalty(u, v, d):
-                                eff_u = self.get_effective_utilization((u, v))
-                                base_lat = d.get('delay', self.default_delay)
-                                return base_lat * (1.0 + 50.0 * max(0.0, eff_u - 0.70))
-                            detour_p = nx.dijkstra_path(self.graph, src_dpid, dst_dpid, weight=detour_penalty)
-                            if detour_p not in paths:
-                                if len(paths) >= k:
-                                    paths[k-1] = detour_p
-                                else:
-                                    paths.append(detour_p)
-                        except Exception:
-                            pass
-        except Exception:
-            paths = [[src_dpid, dst_dpid]]
-
-        if not paths:
-            paths = [[src_dpid, dst_dpid]]
-
-        self._routing_path_cache[cache_key] = paths[:k]
-        return self._routing_path_cache[cache_key]
+        for path in simple_paths:
+            if len(selected) >= k:
+                break
+            if path not in selected:
+                selected.append(path)
+        return selected[:k]
 
     def get_routing_state(self, src_dpid, dst_dpid):
         """
@@ -622,11 +667,11 @@ class StateManager:
         [5-8]: Normalized end-to-end latency of Candidate Paths 0, 1, 2, 3 [0.0 - 1.0] (delay / 50.0)
         [9]: Network-wide peak link utilization [0.0 - 1.0] (effective utilization)
         """
-        state = np.zeros(10, dtype=np.float32)
+        state = np.zeros(self.state_size, dtype=np.float32)
         if not self.graph.has_node(src_dpid) or not self.graph.has_node(dst_dpid):
             return state
-
-        candidate_paths = self.get_candidate_paths(src_dpid, dst_dpid, k=self.default_k)
+        feature_k = max(0, min(self.default_k, (self.state_size - 2) // 2))
+        candidate_paths = self.get_candidate_paths(src_dpid, dst_dpid, k=feature_k)
 
         # 0: Shortest path hops normalized
         if candidate_paths and len(candidate_paths[0]) > 1:
@@ -637,30 +682,56 @@ class StateManager:
 
         # 1-4: Effective bottleneck link utilization on each candidate path
         # 5-8: Normalized delay on each candidate path
-        for i in range(4):
+        for i in range(feature_k):
             if i < len(candidate_paths):
                 p = candidate_paths[i]
                 if len(p) > 1:
                     utils = [self.get_effective_utilization((p[j], p[j+1])) for j in range(len(p)-1)]
                     delays = [self.link_delays.get((p[j], p[j+1]), self.default_delay) for j in range(len(p)-1)]
                     state[1 + i] = min(1.0, max(0.0, float(max(utils) if utils else 0.0)))
-                    state[5 + i] = min(1.0, max(0.0, float(sum(delays) / 50.0)))
+                    state[1 + feature_k + i] = min(1.0, max(0.0, float(sum(delays) / 50.0)))
                 else:
                     state[1 + i] = 0.0
-                    state[5 + i] = 0.04
+                    state[1 + feature_k + i] = 0.04
             else:
                 state[1 + i] = 1.0
-                state[5 + i] = 1.0
+                state[1 + feature_k + i] = 1.0
 
         # 9: Peak effective network utilization across all active links
         all_utils = [self.get_effective_utilization(edge) for edge in self.link_bandwidths.keys()]
-        state[9] = min(1.0, max(0.0, float(max(all_utils)))) if all_utils else 0.0
+        if self.state_size > 1:
+            state[-1] = min(1.0, max(0.0, float(max(all_utils)))) if all_utils else 0.0
 
         return state
 
     # --------------------------------------------------------------------------
     # Interactive Simulation & Telemetry Injection
     # --------------------------------------------------------------------------
+
+    def _recalculate_link_metrics(self, edge):
+        """Recomputes finite-buffer loss, queue delay, and synthetic port rate."""
+        if edge not in self.link_bandwidths:
+            return
+        util = max(0.0, float(self.link_utilization.get(edge, 0.0)))
+        base_delay = max(0.01, float(self.base_link_delays.get(edge, self.default_delay)))
+        queue = mm1k_metrics(
+            util,
+            queue_depth=self.switch_queue_depth,
+            service_time_ms=base_delay,
+            max_queue_delay_ms=getattr(config, 'MAX_QUEUE_DELAY_MS', 1000.0),
+        )
+        self.link_loss[edge] = queue['loss_pct']
+        self.update_link_latency(edge[0], edge[1], base_delay + queue['queue_delay_ms'])
+        if self.graph.has_edge(*edge):
+            port = self.graph[edge[0]][edge[1]].get('port')
+            if port is not None:
+                mbps = util * self.link_bandwidths[edge]
+                previous = self.port_rates.get((edge[0], port), {})
+                self.port_rates[(edge[0], port)] = {
+                    'rx_mbps': mbps, 'tx_mbps': mbps,
+                    'rx_pps': previous.get('rx_pps', 0.0),
+                    'tx_pps': previous.get('tx_pps', 0.0),
+                }
 
     def inject_traffic_flow(self, src_ip, dst_ip, src_dpid, dst_dpid, mbps=15.0, pps=1200.0, duration=10.0, path=None):
         """Injects a simulated flow and updates link utilization, jitter, and loss along the chosen path."""
@@ -679,32 +750,16 @@ class StateManager:
                 u, v = path[i], path[i+1]
                 cap = self.link_bandwidths.get((u, v), 100.0)
                 add_util = mbps / max(1.0, cap)
-                new_u = min(1.0, self.link_utilization.get((u, v), 0.0) + add_util)
+                new_u = max(0.0, self.link_utilization.get((u, v), 0.0) + add_util)
                 self.link_utilization[(u, v)] = new_u
-
-                # Update loss and jitter under new load
-                if new_u <= 0.70:
-                    loss_pct = new_u * 0.05
-                else:
-                    excess = (new_u - 0.70) / 0.30
-                    loss_pct = min(35.0, 0.05 + 30.0 * (excess ** 2.2))
-                self.link_loss[(u, v)] = float(loss_pct)
-
-                base_d = self.base_link_delays.get((u, v), self.default_delay)
-                clamped_u = min(0.96, max(0.0, new_u))
-                q_delay = min(15.0, base_d * (0.8 * clamped_u / max(0.06, 1.0 - clamped_u)))
-                self.update_link_latency(u, v, base_d + q_delay)
-
-                port = self.graph[u][v].get('port', 1) if self.graph.has_edge(u, v) else 1
-                self.port_rates[(u, port)] = {
-                    'rx_mbps': mbps, 'tx_mbps': mbps, 'rx_pps': pps, 'tx_pps': pps
-                }
+                self._recalculate_link_metrics((u, v))
 
     # --------------------------------------------------------------------------
     # Closed-Loop Dynamic Flow Allocation (Proposal Objective 4)
     # --------------------------------------------------------------------------
 
-    def allocate_dynamic_flow(self, flow_id, path, mbps=5.0, duration_sec=10.0):
+    def allocate_dynamic_flow(self, flow_id, path, mbps=5.0, duration_sec=10.0,
+                              src_ip=None, dst_ip=None, src_dpid=None, pps=0.0):
         """
         Allocates an active unicast flow along a designated multi-hop path.
         Simulates dynamic closed-loop bandwidth consumption on link queues.
@@ -713,30 +768,33 @@ class StateManager:
         if not hasattr(self, 'active_dynamic_flows'):
             self.active_dynamic_flows = {}
 
-        self.active_dynamic_flows[flow_id] = {
-            'path': list(path),
-            'mbps': float(mbps),
-            'expires_at': now + float(duration_sec)
-        }
-        for i in range(len(path) - 1):
-            u, v = path[i], path[i + 1]
-            cap = self.link_bandwidths.get((u, v), 100.0)
-            delta_u = mbps / max(1.0, cap)
-            new_u = min(1.0, self.link_utilization.get((u, v), 0.05) + delta_u)
-            self.link_utilization[(u, v)] = new_u
-
-            # Recalculate analytical queue loss & latency
-            if new_u <= 0.70:
-                loss_pct = new_u * 0.05
-            else:
-                excess = (new_u - 0.70) / 0.30
-                loss_pct = min(35.0, 0.05 + 30.0 * (excess ** 2.2))
-            self.link_loss[(u, v)] = float(loss_pct)
-
-            base_d = self.base_link_delays.get((u, v), 2.0)
-            clamped_u = min(0.96, max(0.0, new_u))
-            q_delay = min(15.0, base_d * (0.8 * clamped_u / max(0.06, 1.0 - clamped_u)))
-            self.update_link_latency(u, v, base_d + q_delay)
+        if not path or len(path) < 2 or any(not self.graph.has_edge(u, v) for u, v in zip(path, path[1:])):
+            return False
+        with self._lock:
+            if flow_id in self.active_dynamic_flows:
+                self.release_dynamic_flow(flow_id)
+            flow = {
+                'path': list(path), 'mbps': float(mbps),
+                'expires_at': now + max(0.0, float(duration_sec)),
+            }
+            if src_ip and dst_ip:
+                origin = int(src_dpid if src_dpid is not None else path[0])
+                duration = max(0.1, float(duration_sec))
+                bytes_count = int(float(mbps) * 1e6 * duration / 8.0)
+                packets = int(float(pps) * duration)
+                self.update_flow_stats(origin, src_ip, dst_ip, packets, bytes_count, duration)
+                key = (origin, src_ip, dst_ip)
+                self.flow_stats[key]['mbps'] = float(mbps)
+                self.flow_stats[key]['pps'] = float(pps)
+                self.record_flow_path(origin, src_ip, dst_ip, path)
+                flow['flow_key'] = key
+            self.active_dynamic_flows[flow_id] = flow
+            for u, v in zip(path, path[1:]):
+                edge = (u, v)
+                cap = self.link_bandwidths.get(edge, self.default_capacity)
+                self.link_utilization[edge] = max(0.0, self.link_utilization.get(edge, 0.0) + float(mbps) / max(1.0, cap))
+                self._recalculate_link_metrics(edge)
+        return True
 
     def release_dynamic_flow(self, flow_id):
         """Reclaims link bandwidth and relieves queue congestion upon flow completion."""
@@ -748,23 +806,22 @@ class StateManager:
             return
         path = flow['path']
         mbps = flow['mbps']
-        for i in range(len(path) - 1):
-            u, v = path[i], path[i + 1]
-            cap = self.link_bandwidths.get((u, v), 100.0)
-            delta_u = mbps / max(1.0, cap)
-            new_u = max(0.02, self.link_utilization.get((u, v), 0.05) - delta_u)
-            self.link_utilization[(u, v)] = new_u
-            if new_u <= 0.70:
-                loss_pct = new_u * 0.05
-            else:
-                excess = (new_u - 0.70) / 0.30
-                loss_pct = min(35.0, 0.05 + 30.0 * (excess ** 2.2))
-            self.link_loss[(u, v)] = float(loss_pct)
+        with self._lock:
+            for u, v in zip(path, path[1:]):
+                edge = (u, v)
+                cap = self.link_bandwidths.get(edge, self.default_capacity)
+                self.link_utilization[edge] = max(0.0, self.link_utilization.get(edge, 0.0) - mbps / max(1.0, cap))
+                self._recalculate_link_metrics(edge)
+            key = flow.get('flow_key')
+            if key:
+                self.flow_stats.pop(key, None)
+                self.raw_flow_stats.pop(key, None)
+                self.flow_paths.pop(key, None)
 
-            base_d = self.base_link_delays.get((u, v), 2.0)
-            clamped_u = min(0.96, max(0.0, new_u))
-            q_delay = min(15.0, base_d * (0.8 * clamped_u / max(0.06, 1.0 - clamped_u)))
-            self.update_link_latency(u, v, base_d + q_delay)
+    def clear_dynamic_flows(self):
+        """Releases all simulated allocations through the same accounting path."""
+        for flow_id in list(self.active_dynamic_flows):
+            self.release_dynamic_flow(flow_id)
 
     def step_dynamic_flows(self, current_time=None):
         """Expires finished flows whose lifespan has ended."""
@@ -812,26 +869,19 @@ class StateManager:
         for u, v in self.graph.edges():
             if (u, v) in target_set:
                 self.link_utilization[(u, v)] = float(utilization)
-                self.link_loss[(u, v)] = 21.5
-                self.link_jitter[(u, v)] = 12.8
-                base_d = self.base_link_delays.get((u, v), 2.0)
-                self.link_delays[(u, v)] = max(base_d * 5.0, 20.0)
+                self._recalculate_link_metrics((u, v))
             else:
                 # Keep lateral / perimeter edges uncongested
                 self.link_utilization[(u, v)] = 0.15
-                self.link_loss[(u, v)] = 0.01
-                self.link_jitter[(u, v)] = 0.45
-                if (u, v) in self.link_delays:
-                    base_d = self.base_link_delays.get((u, v), 2.0)
-                    self.link_delays[(u, v)] = base_d
+                self._recalculate_link_metrics((u, v))
 
         self.active_simulation_mode = "core_jamming"
         return len(target_edges)
 
-    def reset_simulation(self):
+    def reset_simulation(self, restore_faults=False):
         """Resets link utilization and clears simulated telemetry."""
-        if hasattr(self, 'active_dynamic_flows'):
-            self.active_dynamic_flows.clear()
+        self.clear_dynamic_flows()
+        self.clear_shadow_reservations()
         for k in self.link_utilization:
             self.link_utilization[k] = 0.05
             self.link_loss[k] = getattr(self, 'base_loss_pct', 0.0)
@@ -844,20 +894,29 @@ class StateManager:
         self.flow_paths.clear()
         self.raw_flow_stats.clear()
         self.raw_port_stats.clear()
-        self.restore_link()
-        if hasattr(self, 'restore_degraded_links'):
-            self.restore_degraded_links()
         self.active_simulation_mode = None
+        if restore_faults:
+            self.restore_link()
+            if hasattr(self, 'restore_degraded_links'):
+                self.restore_degraded_links()
+            self.active_simulation_mode = None
 
     def inject_link_failure(self, u, v):
         """Simulates physical fiber cut or port down between switch u and v."""
-        if not self.graph.has_edge(u, v):
+        try:
+            u, v = int(u), int(v)
+        except (ValueError, TypeError):
             return False
-        data_fwd = dict(self.graph[u][v])
+        if not self.graph.has_edge(u, v) and not self.graph.has_edge(v, u):
+            return False
+        data_fwd = dict(self.graph[u][v]) if self.graph.has_edge(u, v) else {}
         data_rev = dict(self.graph[v][u]) if self.graph.has_edge(v, u) else data_fwd
+        if not data_fwd and data_rev:
+            data_fwd = data_rev
         self.failed_links[(u, v)] = data_fwd
         self.failed_links[(v, u)] = data_rev
-        self.graph.remove_edge(u, v)
+        if self.graph.has_edge(u, v):
+            self.graph.remove_edge(u, v)
         if self.graph.has_edge(v, u):
             self.graph.remove_edge(v, u)
         self._routing_path_cache.clear()
@@ -868,7 +927,11 @@ class StateManager:
         """Restores specific or all previously severed links."""
         restored = 0
         if u is not None and v is not None:
-            pairs = [(u, v), (v, u)]
+            try:
+                u, v = int(u), int(v)
+                pairs = [(u, v), (v, u)]
+            except (ValueError, TypeError):
+                pairs = list(self.failed_links.keys())
         else:
             pairs = list(self.failed_links.keys())
 
@@ -887,6 +950,13 @@ class StateManager:
 
     def inject_link_degradation(self, u, v, throttle_pct=0.10, delay_mult=5.0):
         """Simulates physical fiber degradation (e.g. dirty optics, high bit error rate)."""
+        try:
+            u, v = int(u), int(v)
+            throttle_pct, delay_mult = float(throttle_pct), float(delay_mult)
+        except (TypeError, ValueError):
+            return False
+        if not (0.0 < throttle_pct <= 1.0 and delay_mult >= 1.0):
+            return False
         if not self.graph.has_edge(u, v):
             return False
         pairs = [(u, v)]
@@ -901,9 +971,9 @@ class StateManager:
                 'delay': orig_delay,
                 'loss': orig_loss
             }
-            self.link_bandwidths[(src, dst)] = max(1.0, orig_cap * float(throttle_pct))
-            self.base_link_delays[(src, dst)] = orig_delay * float(delay_mult)
-            self.link_delays[(src, dst)] = orig_delay * float(delay_mult)
+            self.link_bandwidths[(src, dst)] = max(1.0, orig_cap * throttle_pct)
+            self.base_link_delays[(src, dst)] = orig_delay * delay_mult
+            self.link_delays[(src, dst)] = orig_delay * delay_mult
             self.link_loss[(src, dst)] = 12.5  # High physical bit error rate
         self._routing_path_cache.clear()
         self.active_simulation_mode = f"degraded_{u}_{v}"
@@ -941,10 +1011,8 @@ class StateManager:
         for src, dst in burst_edges:
             cap = self.link_bandwidths.get((src, dst), self.default_capacity)
             add_util = float(mbps) / max(1.0, cap)
-            self.link_utilization[(src, dst)] = min(1.0, self.link_utilization.get((src, dst), 0.1) + add_util)
-            self.link_delays[(src, dst)] = self.base_link_delays.get((src, dst), self.default_delay) * 3.5
-            self.link_loss[(src, dst)] = min(35.0, self.link_loss.get((src, dst), 0.0) + 18.0)
-        self._routing_path_cache.clear()
+            self.link_utilization[(src, dst)] = max(0.0, self.link_utilization.get((src, dst), 0.0) + add_util)
+            self._recalculate_link_metrics((src, dst))
         return len(burst_edges)
 
     def sample_telemetry_history(self):

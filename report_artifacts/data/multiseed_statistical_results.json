@@ -1,0 +1,3922 @@
+{
+  "methodology": {
+    "workload_seeds": [
+      42,
+      43,
+      44,
+      45,
+      46
+    ],
+    "seed_count": 5,
+    "topologies_per_seed": 5,
+    "paired_topology_seed_observations": 25,
+    "flows_per_topology_algorithm": 150,
+    "bootstrap_iterations": 10000,
+    "bootstrap_seed": 2026,
+    "confidence_level_pct": 95,
+    "unit_of_analysis": "balanced seed-by-topology matrix",
+    "bootstrap_method": "two-way cluster bootstrap resampling workload seeds and topologies independently",
+    "policy_note": "pure is learned-only; safety is a labeled deterministic guard applied after Q inference"
+  },
+  "topologies": [
+    "Hierarchical Tree (7 Nodes)",
+    "Fat-Tree Clos Fabric (20 Nodes)",
+    "Abilene US Backbone (12 Nodes)",
+    "NSFNET Continental Mesh (14 Nodes)",
+    "Spine-Leaf Fabric (12 Nodes)"
+  ],
+  "algorithm_summary": {
+    "pure": {
+      "bottleneck_util": {
+        "OSPF (RFC 2328)": {
+          "mean": 66.4152,
+          "sample_sd": 26.151411,
+          "ci95_low": 44.43149,
+          "ci95_high": 88.50043,
+          "n": 25,
+          "unit": "%",
+          "direction": "lower"
+        },
+        "Dijkstra SPF": {
+          "mean": 63.6548,
+          "sample_sd": 27.883182,
+          "ci95_low": 40.10181,
+          "ci95_high": 87.06925,
+          "n": 25,
+          "unit": "%",
+          "direction": "lower"
+        },
+        "ECMP": {
+          "mean": 45.5696,
+          "sample_sd": 8.329535,
+          "ci95_low": 38.86033,
+          "ci95_high": 52.308,
+          "n": 25,
+          "unit": "%",
+          "direction": "lower"
+        },
+        "WSP (Widest Path)": {
+          "mean": 27.832,
+          "sample_sd": 8.327959,
+          "ci95_low": 21.53157,
+          "ci95_high": 35.28303,
+          "n": 25,
+          "unit": "%",
+          "direction": "lower"
+        },
+        "LLR (Least Loaded)": {
+          "mean": 28.3884,
+          "sample_sd": 9.039413,
+          "ci95_low": 21.71672,
+          "ci95_high": 36.68741,
+          "n": 25,
+          "unit": "%",
+          "direction": "lower"
+        },
+        "DQN (Ours)": {
+          "mean": 29.7232,
+          "sample_sd": 7.544587,
+          "ci95_low": 24.0016,
+          "ci95_high": 36.58681,
+          "n": 25,
+          "unit": "%",
+          "direction": "lower"
+        }
+      },
+      "latency_ms": {
+        "OSPF (RFC 2328)": {
+          "mean": 156.9312,
+          "sample_sd": 65.190107,
+          "ci95_low": 101.558,
+          "ci95_high": 205.9072,
+          "n": 25,
+          "unit": "ms",
+          "direction": "lower"
+        },
+        "Dijkstra SPF": {
+          "mean": 145.0392,
+          "sample_sd": 64.529312,
+          "ci95_low": 88.10054,
+          "ci95_high": 189.8752,
+          "n": 25,
+          "unit": "ms",
+          "direction": "lower"
+        },
+        "ECMP": {
+          "mean": 86.34,
+          "sample_sd": 71.991359,
+          "ci95_low": 31.9468,
+          "ci95_high": 149.83202,
+          "n": 25,
+          "unit": "ms",
+          "direction": "lower"
+        },
+        "WSP (Widest Path)": {
+          "mean": 43.802,
+          "sample_sd": 70.701737,
+          "ci95_low": 6.77831,
+          "ci95_high": 111.6579,
+          "n": 25,
+          "unit": "ms",
+          "direction": "lower"
+        },
+        "LLR (Least Loaded)": {
+          "mean": 58.3984,
+          "sample_sd": 98.34325,
+          "ci95_low": 6.98105,
+          "ci95_high": 155.7332,
+          "n": 25,
+          "unit": "ms",
+          "direction": "lower"
+        },
+        "DQN (Ours)": {
+          "mean": 41.5324,
+          "sample_sd": 60.975928,
+          "ci95_low": 7.1052,
+          "ci95_high": 101.38393,
+          "n": 25,
+          "unit": "ms",
+          "direction": "lower"
+        }
+      },
+      "jitter_ms": {
+        "OSPF (RFC 2328)": {
+          "mean": 9.36388,
+          "sample_sd": 4.669935,
+          "ci95_low": 5.505751,
+          "ci95_high": 13.420013,
+          "n": 25,
+          "unit": "ms",
+          "direction": "lower"
+        },
+        "Dijkstra SPF": {
+          "mean": 8.84916,
+          "sample_sd": 5.001397,
+          "ci95_low": 4.649376,
+          "ci95_high": 13.092317,
+          "n": 25,
+          "unit": "ms",
+          "direction": "lower"
+        },
+        "ECMP": {
+          "mean": 5.76872,
+          "sample_sd": 1.872733,
+          "ci95_low": 4.208426,
+          "ci95_high": 7.339811,
+          "n": 25,
+          "unit": "ms",
+          "direction": "lower"
+        },
+        "WSP (Widest Path)": {
+          "mean": 2.38712,
+          "sample_sd": 1.750269,
+          "ci95_low": 1.005395,
+          "ci95_high": 3.952331,
+          "n": 25,
+          "unit": "ms",
+          "direction": "lower"
+        },
+        "LLR (Least Loaded)": {
+          "mean": 2.46272,
+          "sample_sd": 1.863287,
+          "ci95_low": 1.041525,
+          "ci95_high": 4.133607,
+          "n": 25,
+          "unit": "ms",
+          "direction": "lower"
+        },
+        "DQN (Ours)": {
+          "mean": 2.4224,
+          "sample_sd": 1.632616,
+          "ci95_low": 1.143,
+          "ci95_high": 3.89496,
+          "n": 25,
+          "unit": "ms",
+          "direction": "lower"
+        }
+      },
+      "packet_loss_pct": {
+        "OSPF (RFC 2328)": {
+          "mean": 3.85808,
+          "sample_sd": 3.757838,
+          "ci95_low": 1.013144,
+          "ci95_high": 7.219241,
+          "n": 25,
+          "unit": "%",
+          "direction": "lower"
+        },
+        "Dijkstra SPF": {
+          "mean": 3.5878,
+          "sample_sd": 3.851343,
+          "ci95_low": 0.693978,
+          "ci95_high": 7.113745,
+          "n": 25,
+          "unit": "%",
+          "direction": "lower"
+        },
+        "ECMP": {
+          "mean": 0.84884,
+          "sample_sd": 1.172772,
+          "ci95_low": 0.14308,
+          "ci95_high": 1.956477,
+          "n": 25,
+          "unit": "%",
+          "direction": "lower"
+        },
+        "WSP (Widest Path)": {
+          "mean": 0.22132,
+          "sample_sd": 0.533264,
+          "ci95_low": 0.0,
+          "ci95_high": 0.7146,
+          "n": 25,
+          "unit": "%",
+          "direction": "lower"
+        },
+        "LLR (Least Loaded)": {
+          "mean": 0.44652,
+          "sample_sd": 1.014123,
+          "ci95_low": 0.0,
+          "ci95_high": 1.41384,
+          "n": 25,
+          "unit": "%",
+          "direction": "lower"
+        },
+        "DQN (Ours)": {
+          "mean": 0.38376,
+          "sample_sd": 0.872992,
+          "ci95_low": 0.0,
+          "ci95_high": 1.24776,
+          "n": 25,
+          "unit": "%",
+          "direction": "lower"
+        }
+      },
+      "jains_fairness": {
+        "OSPF (RFC 2328)": {
+          "mean": 0.764316,
+          "sample_sd": 0.147658,
+          "ci95_low": 0.645352,
+          "ci95_high": 0.897473,
+          "n": 25,
+          "unit": "index",
+          "direction": "higher"
+        },
+        "Dijkstra SPF": {
+          "mean": 0.744568,
+          "sample_sd": 0.16645,
+          "ci95_low": 0.609357,
+          "ci95_high": 0.895926,
+          "n": 25,
+          "unit": "index",
+          "direction": "higher"
+        },
+        "ECMP": {
+          "mean": 0.627752,
+          "sample_sd": 0.056775,
+          "ci95_low": 0.575484,
+          "ci95_high": 0.670488,
+          "n": 25,
+          "unit": "index",
+          "direction": "higher"
+        },
+        "WSP (Widest Path)": {
+          "mean": 0.745716,
+          "sample_sd": 0.119783,
+          "ci95_low": 0.647368,
+          "ci95_high": 0.8522,
+          "n": 25,
+          "unit": "index",
+          "direction": "higher"
+        },
+        "LLR (Least Loaded)": {
+          "mean": 0.746284,
+          "sample_sd": 0.119633,
+          "ci95_low": 0.649292,
+          "ci95_high": 0.851267,
+          "n": 25,
+          "unit": "index",
+          "direction": "higher"
+        },
+        "DQN (Ours)": {
+          "mean": 0.709324,
+          "sample_sd": 0.098953,
+          "ci95_low": 0.631082,
+          "ci95_high": 0.799762,
+          "n": 25,
+          "unit": "index",
+          "direction": "higher"
+        }
+      },
+      "decision_time_ms": {
+        "OSPF (RFC 2328)": {
+          "mean": 0.164,
+          "sample_sd": 0.106004,
+          "ci95_low": 0.106554,
+          "ci95_high": 0.250694,
+          "n": 25,
+          "unit": "ms",
+          "direction": "lower"
+        },
+        "Dijkstra SPF": {
+          "mean": 0.00932,
+          "sample_sd": 0.002155,
+          "ci95_low": 0.00772,
+          "ci95_high": 0.01124,
+          "n": 25,
+          "unit": "ms",
+          "direction": "lower"
+        },
+        "ECMP": {
+          "mean": 0.02312,
+          "sample_sd": 0.008192,
+          "ci95_low": 0.01688,
+          "ci95_high": 0.03072,
+          "n": 25,
+          "unit": "ms",
+          "direction": "lower"
+        },
+        "WSP (Widest Path)": {
+          "mean": 0.0396,
+          "sample_sd": 0.007053,
+          "ci95_low": 0.03348,
+          "ci95_high": 0.045,
+          "n": 25,
+          "unit": "ms",
+          "direction": "lower"
+        },
+        "LLR (Least Loaded)": {
+          "mean": 0.00728,
+          "sample_sd": 0.001137,
+          "ci95_low": 0.0064,
+          "ci95_high": 0.0082,
+          "n": 25,
+          "unit": "ms",
+          "direction": "lower"
+        },
+        "DQN (Ours)": {
+          "mean": 0.38368,
+          "sample_sd": 0.082721,
+          "ci95_low": 0.336799,
+          "ci95_high": 0.45784,
+          "n": 25,
+          "unit": "ms",
+          "direction": "lower"
+        }
+      }
+    },
+    "safety": {
+      "bottleneck_util": {
+        "OSPF (RFC 2328)": {
+          "mean": 66.4116,
+          "sample_sd": 26.147561,
+          "ci95_low": 44.59928,
+          "ci95_high": 88.3724,
+          "n": 25,
+          "unit": "%",
+          "direction": "lower"
+        },
+        "Dijkstra SPF": {
+          "mean": 63.6556,
+          "sample_sd": 27.884259,
+          "ci95_low": 40.40749,
+          "ci95_high": 87.22529,
+          "n": 25,
+          "unit": "%",
+          "direction": "lower"
+        },
+        "ECMP": {
+          "mean": 45.5696,
+          "sample_sd": 8.329535,
+          "ci95_low": 38.64238,
+          "ci95_high": 52.40417,
+          "n": 25,
+          "unit": "%",
+          "direction": "lower"
+        },
+        "WSP (Widest Path)": {
+          "mean": 27.8328,
+          "sample_sd": 8.331901,
+          "ci95_low": 21.52727,
+          "ci95_high": 35.4288,
+          "n": 25,
+          "unit": "%",
+          "direction": "lower"
+        },
+        "LLR (Least Loaded)": {
+          "mean": 28.3884,
+          "sample_sd": 9.039413,
+          "ci95_low": 21.61131,
+          "ci95_high": 36.93886,
+          "n": 25,
+          "unit": "%",
+          "direction": "lower"
+        },
+        "DQN (Ours)": {
+          "mean": 27.7532,
+          "sample_sd": 7.398765,
+          "ci95_low": 22.02087,
+          "ci95_high": 34.24513,
+          "n": 25,
+          "unit": "%",
+          "direction": "lower"
+        }
+      },
+      "latency_ms": {
+        "OSPF (RFC 2328)": {
+          "mean": 156.8876,
+          "sample_sd": 65.164295,
+          "ci95_low": 98.7004,
+          "ci95_high": 203.6632,
+          "n": 25,
+          "unit": "ms",
+          "direction": "lower"
+        },
+        "Dijkstra SPF": {
+          "mean": 145.0748,
+          "sample_sd": 64.541246,
+          "ci95_low": 87.62251,
+          "ci95_high": 190.64021,
+          "n": 25,
+          "unit": "ms",
+          "direction": "lower"
+        },
+        "ECMP": {
+          "mean": 86.34,
+          "sample_sd": 71.991359,
+          "ci95_low": 32.3836,
+          "ci95_high": 151.44686,
+          "n": 25,
+          "unit": "ms",
+          "direction": "lower"
+        },
+        "WSP (Widest Path)": {
+          "mean": 43.8036,
+          "sample_sd": 70.702623,
+          "ci95_low": 6.76291,
+          "ci95_high": 111.15404,
+          "n": 25,
+          "unit": "ms",
+          "direction": "lower"
+        },
+        "LLR (Least Loaded)": {
+          "mean": 58.3984,
+          "sample_sd": 98.34325,
+          "ci95_low": 7.00509,
+          "ci95_high": 154.6968,
+          "n": 25,
+          "unit": "ms",
+          "direction": "lower"
+        },
+        "DQN (Ours)": {
+          "mean": 23.1812,
+          "sample_sd": 27.373942,
+          "ci95_low": 6.46317,
+          "ci95_high": 48.8048,
+          "n": 25,
+          "unit": "ms",
+          "direction": "lower"
+        }
+      },
+      "jitter_ms": {
+        "OSPF (RFC 2328)": {
+          "mean": 9.36388,
+          "sample_sd": 4.669935,
+          "ci95_low": 5.488761,
+          "ci95_high": 13.389193,
+          "n": 25,
+          "unit": "ms",
+          "direction": "lower"
+        },
+        "Dijkstra SPF": {
+          "mean": 8.84916,
+          "sample_sd": 5.001397,
+          "ci95_low": 4.700061,
+          "ci95_high": 13.102734,
+          "n": 25,
+          "unit": "ms",
+          "direction": "lower"
+        },
+        "ECMP": {
+          "mean": 5.76872,
+          "sample_sd": 1.872733,
+          "ci95_low": 4.19712,
+          "ci95_high": 7.34524,
+          "n": 25,
+          "unit": "ms",
+          "direction": "lower"
+        },
+        "WSP (Widest Path)": {
+          "mean": 2.38728,
+          "sample_sd": 1.750377,
+          "ci95_low": 1.043218,
+          "ci95_high": 3.981247,
+          "n": 25,
+          "unit": "ms",
+          "direction": "lower"
+        },
+        "LLR (Least Loaded)": {
+          "mean": 2.46272,
+          "sample_sd": 1.863287,
+          "ci95_low": 1.006647,
+          "ci95_high": 4.161049,
+          "n": 25,
+          "unit": "ms",
+          "direction": "lower"
+        },
+        "DQN (Ours)": {
+          "mean": 2.2728,
+          "sample_sd": 1.576545,
+          "ci95_low": 1.01468,
+          "ci95_high": 3.647185,
+          "n": 25,
+          "unit": "ms",
+          "direction": "lower"
+        }
+      },
+      "packet_loss_pct": {
+        "OSPF (RFC 2328)": {
+          "mean": 3.85728,
+          "sample_sd": 3.755061,
+          "ci95_low": 1.024877,
+          "ci95_high": 7.29024,
+          "n": 25,
+          "unit": "%",
+          "direction": "lower"
+        },
+        "Dijkstra SPF": {
+          "mean": 3.58812,
+          "sample_sd": 3.851512,
+          "ci95_low": 0.6756,
+          "ci95_high": 7.060201,
+          "n": 25,
+          "unit": "%",
+          "direction": "lower"
+        },
+        "ECMP": {
+          "mean": 0.84884,
+          "sample_sd": 1.172772,
+          "ci95_low": 0.145,
+          "ci95_high": 1.975482,
+          "n": 25,
+          "unit": "%",
+          "direction": "lower"
+        },
+        "WSP (Widest Path)": {
+          "mean": 0.22132,
+          "sample_sd": 0.533264,
+          "ci95_low": 0.0,
+          "ci95_high": 0.71628,
+          "n": 25,
+          "unit": "%",
+          "direction": "lower"
+        },
+        "LLR (Least Loaded)": {
+          "mean": 0.44652,
+          "sample_sd": 1.014123,
+          "ci95_low": 0.0,
+          "ci95_high": 1.43688,
+          "n": 25,
+          "unit": "%",
+          "direction": "lower"
+        },
+        "DQN (Ours)": {
+          "mean": 0.07424,
+          "sample_sd": 0.223885,
+          "ci95_low": 0.0,
+          "ci95_high": 0.29,
+          "n": 25,
+          "unit": "%",
+          "direction": "lower"
+        }
+      },
+      "jains_fairness": {
+        "OSPF (RFC 2328)": {
+          "mean": 0.7643,
+          "sample_sd": 0.147642,
+          "ci95_low": 0.645628,
+          "ci95_high": 0.897031,
+          "n": 25,
+          "unit": "index",
+          "direction": "higher"
+        },
+        "Dijkstra SPF": {
+          "mean": 0.744568,
+          "sample_sd": 0.16645,
+          "ci95_low": 0.610172,
+          "ci95_high": 0.895218,
+          "n": 25,
+          "unit": "index",
+          "direction": "higher"
+        },
+        "ECMP": {
+          "mean": 0.627752,
+          "sample_sd": 0.056775,
+          "ci95_low": 0.576088,
+          "ci95_high": 0.67084,
+          "n": 25,
+          "unit": "index",
+          "direction": "higher"
+        },
+        "WSP (Widest Path)": {
+          "mean": 0.745728,
+          "sample_sd": 0.119745,
+          "ci95_low": 0.648165,
+          "ci95_high": 0.846889,
+          "n": 25,
+          "unit": "index",
+          "direction": "higher"
+        },
+        "LLR (Least Loaded)": {
+          "mean": 0.746284,
+          "sample_sd": 0.119633,
+          "ci95_low": 0.649783,
+          "ci95_high": 0.852909,
+          "n": 25,
+          "unit": "index",
+          "direction": "higher"
+        },
+        "DQN (Ours)": {
+          "mean": 0.74846,
+          "sample_sd": 0.112,
+          "ci95_low": 0.656911,
+          "ci95_high": 0.846959,
+          "n": 25,
+          "unit": "index",
+          "direction": "higher"
+        }
+      },
+      "decision_time_ms": {
+        "OSPF (RFC 2328)": {
+          "mean": 0.18328,
+          "sample_sd": 0.188805,
+          "ci95_low": 0.10104,
+          "ci95_high": 0.351084,
+          "n": 25,
+          "unit": "ms",
+          "direction": "lower"
+        },
+        "Dijkstra SPF": {
+          "mean": 0.00944,
+          "sample_sd": 0.002364,
+          "ci95_low": 0.00768,
+          "ci95_high": 0.01156,
+          "n": 25,
+          "unit": "ms",
+          "direction": "lower"
+        },
+        "ECMP": {
+          "mean": 0.02272,
+          "sample_sd": 0.008013,
+          "ci95_low": 0.01636,
+          "ci95_high": 0.030121,
+          "n": 25,
+          "unit": "ms",
+          "direction": "lower"
+        },
+        "WSP (Widest Path)": {
+          "mean": 0.04048,
+          "sample_sd": 0.00773,
+          "ci95_low": 0.03408,
+          "ci95_high": 0.04684,
+          "n": 25,
+          "unit": "ms",
+          "direction": "lower"
+        },
+        "LLR (Least Loaded)": {
+          "mean": 0.00752,
+          "sample_sd": 0.000963,
+          "ci95_low": 0.00668,
+          "ci95_high": 0.00824,
+          "n": 25,
+          "unit": "ms",
+          "direction": "lower"
+        },
+        "DQN (Ours)": {
+          "mean": 0.489,
+          "sample_sd": 0.07915,
+          "ci95_low": 0.43812,
+          "ci95_high": 0.553001,
+          "n": 25,
+          "unit": "ms",
+          "direction": "lower"
+        }
+      }
+    }
+  },
+  "pure_dqn_paired_effects": {
+    "OSPF (RFC 2328)": {
+      "bottleneck_util": {
+        "mean_improvement": 36.692,
+        "ci95_low": 11.16293,
+        "ci95_high": 62.88657,
+        "relative_improvement_pct": 55.246,
+        "win_rate_pct": 100.0,
+        "tie_rate_pct": 0.0,
+        "n": 25,
+        "unit": "%",
+        "positive_means_dqn_better": true
+      },
+      "latency_ms": {
+        "mean_improvement": 115.3988,
+        "ci95_low": 46.15529,
+        "ci95_high": 183.1924,
+        "relative_improvement_pct": 73.535,
+        "win_rate_pct": 92.0,
+        "tie_rate_pct": 0.0,
+        "n": 25,
+        "unit": "ms",
+        "positive_means_dqn_better": true
+      },
+      "jitter_ms": {
+        "mean_improvement": 6.94148,
+        "ci95_low": 1.998421,
+        "ci95_high": 11.96332,
+        "relative_improvement_pct": 74.13,
+        "win_rate_pct": 96.0,
+        "tie_rate_pct": 0.0,
+        "n": 25,
+        "unit": "ms",
+        "positive_means_dqn_better": true
+      },
+      "packet_loss_pct": {
+        "mean_improvement": 3.47432,
+        "ci95_low": 0.571673,
+        "ci95_high": 7.113871,
+        "relative_improvement_pct": 90.053,
+        "win_rate_pct": 100.0,
+        "tie_rate_pct": 0.0,
+        "n": 25,
+        "unit": "%",
+        "positive_means_dqn_better": true
+      },
+      "jains_fairness": {
+        "mean_improvement": -0.054992,
+        "ci95_low": -0.133118,
+        "ci95_high": 0.029564,
+        "relative_improvement_pct": -7.195,
+        "win_rate_pct": 40.0,
+        "tie_rate_pct": 0.0,
+        "n": 25,
+        "unit": "index",
+        "positive_means_dqn_better": true
+      },
+      "decision_time_ms": {
+        "mean_improvement": -0.21968,
+        "ci95_low": -0.295841,
+        "ci95_high": -0.121079,
+        "relative_improvement_pct": -133.951,
+        "win_rate_pct": 4.0,
+        "tie_rate_pct": 0.0,
+        "n": 25,
+        "unit": "ms",
+        "positive_means_dqn_better": true
+      }
+    },
+    "Dijkstra SPF": {
+      "bottleneck_util": {
+        "mean_improvement": 33.9316,
+        "ci95_low": 5.58478,
+        "ci95_high": 62.39721,
+        "relative_improvement_pct": 53.306,
+        "win_rate_pct": 88.0,
+        "tie_rate_pct": 0.0,
+        "n": 25,
+        "unit": "%",
+        "positive_means_dqn_better": true
+      },
+      "latency_ms": {
+        "mean_improvement": 103.5068,
+        "ci95_low": 31.27368,
+        "ci95_high": 174.5812,
+        "relative_improvement_pct": 71.365,
+        "win_rate_pct": 88.0,
+        "tie_rate_pct": 0.0,
+        "n": 25,
+        "unit": "ms",
+        "positive_means_dqn_better": true
+      },
+      "jitter_ms": {
+        "mean_improvement": 6.42676,
+        "ci95_low": 1.027663,
+        "ci95_high": 11.928864,
+        "relative_improvement_pct": 72.626,
+        "win_rate_pct": 80.0,
+        "tie_rate_pct": 0.0,
+        "n": 25,
+        "unit": "ms",
+        "positive_means_dqn_better": true
+      },
+      "packet_loss_pct": {
+        "mean_improvement": 3.20404,
+        "ci95_low": 0.180237,
+        "ci95_high": 6.94296,
+        "relative_improvement_pct": 89.304,
+        "win_rate_pct": 80.0,
+        "tie_rate_pct": 12.0,
+        "n": 25,
+        "unit": "%",
+        "positive_means_dqn_better": true
+      },
+      "jains_fairness": {
+        "mean_improvement": -0.035244,
+        "ci95_low": -0.123249,
+        "ci95_high": 0.043264,
+        "relative_improvement_pct": -4.733,
+        "win_rate_pct": 60.0,
+        "tie_rate_pct": 0.0,
+        "n": 25,
+        "unit": "index",
+        "positive_means_dqn_better": true
+      },
+      "decision_time_ms": {
+        "mean_improvement": -0.37436,
+        "ci95_low": -0.447962,
+        "ci95_high": -0.32836,
+        "relative_improvement_pct": -4016.738,
+        "win_rate_pct": 0.0,
+        "tie_rate_pct": 0.0,
+        "n": 25,
+        "unit": "ms",
+        "positive_means_dqn_better": true
+      }
+    },
+    "ECMP": {
+      "bottleneck_util": {
+        "mean_improvement": 15.8464,
+        "ci95_low": 4.2956,
+        "ci95_high": 27.494,
+        "relative_improvement_pct": 34.774,
+        "win_rate_pct": 92.0,
+        "tie_rate_pct": 0.0,
+        "n": 25,
+        "unit": "%",
+        "positive_means_dqn_better": true
+      },
+      "latency_ms": {
+        "mean_improvement": 44.8076,
+        "ci95_low": 1.96686,
+        "ci95_high": 111.60325,
+        "relative_improvement_pct": 51.897,
+        "win_rate_pct": 88.0,
+        "tie_rate_pct": 0.0,
+        "n": 25,
+        "unit": "ms",
+        "positive_means_dqn_better": true
+      },
+      "jitter_ms": {
+        "mean_improvement": 3.34632,
+        "ci95_low": 0.573093,
+        "ci95_high": 6.1486,
+        "relative_improvement_pct": 58.008,
+        "win_rate_pct": 76.0,
+        "tie_rate_pct": 0.0,
+        "n": 25,
+        "unit": "ms",
+        "positive_means_dqn_better": true
+      },
+      "packet_loss_pct": {
+        "mean_improvement": 0.46508,
+        "ci95_low": 0.130518,
+        "ci95_high": 0.94904,
+        "relative_improvement_pct": 54.79,
+        "win_rate_pct": 92.0,
+        "tie_rate_pct": 4.0,
+        "n": 25,
+        "unit": "%",
+        "positive_means_dqn_better": true
+      },
+      "jains_fairness": {
+        "mean_improvement": 0.081572,
+        "ci95_low": 0.032852,
+        "ci95_high": 0.14165,
+        "relative_improvement_pct": 12.994,
+        "win_rate_pct": 100.0,
+        "tie_rate_pct": 0.0,
+        "n": 25,
+        "unit": "index",
+        "positive_means_dqn_better": true
+      },
+      "decision_time_ms": {
+        "mean_improvement": -0.36056,
+        "ci95_low": -0.43028,
+        "ci95_high": -0.318518,
+        "relative_improvement_pct": -1559.516,
+        "win_rate_pct": 0.0,
+        "tie_rate_pct": 0.0,
+        "n": 25,
+        "unit": "ms",
+        "positive_means_dqn_better": true
+      }
+    },
+    "WSP (Widest Path)": {
+      "bottleneck_util": {
+        "mean_improvement": -1.8912,
+        "ci95_low": -3.62885,
+        "ci95_high": -0.54393,
+        "relative_improvement_pct": -6.795,
+        "win_rate_pct": 12.0,
+        "tie_rate_pct": 0.0,
+        "n": 25,
+        "unit": "%",
+        "positive_means_dqn_better": true
+      },
+      "latency_ms": {
+        "mean_improvement": 2.2696,
+        "ci95_low": -5.67053,
+        "ci95_high": 19.08062,
+        "relative_improvement_pct": 5.181,
+        "win_rate_pct": 20.0,
+        "tie_rate_pct": 0.0,
+        "n": 25,
+        "unit": "ms",
+        "positive_means_dqn_better": true
+      },
+      "jitter_ms": {
+        "mean_improvement": -0.03528,
+        "ci95_low": -0.23728,
+        "ci95_high": 0.1416,
+        "relative_improvement_pct": -1.478,
+        "win_rate_pct": 44.0,
+        "tie_rate_pct": 0.0,
+        "n": 25,
+        "unit": "ms",
+        "positive_means_dqn_better": true
+      },
+      "packet_loss_pct": {
+        "mean_improvement": -0.16244,
+        "ci95_low": -0.52848,
+        "ci95_high": 0.0,
+        "relative_improvement_pct": -73.396,
+        "win_rate_pct": 0.0,
+        "tie_rate_pct": 80.0,
+        "n": 25,
+        "unit": "%",
+        "positive_means_dqn_better": true
+      },
+      "jains_fairness": {
+        "mean_improvement": -0.036392,
+        "ci95_low": -0.07908,
+        "ci95_high": -0.002484,
+        "relative_improvement_pct": -4.88,
+        "win_rate_pct": 24.0,
+        "tie_rate_pct": 0.0,
+        "n": 25,
+        "unit": "index",
+        "positive_means_dqn_better": true
+      },
+      "decision_time_ms": {
+        "mean_improvement": -0.34408,
+        "ci95_low": -0.41604,
+        "ci95_high": -0.296599,
+        "relative_improvement_pct": -868.889,
+        "win_rate_pct": 0.0,
+        "tie_rate_pct": 0.0,
+        "n": 25,
+        "unit": "ms",
+        "positive_means_dqn_better": true
+      }
+    },
+    "LLR (Least Loaded)": {
+      "bottleneck_util": {
+        "mean_improvement": -1.3348,
+        "ci95_low": -3.40047,
+        "ci95_high": 0.55811,
+        "relative_improvement_pct": -4.702,
+        "win_rate_pct": 36.0,
+        "tie_rate_pct": 0.0,
+        "n": 25,
+        "unit": "%",
+        "positive_means_dqn_better": true
+      },
+      "latency_ms": {
+        "mean_improvement": 16.866,
+        "ci95_low": -1.65401,
+        "ci95_high": 54.5708,
+        "relative_improvement_pct": 28.881,
+        "win_rate_pct": 36.0,
+        "tie_rate_pct": 0.0,
+        "n": 25,
+        "unit": "ms",
+        "positive_means_dqn_better": true
+      },
+      "jitter_ms": {
+        "mean_improvement": 0.04032,
+        "ci95_low": -0.219192,
+        "ci95_high": 0.328385,
+        "relative_improvement_pct": 1.637,
+        "win_rate_pct": 44.0,
+        "tie_rate_pct": 0.0,
+        "n": 25,
+        "unit": "ms",
+        "positive_means_dqn_better": true
+      },
+      "packet_loss_pct": {
+        "mean_improvement": 0.06276,
+        "ci95_low": -0.0396,
+        "ci95_high": 0.28332,
+        "relative_improvement_pct": 14.055,
+        "win_rate_pct": 16.0,
+        "tie_rate_pct": 80.0,
+        "n": 25,
+        "unit": "%",
+        "positive_means_dqn_better": true
+      },
+      "jains_fairness": {
+        "mean_improvement": -0.03696,
+        "ci95_low": -0.079384,
+        "ci95_high": -0.005124,
+        "relative_improvement_pct": -4.953,
+        "win_rate_pct": 8.0,
+        "tie_rate_pct": 0.0,
+        "n": 25,
+        "unit": "index",
+        "positive_means_dqn_better": true
+      },
+      "decision_time_ms": {
+        "mean_improvement": -0.3764,
+        "ci95_low": -0.452564,
+        "ci95_high": -0.32936,
+        "relative_improvement_pct": -5170.33,
+        "win_rate_pct": 0.0,
+        "tie_rate_pct": 0.0,
+        "n": 25,
+        "unit": "ms",
+        "positive_means_dqn_better": true
+      }
+    }
+  },
+  "policy_mode_ablation": {
+    "bottleneck_util": {
+      "pure_mean": 29.7232,
+      "safety_mean": 27.7532,
+      "safety_improvement": 1.97,
+      "ci95_low": 0.2832,
+      "ci95_high": 3.77283,
+      "safety_win_rate_pct": 76.0,
+      "n": 25,
+      "unit": "%",
+      "positive_means_safety_better": true
+    },
+    "latency_ms": {
+      "pure_mean": 41.5324,
+      "safety_mean": 23.1812,
+      "safety_improvement": 18.3512,
+      "ci95_low": 0.60438,
+      "ci95_high": 54.9004,
+      "safety_win_rate_pct": 100.0,
+      "n": 25,
+      "unit": "ms",
+      "positive_means_safety_better": true
+    },
+    "jitter_ms": {
+      "pure_mean": 2.4224,
+      "safety_mean": 2.2728,
+      "safety_improvement": 0.1496,
+      "ci95_low": -0.019763,
+      "ci95_high": 0.326843,
+      "safety_win_rate_pct": 80.0,
+      "n": 25,
+      "unit": "ms",
+      "positive_means_safety_better": true
+    },
+    "packet_loss_pct": {
+      "pure_mean": 0.38376,
+      "safety_mean": 0.07424,
+      "safety_improvement": 0.30952,
+      "ci95_low": 0.0,
+      "ci95_high": 0.98292,
+      "safety_win_rate_pct": 20.0,
+      "n": 25,
+      "unit": "%",
+      "positive_means_safety_better": true
+    },
+    "jains_fairness": {
+      "pure_mean": 0.709324,
+      "safety_mean": 0.74846,
+      "safety_improvement": 0.039136,
+      "ci95_low": 0.009976,
+      "ci95_high": 0.077792,
+      "safety_win_rate_pct": 88.0,
+      "n": 25,
+      "unit": "index",
+      "positive_means_safety_better": true
+    },
+    "decision_time_ms": {
+      "pure_mean": 0.38368,
+      "safety_mean": 0.489,
+      "safety_improvement": -0.10532,
+      "ci95_low": -0.175442,
+      "ci95_high": -0.036877,
+      "safety_win_rate_pct": 8.0,
+      "n": 25,
+      "unit": "ms",
+      "positive_means_safety_better": true
+    }
+  },
+  "runs": {
+    "pure": [
+      {
+        "metadata": {
+          "seed": 42,
+          "policy_mode": "pure",
+          "flows_per_topology": 150,
+          "candidate_paths": 4,
+          "model_path": "/home/maher/Downloads/EC499t/Reinforcement_Learning_for_Adaptive_Traffic_Engineering_in_an_SDN_Network/models/dqn_router.pth"
+        },
+        "topologies": [
+          "Hierarchical Tree (7 Nodes)",
+          "Fat-Tree Clos Fabric (20 Nodes)",
+          "Abilene US Backbone (12 Nodes)",
+          "NSFNET Continental Mesh (14 Nodes)",
+          "Spine-Leaf Fabric (12 Nodes)"
+        ],
+        "bottleneck_util": {
+          "OSPF (RFC 2328)": [
+            56.67,
+            94.69,
+            33.35,
+            49.63,
+            99.87
+          ],
+          "Dijkstra SPF": [
+            42.11,
+            94.69,
+            33.11,
+            49.64,
+            99.87
+          ],
+          "ECMP": [
+            41.3,
+            52.68,
+            32.71,
+            44.43,
+            55.6
+          ],
+          "WSP (Widest Path)": [
+            44.09,
+            23.26,
+            31.48,
+            28.3,
+            19.22
+          ],
+          "LLR (Least Loaded)": [
+            44.88,
+            23.28,
+            31.64,
+            28.69,
+            19.21
+          ],
+          "DQN (Ours)": [
+            43.93,
+            28.89,
+            32.03,
+            28.64,
+            20.89
+          ]
+        },
+        "latency_ms": {
+          "OSPF (RFC 2328)": [
+            158.68,
+            190.06,
+            45.31,
+            255.69,
+            145.47
+          ],
+          "Dijkstra SPF": [
+            142.4,
+            190.06,
+            43.56,
+            224.62,
+            145.47
+          ],
+          "ECMP": [
+            160.82,
+            51.45,
+            31.53,
+            191.68,
+            23.63
+          ],
+          "WSP (Widest Path)": [
+            188.4,
+            6.04,
+            22.0,
+            17.57,
+            2.45
+          ],
+          "LLR (Least Loaded)": [
+            243.99,
+            6.05,
+            22.43,
+            19.42,
+            2.45
+          ],
+          "DQN (Ours)": [
+            167.76,
+            6.58,
+            26.16,
+            19.73,
+            2.49
+          ]
+        },
+        "jitter_ms": {
+          "OSPF (RFC 2328)": [
+            7.716,
+            13.632,
+            3.445,
+            6.682,
+            15.5
+          ],
+          "Dijkstra SPF": [
+            4.414,
+            13.632,
+            3.538,
+            6.692,
+            15.5
+          ],
+          "ECMP": [
+            4.503,
+            7.436,
+            3.439,
+            5.453,
+            8.102
+          ],
+          "WSP (Widest Path)": [
+            5.675,
+            1.002,
+            3.486,
+            2.922,
+            0.509
+          ],
+          "LLR (Least Loaded)": [
+            5.916,
+            1.003,
+            3.503,
+            3.031,
+            0.509
+          ],
+          "DQN (Ours)": [
+            5.413,
+            1.483,
+            3.434,
+            2.813,
+            0.515
+          ]
+        },
+        "packet_loss_pct": {
+          "OSPF (RFC 2328)": [
+            2.611,
+            11.59,
+            0.027,
+            1.076,
+            5.429
+          ],
+          "Dijkstra SPF": [
+            2.504,
+            11.59,
+            0.027,
+            0.872,
+            5.429
+          ],
+          "ECMP": [
+            1.941,
+            0.876,
+            0.001,
+            0.936,
+            0.122
+          ],
+          "WSP (Widest Path)": [
+            1.224,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "LLR (Least Loaded)": [
+            2.445,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "DQN (Ours)": [
+            2.265,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "jains_fairness": {
+          "OSPF (RFC 2328)": [
+            0.698,
+            0.872,
+            0.6613,
+            0.6257,
+            0.9828
+          ],
+          "Dijkstra SPF": [
+            0.5463,
+            0.872,
+            0.6646,
+            0.6308,
+            0.9828
+          ],
+          "ECMP": [
+            0.5584,
+            0.6583,
+            0.6683,
+            0.6101,
+            0.6846
+          ],
+          "WSP (Widest Path)": [
+            0.5961,
+            0.8178,
+            0.684,
+            0.6514,
+            0.911
+          ],
+          "LLR (Least Loaded)": [
+            0.5967,
+            0.8173,
+            0.6824,
+            0.6568,
+            0.9099
+          ],
+          "DQN (Ours)": [
+            0.5795,
+            0.6953,
+            0.6791,
+            0.6566,
+            0.875
+          ]
+        },
+        "decision_time_ms": {
+          "OSPF (RFC 2328)": [
+            0.077,
+            0.205,
+            0.111,
+            0.144,
+            0.611
+          ],
+          "Dijkstra SPF": [
+            0.008,
+            0.014,
+            0.008,
+            0.009,
+            0.008
+          ],
+          "ECMP": [
+            0.016,
+            0.04,
+            0.019,
+            0.021,
+            0.024
+          ],
+          "WSP (Widest Path)": [
+            0.034,
+            0.044,
+            0.048,
+            0.04,
+            0.029
+          ],
+          "LLR (Least Loaded)": [
+            0.006,
+            0.008,
+            0.008,
+            0.007,
+            0.006
+          ],
+          "DQN (Ours)": [
+            0.307,
+            0.428,
+            0.35,
+            0.359,
+            0.364
+          ]
+        }
+      },
+      {
+        "metadata": {
+          "seed": 43,
+          "policy_mode": "pure",
+          "flows_per_topology": 150,
+          "candidate_paths": 4,
+          "model_path": "/home/maher/Downloads/EC499t/Reinforcement_Learning_for_Adaptive_Traffic_Engineering_in_an_SDN_Network/models/dqn_router.pth"
+        },
+        "topologies": [
+          "Hierarchical Tree (7 Nodes)",
+          "Fat-Tree Clos Fabric (20 Nodes)",
+          "Abilene US Backbone (12 Nodes)",
+          "NSFNET Continental Mesh (14 Nodes)",
+          "Spine-Leaf Fabric (12 Nodes)"
+        ],
+        "bottleneck_util": {
+          "OSPF (RFC 2328)": [
+            56.55,
+            91.3,
+            35.48,
+            49.8,
+            97.96
+          ],
+          "Dijkstra SPF": [
+            39.68,
+            91.3,
+            34.74,
+            49.71,
+            97.96
+          ],
+          "ECMP": [
+            41.51,
+            51.01,
+            34.58,
+            41.39,
+            55.22
+          ],
+          "WSP (Widest Path)": [
+            40.78,
+            21.44,
+            31.4,
+            22.51,
+            18.27
+          ],
+          "LLR (Least Loaded)": [
+            44.52,
+            21.4,
+            31.21,
+            23.01,
+            18.32
+          ],
+          "DQN (Ours)": [
+            39.79,
+            26.19,
+            31.74,
+            23.92,
+            20.81
+          ]
+        },
+        "latency_ms": {
+          "OSPF (RFC 2328)": [
+            175.32,
+            172.75,
+            73.59,
+            160.52,
+            158.3
+          ],
+          "Dijkstra SPF": [
+            124.34,
+            172.75,
+            39.61,
+            124.6,
+            158.3
+          ],
+          "ECMP": [
+            109.19,
+            27.45,
+            32.61,
+            80.02,
+            22.1
+          ],
+          "WSP (Widest Path)": [
+            100.9,
+            5.93,
+            24.46,
+            15.59,
+            2.43
+          ],
+          "LLR (Least Loaded)": [
+            215.42,
+            5.93,
+            26.71,
+            16.62,
+            2.43
+          ],
+          "DQN (Ours)": [
+            128.39,
+            6.3,
+            26.87,
+            16.21,
+            2.51
+          ]
+        },
+        "jitter_ms": {
+          "OSPF (RFC 2328)": [
+            7.696,
+            13.734,
+            3.732,
+            6.637,
+            15.5
+          ],
+          "Dijkstra SPF": [
+            4.54,
+            13.734,
+            3.716,
+            6.749,
+            15.5
+          ],
+          "ECMP": [
+            4.549,
+            7.339,
+            3.771,
+            4.991,
+            8.102
+          ],
+          "WSP (Widest Path)": [
+            5.114,
+            0.976,
+            3.213,
+            1.217,
+            0.507
+          ],
+          "LLR (Least Loaded)": [
+            5.598,
+            0.975,
+            3.195,
+            1.26,
+            0.507
+          ],
+          "DQN (Ours)": [
+            4.681,
+            1.251,
+            3.22,
+            1.276,
+            0.516
+          ]
+        },
+        "packet_loss_pct": {
+          "OSPF (RFC 2328)": [
+            2.421,
+            8.671,
+            0.078,
+            0.264,
+            4.519
+          ],
+          "Dijkstra SPF": [
+            0.98,
+            8.671,
+            0.002,
+            0.252,
+            4.519
+          ],
+          "ECMP": [
+            2.148,
+            0.101,
+            0.0,
+            0.16,
+            0.122
+          ],
+          "WSP (Widest Path)": [
+            0.429,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "LLR (Least Loaded)": [
+            2.16,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "DQN (Ours)": [
+            1.157,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "jains_fairness": {
+          "OSPF (RFC 2328)": [
+            0.6774,
+            0.8845,
+            0.6318,
+            0.6543,
+            0.989
+          ],
+          "Dijkstra SPF": [
+            0.5791,
+            0.8845,
+            0.6441,
+            0.6551,
+            0.989
+          ],
+          "ECMP": [
+            0.5482,
+            0.6622,
+            0.6514,
+            0.617,
+            0.6833
+          ],
+          "WSP (Widest Path)": [
+            0.611,
+            0.8454,
+            0.6654,
+            0.7822,
+            0.9379
+          ],
+          "LLR (Least Loaded)": [
+            0.5798,
+            0.846,
+            0.6661,
+            0.7855,
+            0.9366
+          ],
+          "DQN (Ours)": [
+            0.5939,
+            0.7227,
+            0.666,
+            0.7799,
+            0.8695
+          ]
+        },
+        "decision_time_ms": {
+          "OSPF (RFC 2328)": [
+            0.069,
+            0.177,
+            0.124,
+            0.249,
+            0.188
+          ],
+          "Dijkstra SPF": [
+            0.006,
+            0.012,
+            0.009,
+            0.01,
+            0.008
+          ],
+          "ECMP": [
+            0.013,
+            0.037,
+            0.019,
+            0.022,
+            0.025
+          ],
+          "WSP (Widest Path)": [
+            0.034,
+            0.044,
+            0.048,
+            0.041,
+            0.029
+          ],
+          "LLR (Least Loaded)": [
+            0.006,
+            0.009,
+            0.008,
+            0.008,
+            0.006
+          ],
+          "DQN (Ours)": [
+            0.305,
+            0.682,
+            0.559,
+            0.37,
+            0.392
+          ]
+        }
+      },
+      {
+        "metadata": {
+          "seed": 44,
+          "policy_mode": "pure",
+          "flows_per_topology": 150,
+          "candidate_paths": 4,
+          "model_path": "/home/maher/Downloads/EC499t/Reinforcement_Learning_for_Adaptive_Traffic_Engineering_in_an_SDN_Network/models/dqn_router.pth"
+        },
+        "topologies": [
+          "Hierarchical Tree (7 Nodes)",
+          "Fat-Tree Clos Fabric (20 Nodes)",
+          "Abilene US Backbone (12 Nodes)",
+          "NSFNET Continental Mesh (14 Nodes)",
+          "Spine-Leaf Fabric (12 Nodes)"
+        ],
+        "bottleneck_util": {
+          "OSPF (RFC 2328)": [
+            60.66,
+            93.99,
+            35.28,
+            48.0,
+            99.79
+          ],
+          "Dijkstra SPF": [
+            47.29,
+            93.99,
+            35.12,
+            48.0,
+            99.79
+          ],
+          "ECMP": [
+            48.02,
+            54.16,
+            33.29,
+            42.43,
+            55.75
+          ],
+          "WSP (Widest Path)": [
+            43.84,
+            22.4,
+            30.4,
+            25.98,
+            18.95
+          ],
+          "LLR (Least Loaded)": [
+            46.47,
+            22.4,
+            30.13,
+            26.65,
+            19.23
+          ],
+          "DQN (Ours)": [
+            46.22,
+            26.89,
+            33.23,
+            26.57,
+            20.96
+          ]
+        },
+        "latency_ms": {
+          "OSPF (RFC 2328)": [
+            229.48,
+            183.84,
+            44.33,
+            204.36,
+            171.82
+          ],
+          "Dijkstra SPF": [
+            212.45,
+            183.84,
+            30.21,
+            203.94,
+            171.82
+          ],
+          "ECMP": [
+            204.38,
+            43.44,
+            40.73,
+            202.53,
+            22.44
+          ],
+          "WSP (Widest Path)": [
+            272.83,
+            6.03,
+            21.99,
+            17.5,
+            2.45
+          ],
+          "LLR (Least Loaded)": [
+            359.85,
+            6.03,
+            22.17,
+            18.54,
+            2.45
+          ],
+          "DQN (Ours)": [
+            194.87,
+            6.4,
+            27.28,
+            16.96,
+            2.51
+          ]
+        },
+        "jitter_ms": {
+          "OSPF (RFC 2328)": [
+            8.041,
+            13.943,
+            3.926,
+            6.29,
+            15.5
+          ],
+          "Dijkstra SPF": [
+            4.872,
+            13.943,
+            4.276,
+            6.29,
+            15.5
+          ],
+          "ECMP": [
+            5.223,
+            7.848,
+            3.548,
+            5.104,
+            8.103
+          ],
+          "WSP (Widest Path)": [
+            5.319,
+            1.012,
+            3.5,
+            2.08,
+            0.508
+          ],
+          "LLR (Least Loaded)": [
+            5.652,
+            1.012,
+            3.421,
+            2.128,
+            0.509
+          ],
+          "DQN (Ours)": [
+            5.298,
+            1.365,
+            3.973,
+            1.967,
+            0.516
+          ]
+        },
+        "packet_loss_pct": {
+          "OSPF (RFC 2328)": [
+            5.525,
+            9.324,
+            0.014,
+            0.758,
+            6.152
+          ],
+          "Dijkstra SPF": [
+            4.049,
+            9.324,
+            0.0,
+            0.758,
+            6.152
+          ],
+          "ECMP": [
+            4.477,
+            0.408,
+            0.014,
+            0.794,
+            0.095
+          ],
+          "WSP (Widest Path)": [
+            2.241,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "LLR (Least Loaded)": [
+            3.953,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "DQN (Ours)": [
+            3.287,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "jains_fairness": {
+          "OSPF (RFC 2328)": [
+            0.668,
+            0.8943,
+            0.6487,
+            0.6239,
+            0.9841
+          ],
+          "Dijkstra SPF": [
+            0.5119,
+            0.8943,
+            0.6542,
+            0.6239,
+            0.9841
+          ],
+          "ECMP": [
+            0.5188,
+            0.6794,
+            0.6498,
+            0.5932,
+            0.6893
+          ],
+          "WSP (Widest Path)": [
+            0.5759,
+            0.8134,
+            0.6617,
+            0.6909,
+            0.9203
+          ],
+          "LLR (Least Loaded)": [
+            0.5751,
+            0.8134,
+            0.673,
+            0.7035,
+            0.9145
+          ],
+          "DQN (Ours)": [
+            0.5453,
+            0.7154,
+            0.6544,
+            0.7018,
+            0.8697
+          ]
+        },
+        "decision_time_ms": {
+          "OSPF (RFC 2328)": [
+            0.096,
+            0.215,
+            0.101,
+            0.127,
+            0.15
+          ],
+          "Dijkstra SPF": [
+            0.007,
+            0.012,
+            0.009,
+            0.01,
+            0.008
+          ],
+          "ECMP": [
+            0.013,
+            0.035,
+            0.018,
+            0.021,
+            0.025
+          ],
+          "WSP (Widest Path)": [
+            0.039,
+            0.045,
+            0.047,
+            0.04,
+            0.028
+          ],
+          "LLR (Least Loaded)": [
+            0.006,
+            0.009,
+            0.008,
+            0.008,
+            0.006
+          ],
+          "DQN (Ours)": [
+            0.309,
+            0.405,
+            0.34,
+            0.357,
+            0.368
+          ]
+        }
+      },
+      {
+        "metadata": {
+          "seed": 45,
+          "policy_mode": "pure",
+          "flows_per_topology": 150,
+          "candidate_paths": 4,
+          "model_path": "/home/maher/Downloads/EC499t/Reinforcement_Learning_for_Adaptive_Traffic_Engineering_in_an_SDN_Network/models/dqn_router.pth"
+        },
+        "topologies": [
+          "Hierarchical Tree (7 Nodes)",
+          "Fat-Tree Clos Fabric (20 Nodes)",
+          "Abilene US Backbone (12 Nodes)",
+          "NSFNET Continental Mesh (14 Nodes)",
+          "Spine-Leaf Fabric (12 Nodes)"
+        ],
+        "bottleneck_util": {
+          "OSPF (RFC 2328)": [
+            52.74,
+            94.33,
+            31.5,
+            50.41,
+            98.54
+          ],
+          "Dijkstra SPF": [
+            41.2,
+            94.36,
+            31.53,
+            49.63,
+            98.56
+          ],
+          "ECMP": [
+            41.2,
+            52.76,
+            31.5,
+            44.54,
+            55.38
+          ],
+          "WSP (Widest Path)": [
+            41.07,
+            21.59,
+            27.71,
+            26.01,
+            18.46
+          ],
+          "LLR (Least Loaded)": [
+            43.42,
+            21.59,
+            27.91,
+            26.58,
+            18.57
+          ],
+          "DQN (Ours)": [
+            42.26,
+            26.65,
+            27.81,
+            27.06,
+            20.38
+          ]
+        },
+        "latency_ms": {
+          "OSPF (RFC 2328)": [
+            175.63,
+            176.1,
+            49.44,
+            295.08,
+            150.78
+          ],
+          "Dijkstra SPF": [
+            159.09,
+            176.1,
+            33.01,
+            251.62,
+            150.79
+          ],
+          "ECMP": [
+            125.05,
+            32.58,
+            49.44,
+            223.83,
+            21.79
+          ],
+          "WSP (Widest Path)": [
+            150.31,
+            6.01,
+            20.98,
+            16.83,
+            2.44
+          ],
+          "LLR (Least Loaded)": [
+            200.23,
+            6.01,
+            21.27,
+            17.51,
+            2.44
+          ],
+          "DQN (Ours)": [
+            186.42,
+            6.39,
+            25.28,
+            16.72,
+            2.49
+          ]
+        },
+        "jitter_ms": {
+          "OSPF (RFC 2328)": [
+            6.569,
+            14.25,
+            2.898,
+            6.791,
+            15.5
+          ],
+          "Dijkstra SPF": [
+            4.509,
+            14.25,
+            2.907,
+            6.793,
+            15.5
+          ],
+          "ECMP": [
+            4.124,
+            7.656,
+            2.898,
+            5.602,
+            8.102
+          ],
+          "WSP (Widest Path)": [
+            5.077,
+            0.996,
+            2.381,
+            2.109,
+            0.507
+          ],
+          "LLR (Least Loaded)": [
+            5.315,
+            0.996,
+            2.357,
+            2.079,
+            0.507
+          ],
+          "DQN (Ours)": [
+            4.883,
+            1.299,
+            2.22,
+            2.036,
+            0.514
+          ]
+        },
+        "packet_loss_pct": {
+          "OSPF (RFC 2328)": [
+            3.459,
+            8.779,
+            0.04,
+            1.566,
+            4.702
+          ],
+          "Dijkstra SPF": [
+            1.302,
+            8.779,
+            0.0,
+            0.902,
+            4.716
+          ],
+          "ECMP": [
+            2.199,
+            0.189,
+            0.04,
+            1.131,
+            0.152
+          ],
+          "WSP (Widest Path)": [
+            0.851,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "LLR (Least Loaded)": [
+            1.349,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "DQN (Ours)": [
+            1.961,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "jains_fairness": {
+          "OSPF (RFC 2328)": [
+            0.6487,
+            0.9107,
+            0.6251,
+            0.6121,
+            0.9863
+          ],
+          "Dijkstra SPF": [
+            0.5812,
+            0.911,
+            0.6354,
+            0.6193,
+            0.9862
+          ],
+          "ECMP": [
+            0.5427,
+            0.6739,
+            0.6251,
+            0.5917,
+            0.6824
+          ],
+          "WSP (Widest Path)": [
+            0.5971,
+            0.839,
+            0.6845,
+            0.6967,
+            0.9254
+          ],
+          "LLR (Least Loaded)": [
+            0.5945,
+            0.8391,
+            0.6901,
+            0.7061,
+            0.9222
+          ],
+          "DQN (Ours)": [
+            0.5848,
+            0.7168,
+            0.6725,
+            0.7143,
+            0.8818
+          ]
+        },
+        "decision_time_ms": {
+          "OSPF (RFC 2328)": [
+            0.074,
+            0.221,
+            0.111,
+            0.139,
+            0.193
+          ],
+          "Dijkstra SPF": [
+            0.007,
+            0.014,
+            0.008,
+            0.01,
+            0.009
+          ],
+          "ECMP": [
+            0.013,
+            0.038,
+            0.017,
+            0.022,
+            0.024
+          ],
+          "WSP (Widest Path)": [
+            0.042,
+            0.045,
+            0.048,
+            0.04,
+            0.028
+          ],
+          "LLR (Least Loaded)": [
+            0.006,
+            0.008,
+            0.008,
+            0.008,
+            0.006
+          ],
+          "DQN (Ours)": [
+            0.308,
+            0.426,
+            0.339,
+            0.357,
+            0.372
+          ]
+        }
+      },
+      {
+        "metadata": {
+          "seed": 46,
+          "policy_mode": "pure",
+          "flows_per_topology": 150,
+          "candidate_paths": 4,
+          "model_path": "/home/maher/Downloads/EC499t/Reinforcement_Learning_for_Adaptive_Traffic_Engineering_in_an_SDN_Network/models/dqn_router.pth"
+        },
+        "topologies": [
+          "Hierarchical Tree (7 Nodes)",
+          "Fat-Tree Clos Fabric (20 Nodes)",
+          "Abilene US Backbone (12 Nodes)",
+          "NSFNET Continental Mesh (14 Nodes)",
+          "Spine-Leaf Fabric (12 Nodes)"
+        ],
+        "bottleneck_util": {
+          "OSPF (RFC 2328)": [
+            51.59,
+            93.49,
+            32.76,
+            52.32,
+            99.68
+          ],
+          "Dijkstra SPF": [
+            41.08,
+            93.49,
+            32.47,
+            52.37,
+            99.68
+          ],
+          "ECMP": [
+            43.33,
+            53.23,
+            32.26,
+            45.36,
+            55.6
+          ],
+          "WSP (Widest Path)": [
+            40.23,
+            23.14,
+            31.03,
+            25.23,
+            19.01
+          ],
+          "LLR (Least Loaded)": [
+            41.37,
+            23.15,
+            31.12,
+            25.85,
+            19.11
+          ],
+          "DQN (Ours)": [
+            40.57,
+            29.34,
+            31.0,
+            26.01,
+            21.3
+          ]
+        },
+        "latency_ms": {
+          "OSPF (RFC 2328)": [
+            111.64,
+            194.11,
+            40.66,
+            194.94,
+            165.38
+          ],
+          "Dijkstra SPF": [
+            108.95,
+            195.39,
+            28.32,
+            189.36,
+            165.38
+          ],
+          "ECMP": [
+            162.17,
+            43.23,
+            39.88,
+            190.6,
+            25.93
+          ],
+          "WSP (Widest Path)": [
+            145.39,
+            6.07,
+            21.45,
+            16.55,
+            2.45
+          ],
+          "LLR (Least Loaded)": [
+            193.29,
+            6.07,
+            22.06,
+            18.14,
+            2.45
+          ],
+          "DQN (Ours)": [
+            99.38,
+            6.65,
+            23.75,
+            17.7,
+            2.51
+          ]
+        },
+        "jitter_ms": {
+          "OSPF (RFC 2328)": [
+            6.561,
+            13.627,
+            3.138,
+            7.289,
+            15.5
+          ],
+          "Dijkstra SPF": [
+            4.698,
+            13.627,
+            3.252,
+            7.297,
+            15.5
+          ],
+          "ECMP": [
+            3.936,
+            7.54,
+            3.038,
+            5.709,
+            8.102
+          ],
+          "WSP (Widest Path)": [
+            4.826,
+            1.01,
+            3.37,
+            1.854,
+            0.508
+          ],
+          "LLR (Least Loaded)": [
+            5.239,
+            1.01,
+            3.403,
+            1.935,
+            0.508
+          ],
+          "DQN (Ours)": [
+            4.787,
+            1.601,
+            3.03,
+            1.953,
+            0.516
+          ]
+        },
+        "packet_loss_pct": {
+          "OSPF (RFC 2328)": [
+            1.933,
+            11.56,
+            0.008,
+            0.406,
+            5.54
+          ],
+          "Dijkstra SPF": [
+            1.39,
+            11.576,
+            0.0,
+            0.361,
+            5.54
+          ],
+          "ECMP": [
+            3.563,
+            0.747,
+            0.008,
+            0.779,
+            0.218
+          ],
+          "WSP (Widest Path)": [
+            0.788,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "LLR (Least Loaded)": [
+            1.256,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "DQN (Ours)": [
+            0.924,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "jains_fairness": {
+          "OSPF (RFC 2328)": [
+            0.6716,
+            0.8688,
+            0.6453,
+            0.6588,
+            0.9847
+          ],
+          "Dijkstra SPF": [
+            0.5879,
+            0.8688,
+            0.661,
+            0.662,
+            0.9847
+          ],
+          "ECMP": [
+            0.5,
+            0.667,
+            0.6461,
+            0.6102,
+            0.6824
+          ],
+          "WSP (Widest Path)": [
+            0.6037,
+            0.814,
+            0.6848,
+            0.7114,
+            0.9219
+          ],
+          "LLR (Least Loaded)": [
+            0.6051,
+            0.8137,
+            0.687,
+            0.7228,
+            0.9199
+          ],
+          "DQN (Ours)": [
+            0.6041,
+            0.6906,
+            0.6775,
+            0.7164,
+            0.8702
+          ]
+        },
+        "decision_time_ms": {
+          "OSPF (RFC 2328)": [
+            0.077,
+            0.198,
+            0.132,
+            0.139,
+            0.172
+          ],
+          "Dijkstra SPF": [
+            0.006,
+            0.012,
+            0.009,
+            0.01,
+            0.01
+          ],
+          "ECMP": [
+            0.013,
+            0.036,
+            0.019,
+            0.022,
+            0.026
+          ],
+          "WSP (Widest Path)": [
+            0.036,
+            0.043,
+            0.048,
+            0.043,
+            0.027
+          ],
+          "LLR (Least Loaded)": [
+            0.006,
+            0.008,
+            0.008,
+            0.009,
+            0.006
+          ],
+          "DQN (Ours)": [
+            0.323,
+            0.447,
+            0.351,
+            0.391,
+            0.383
+          ]
+        }
+      }
+    ],
+    "safety": [
+      {
+        "metadata": {
+          "seed": 42,
+          "policy_mode": "safety",
+          "flows_per_topology": 150,
+          "candidate_paths": 4,
+          "model_path": "/home/maher/Downloads/EC499t/Reinforcement_Learning_for_Adaptive_Traffic_Engineering_in_an_SDN_Network/models/dqn_router.pth"
+        },
+        "topologies": [
+          "Hierarchical Tree (7 Nodes)",
+          "Fat-Tree Clos Fabric (20 Nodes)",
+          "Abilene US Backbone (12 Nodes)",
+          "NSFNET Continental Mesh (14 Nodes)",
+          "Spine-Leaf Fabric (12 Nodes)"
+        ],
+        "bottleneck_util": {
+          "OSPF (RFC 2328)": [
+            56.67,
+            94.62,
+            33.35,
+            49.63,
+            99.87
+          ],
+          "Dijkstra SPF": [
+            42.11,
+            94.69,
+            33.11,
+            49.64,
+            99.87
+          ],
+          "ECMP": [
+            41.3,
+            52.68,
+            32.71,
+            44.43,
+            55.6
+          ],
+          "WSP (Widest Path)": [
+            44.09,
+            23.26,
+            31.48,
+            28.27,
+            19.22
+          ],
+          "LLR (Least Loaded)": [
+            44.88,
+            23.28,
+            31.64,
+            28.69,
+            19.21
+          ],
+          "DQN (Ours)": [
+            39.71,
+            23.43,
+            31.68,
+            29.49,
+            19.5
+          ]
+        },
+        "latency_ms": {
+          "OSPF (RFC 2328)": [
+            158.68,
+            190.06,
+            45.31,
+            255.69,
+            145.47
+          ],
+          "Dijkstra SPF": [
+            142.4,
+            190.06,
+            43.56,
+            224.62,
+            145.47
+          ],
+          "ECMP": [
+            160.82,
+            51.45,
+            31.53,
+            191.68,
+            23.63
+          ],
+          "WSP (Widest Path)": [
+            188.4,
+            6.04,
+            22.0,
+            17.6,
+            2.45
+          ],
+          "LLR (Least Loaded)": [
+            243.99,
+            6.05,
+            22.43,
+            19.42,
+            2.45
+          ],
+          "DQN (Ours)": [
+            54.35,
+            6.07,
+            21.59,
+            16.59,
+            2.45
+          ]
+        },
+        "jitter_ms": {
+          "OSPF (RFC 2328)": [
+            7.716,
+            13.632,
+            3.445,
+            6.682,
+            15.5
+          ],
+          "Dijkstra SPF": [
+            4.414,
+            13.632,
+            3.538,
+            6.692,
+            15.5
+          ],
+          "ECMP": [
+            4.503,
+            7.436,
+            3.439,
+            5.453,
+            8.102
+          ],
+          "WSP (Widest Path)": [
+            5.675,
+            1.002,
+            3.486,
+            2.925,
+            0.509
+          ],
+          "LLR (Least Loaded)": [
+            5.916,
+            1.003,
+            3.503,
+            3.031,
+            0.509
+          ],
+          "DQN (Ours)": [
+            5.076,
+            1.016,
+            3.437,
+            2.921,
+            0.51
+          ]
+        },
+        "packet_loss_pct": {
+          "OSPF (RFC 2328)": [
+            2.611,
+            11.565,
+            0.027,
+            1.076,
+            5.429
+          ],
+          "Dijkstra SPF": [
+            2.504,
+            11.59,
+            0.027,
+            0.872,
+            5.429
+          ],
+          "ECMP": [
+            1.941,
+            0.876,
+            0.001,
+            0.936,
+            0.122
+          ],
+          "WSP (Widest Path)": [
+            1.224,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "LLR (Least Loaded)": [
+            2.445,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "DQN (Ours)": [
+            0.082,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "jains_fairness": {
+          "OSPF (RFC 2328)": [
+            0.698,
+            0.8717,
+            0.6613,
+            0.6257,
+            0.9828
+          ],
+          "Dijkstra SPF": [
+            0.5463,
+            0.872,
+            0.6646,
+            0.6308,
+            0.9828
+          ],
+          "ECMP": [
+            0.5584,
+            0.6583,
+            0.6683,
+            0.6101,
+            0.6846
+          ],
+          "WSP (Widest Path)": [
+            0.5961,
+            0.8178,
+            0.684,
+            0.6506,
+            0.911
+          ],
+          "LLR (Least Loaded)": [
+            0.5967,
+            0.8173,
+            0.6824,
+            0.6568,
+            0.9099
+          ],
+          "DQN (Ours)": [
+            0.6181,
+            0.8088,
+            0.6904,
+            0.6634,
+            0.9017
+          ]
+        },
+        "decision_time_ms": {
+          "OSPF (RFC 2328)": [
+            0.077,
+            1.008,
+            0.107,
+            0.158,
+            0.151
+          ],
+          "Dijkstra SPF": [
+            0.007,
+            0.016,
+            0.009,
+            0.01,
+            0.009
+          ],
+          "ECMP": [
+            0.013,
+            0.04,
+            0.019,
+            0.021,
+            0.024
+          ],
+          "WSP (Widest Path)": [
+            0.036,
+            0.053,
+            0.049,
+            0.045,
+            0.028
+          ],
+          "LLR (Least Loaded)": [
+            0.006,
+            0.009,
+            0.008,
+            0.007,
+            0.006
+          ],
+          "DQN (Ours)": [
+            0.411,
+            0.561,
+            0.504,
+            0.46,
+            0.485
+          ]
+        }
+      },
+      {
+        "metadata": {
+          "seed": 43,
+          "policy_mode": "safety",
+          "flows_per_topology": 150,
+          "candidate_paths": 4,
+          "model_path": "/home/maher/Downloads/EC499t/Reinforcement_Learning_for_Adaptive_Traffic_Engineering_in_an_SDN_Network/models/dqn_router.pth"
+        },
+        "topologies": [
+          "Hierarchical Tree (7 Nodes)",
+          "Fat-Tree Clos Fabric (20 Nodes)",
+          "Abilene US Backbone (12 Nodes)",
+          "NSFNET Continental Mesh (14 Nodes)",
+          "Spine-Leaf Fabric (12 Nodes)"
+        ],
+        "bottleneck_util": {
+          "OSPF (RFC 2328)": [
+            56.55,
+            91.3,
+            35.48,
+            49.8,
+            97.96
+          ],
+          "Dijkstra SPF": [
+            39.68,
+            91.3,
+            34.74,
+            49.71,
+            97.96
+          ],
+          "ECMP": [
+            41.51,
+            51.01,
+            34.58,
+            41.39,
+            55.22
+          ],
+          "WSP (Widest Path)": [
+            40.78,
+            21.44,
+            31.4,
+            22.51,
+            18.27
+          ],
+          "LLR (Least Loaded)": [
+            44.52,
+            21.4,
+            31.21,
+            23.01,
+            18.32
+          ],
+          "DQN (Ours)": [
+            38.97,
+            21.49,
+            31.02,
+            23.22,
+            18.51
+          ]
+        },
+        "latency_ms": {
+          "OSPF (RFC 2328)": [
+            175.32,
+            172.75,
+            73.59,
+            160.52,
+            158.3
+          ],
+          "Dijkstra SPF": [
+            124.34,
+            172.75,
+            39.61,
+            124.6,
+            158.3
+          ],
+          "ECMP": [
+            109.19,
+            27.45,
+            32.61,
+            80.02,
+            22.1
+          ],
+          "WSP (Widest Path)": [
+            100.9,
+            5.93,
+            24.46,
+            15.59,
+            2.43
+          ],
+          "LLR (Least Loaded)": [
+            215.42,
+            5.93,
+            26.71,
+            16.62,
+            2.43
+          ],
+          "DQN (Ours)": [
+            67.21,
+            5.93,
+            23.66,
+            14.19,
+            2.44
+          ]
+        },
+        "jitter_ms": {
+          "OSPF (RFC 2328)": [
+            7.696,
+            13.734,
+            3.732,
+            6.637,
+            15.5
+          ],
+          "Dijkstra SPF": [
+            4.54,
+            13.734,
+            3.716,
+            6.749,
+            15.5
+          ],
+          "ECMP": [
+            4.549,
+            7.339,
+            3.771,
+            4.991,
+            8.102
+          ],
+          "WSP (Widest Path)": [
+            5.114,
+            0.976,
+            3.213,
+            1.217,
+            0.507
+          ],
+          "LLR (Least Loaded)": [
+            5.598,
+            0.975,
+            3.195,
+            1.26,
+            0.507
+          ],
+          "DQN (Ours)": [
+            4.542,
+            0.977,
+            3.142,
+            1.168,
+            0.507
+          ]
+        },
+        "packet_loss_pct": {
+          "OSPF (RFC 2328)": [
+            2.421,
+            8.671,
+            0.078,
+            0.264,
+            4.519
+          ],
+          "Dijkstra SPF": [
+            0.98,
+            8.671,
+            0.002,
+            0.252,
+            4.519
+          ],
+          "ECMP": [
+            2.148,
+            0.101,
+            0.0,
+            0.16,
+            0.122
+          ],
+          "WSP (Widest Path)": [
+            0.429,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "LLR (Least Loaded)": [
+            2.16,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "DQN (Ours)": [
+            0.182,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "jains_fairness": {
+          "OSPF (RFC 2328)": [
+            0.6774,
+            0.8845,
+            0.6318,
+            0.6543,
+            0.989
+          ],
+          "Dijkstra SPF": [
+            0.5791,
+            0.8845,
+            0.6441,
+            0.6551,
+            0.989
+          ],
+          "ECMP": [
+            0.5482,
+            0.6622,
+            0.6514,
+            0.617,
+            0.6833
+          ],
+          "WSP (Widest Path)": [
+            0.611,
+            0.8454,
+            0.6654,
+            0.7822,
+            0.9379
+          ],
+          "LLR (Least Loaded)": [
+            0.5798,
+            0.846,
+            0.6661,
+            0.7855,
+            0.9366
+          ],
+          "DQN (Ours)": [
+            0.6112,
+            0.8412,
+            0.671,
+            0.7774,
+            0.9284
+          ]
+        },
+        "decision_time_ms": {
+          "OSPF (RFC 2328)": [
+            0.077,
+            0.455,
+            0.16,
+            0.186,
+            0.224
+          ],
+          "Dijkstra SPF": [
+            0.007,
+            0.013,
+            0.009,
+            0.009,
+            0.008
+          ],
+          "ECMP": [
+            0.013,
+            0.035,
+            0.018,
+            0.022,
+            0.024
+          ],
+          "WSP (Widest Path)": [
+            0.036,
+            0.045,
+            0.05,
+            0.041,
+            0.029
+          ],
+          "LLR (Least Loaded)": [
+            0.006,
+            0.008,
+            0.008,
+            0.007,
+            0.007
+          ],
+          "DQN (Ours)": [
+            0.403,
+            0.523,
+            0.481,
+            0.467,
+            0.453
+          ]
+        }
+      },
+      {
+        "metadata": {
+          "seed": 44,
+          "policy_mode": "safety",
+          "flows_per_topology": 150,
+          "candidate_paths": 4,
+          "model_path": "/home/maher/Downloads/EC499t/Reinforcement_Learning_for_Adaptive_Traffic_Engineering_in_an_SDN_Network/models/dqn_router.pth"
+        },
+        "topologies": [
+          "Hierarchical Tree (7 Nodes)",
+          "Fat-Tree Clos Fabric (20 Nodes)",
+          "Abilene US Backbone (12 Nodes)",
+          "NSFNET Continental Mesh (14 Nodes)",
+          "Spine-Leaf Fabric (12 Nodes)"
+        ],
+        "bottleneck_util": {
+          "OSPF (RFC 2328)": [
+            60.66,
+            93.99,
+            35.28,
+            48.0,
+            99.79
+          ],
+          "Dijkstra SPF": [
+            47.29,
+            93.99,
+            35.12,
+            48.0,
+            99.79
+          ],
+          "ECMP": [
+            48.02,
+            54.16,
+            33.29,
+            42.43,
+            55.75
+          ],
+          "WSP (Widest Path)": [
+            43.89,
+            22.4,
+            30.4,
+            25.98,
+            18.95
+          ],
+          "LLR (Least Loaded)": [
+            46.47,
+            22.4,
+            30.13,
+            26.65,
+            19.23
+          ],
+          "DQN (Ours)": [
+            42.6,
+            22.44,
+            30.79,
+            26.78,
+            19.39
+          ]
+        },
+        "latency_ms": {
+          "OSPF (RFC 2328)": [
+            229.48,
+            183.84,
+            44.33,
+            204.36,
+            171.82
+          ],
+          "Dijkstra SPF": [
+            212.45,
+            183.84,
+            30.21,
+            203.94,
+            171.82
+          ],
+          "ECMP": [
+            204.38,
+            43.44,
+            40.73,
+            202.53,
+            22.44
+          ],
+          "WSP (Widest Path)": [
+            272.84,
+            6.03,
+            21.99,
+            17.5,
+            2.45
+          ],
+          "LLR (Least Loaded)": [
+            359.85,
+            6.03,
+            22.17,
+            18.54,
+            2.45
+          ],
+          "DQN (Ours)": [
+            117.99,
+            6.05,
+            21.69,
+            15.34,
+            2.45
+          ]
+        },
+        "jitter_ms": {
+          "OSPF (RFC 2328)": [
+            8.041,
+            13.943,
+            3.926,
+            6.29,
+            15.5
+          ],
+          "Dijkstra SPF": [
+            4.872,
+            13.943,
+            4.276,
+            6.29,
+            15.5
+          ],
+          "ECMP": [
+            5.223,
+            7.848,
+            3.548,
+            5.104,
+            8.103
+          ],
+          "WSP (Widest Path)": [
+            5.32,
+            1.012,
+            3.5,
+            2.08,
+            0.508
+          ],
+          "LLR (Least Loaded)": [
+            5.652,
+            1.012,
+            3.421,
+            2.128,
+            0.509
+          ],
+          "DQN (Ours)": [
+            5.001,
+            1.021,
+            3.491,
+            1.965,
+            0.509
+          ]
+        },
+        "packet_loss_pct": {
+          "OSPF (RFC 2328)": [
+            5.525,
+            9.324,
+            0.014,
+            0.758,
+            6.152
+          ],
+          "Dijkstra SPF": [
+            4.049,
+            9.324,
+            0.0,
+            0.758,
+            6.152
+          ],
+          "ECMP": [
+            4.477,
+            0.408,
+            0.014,
+            0.794,
+            0.095
+          ],
+          "WSP (Widest Path)": [
+            2.241,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "LLR (Least Loaded)": [
+            3.953,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "DQN (Ours)": [
+            1.079,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "jains_fairness": {
+          "OSPF (RFC 2328)": [
+            0.668,
+            0.8943,
+            0.6487,
+            0.6239,
+            0.9841
+          ],
+          "Dijkstra SPF": [
+            0.5119,
+            0.8943,
+            0.6542,
+            0.6239,
+            0.9841
+          ],
+          "ECMP": [
+            0.5188,
+            0.6794,
+            0.6498,
+            0.5932,
+            0.6893
+          ],
+          "WSP (Widest Path)": [
+            0.577,
+            0.8134,
+            0.6617,
+            0.6909,
+            0.9203
+          ],
+          "LLR (Least Loaded)": [
+            0.5751,
+            0.8134,
+            0.673,
+            0.7035,
+            0.9145
+          ],
+          "DQN (Ours)": [
+            0.58,
+            0.811,
+            0.6692,
+            0.702,
+            0.9149
+          ]
+        },
+        "decision_time_ms": {
+          "OSPF (RFC 2328)": [
+            0.069,
+            0.184,
+            0.105,
+            0.13,
+            0.148
+          ],
+          "Dijkstra SPF": [
+            0.006,
+            0.013,
+            0.009,
+            0.01,
+            0.009
+          ],
+          "ECMP": [
+            0.013,
+            0.035,
+            0.019,
+            0.021,
+            0.025
+          ],
+          "WSP (Widest Path)": [
+            0.034,
+            0.046,
+            0.049,
+            0.039,
+            0.033
+          ],
+          "LLR (Least Loaded)": [
+            0.007,
+            0.009,
+            0.008,
+            0.008,
+            0.008
+          ],
+          "DQN (Ours)": [
+            0.407,
+            0.528,
+            0.519,
+            0.447,
+            0.768
+          ]
+        }
+      },
+      {
+        "metadata": {
+          "seed": 45,
+          "policy_mode": "safety",
+          "flows_per_topology": 150,
+          "candidate_paths": 4,
+          "model_path": "/home/maher/Downloads/EC499t/Reinforcement_Learning_for_Adaptive_Traffic_Engineering_in_an_SDN_Network/models/dqn_router.pth"
+        },
+        "topologies": [
+          "Hierarchical Tree (7 Nodes)",
+          "Fat-Tree Clos Fabric (20 Nodes)",
+          "Abilene US Backbone (12 Nodes)",
+          "NSFNET Continental Mesh (14 Nodes)",
+          "Spine-Leaf Fabric (12 Nodes)"
+        ],
+        "bottleneck_util": {
+          "OSPF (RFC 2328)": [
+            52.74,
+            94.33,
+            31.5,
+            50.41,
+            98.56
+          ],
+          "Dijkstra SPF": [
+            41.2,
+            94.36,
+            31.53,
+            49.63,
+            98.56
+          ],
+          "ECMP": [
+            41.2,
+            52.76,
+            31.5,
+            44.54,
+            55.38
+          ],
+          "WSP (Widest Path)": [
+            41.07,
+            21.59,
+            27.71,
+            26.01,
+            18.46
+          ],
+          "LLR (Least Loaded)": [
+            43.42,
+            21.59,
+            27.91,
+            26.58,
+            18.57
+          ],
+          "DQN (Ours)": [
+            38.52,
+            21.64,
+            28.89,
+            27.77,
+            18.7
+          ]
+        },
+        "latency_ms": {
+          "OSPF (RFC 2328)": [
+            175.63,
+            176.1,
+            49.44,
+            295.08,
+            150.79
+          ],
+          "Dijkstra SPF": [
+            159.09,
+            176.1,
+            33.01,
+            251.62,
+            150.79
+          ],
+          "ECMP": [
+            125.05,
+            32.58,
+            49.44,
+            223.83,
+            21.79
+          ],
+          "WSP (Widest Path)": [
+            150.31,
+            6.01,
+            20.98,
+            16.83,
+            2.44
+          ],
+          "LLR (Least Loaded)": [
+            200.23,
+            6.01,
+            21.27,
+            17.51,
+            2.44
+          ],
+          "DQN (Ours)": [
+            58.01,
+            6.02,
+            20.38,
+            15.39,
+            2.44
+          ]
+        },
+        "jitter_ms": {
+          "OSPF (RFC 2328)": [
+            6.569,
+            14.25,
+            2.898,
+            6.791,
+            15.5
+          ],
+          "Dijkstra SPF": [
+            4.509,
+            14.25,
+            2.907,
+            6.793,
+            15.5
+          ],
+          "ECMP": [
+            4.124,
+            7.656,
+            2.898,
+            5.602,
+            8.102
+          ],
+          "WSP (Widest Path)": [
+            5.077,
+            0.996,
+            2.381,
+            2.109,
+            0.507
+          ],
+          "LLR (Least Loaded)": [
+            5.315,
+            0.996,
+            2.357,
+            2.079,
+            0.507
+          ],
+          "DQN (Ours)": [
+            4.442,
+            1.001,
+            2.407,
+            2.055,
+            0.508
+          ]
+        },
+        "packet_loss_pct": {
+          "OSPF (RFC 2328)": [
+            3.459,
+            8.779,
+            0.04,
+            1.566,
+            4.716
+          ],
+          "Dijkstra SPF": [
+            1.302,
+            8.779,
+            0.0,
+            0.902,
+            4.716
+          ],
+          "ECMP": [
+            2.199,
+            0.189,
+            0.04,
+            1.131,
+            0.152
+          ],
+          "WSP (Widest Path)": [
+            0.851,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "LLR (Least Loaded)": [
+            1.349,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "DQN (Ours)": [
+            0.206,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "jains_fairness": {
+          "OSPF (RFC 2328)": [
+            0.6487,
+            0.9107,
+            0.6251,
+            0.6121,
+            0.9862
+          ],
+          "Dijkstra SPF": [
+            0.5812,
+            0.911,
+            0.6354,
+            0.6193,
+            0.9862
+          ],
+          "ECMP": [
+            0.5427,
+            0.6739,
+            0.6251,
+            0.5917,
+            0.6824
+          ],
+          "WSP (Widest Path)": [
+            0.5971,
+            0.839,
+            0.6845,
+            0.6967,
+            0.9254
+          ],
+          "LLR (Least Loaded)": [
+            0.5945,
+            0.8391,
+            0.6901,
+            0.7061,
+            0.9222
+          ],
+          "DQN (Ours)": [
+            0.6199,
+            0.8351,
+            0.6921,
+            0.7101,
+            0.9199
+          ]
+        },
+        "decision_time_ms": {
+          "OSPF (RFC 2328)": [
+            0.066,
+            0.179,
+            0.101,
+            0.129,
+            0.146
+          ],
+          "Dijkstra SPF": [
+            0.007,
+            0.012,
+            0.009,
+            0.01,
+            0.008
+          ],
+          "ECMP": [
+            0.013,
+            0.035,
+            0.017,
+            0.022,
+            0.024
+          ],
+          "WSP (Widest Path)": [
+            0.033,
+            0.045,
+            0.05,
+            0.041,
+            0.028
+          ],
+          "LLR (Least Loaded)": [
+            0.006,
+            0.008,
+            0.008,
+            0.008,
+            0.007
+          ],
+          "DQN (Ours)": [
+            0.383,
+            0.505,
+            0.482,
+            0.457,
+            0.463
+          ]
+        }
+      },
+      {
+        "metadata": {
+          "seed": 46,
+          "policy_mode": "safety",
+          "flows_per_topology": 150,
+          "candidate_paths": 4,
+          "model_path": "/home/maher/Downloads/EC499t/Reinforcement_Learning_for_Adaptive_Traffic_Engineering_in_an_SDN_Network/models/dqn_router.pth"
+        },
+        "topologies": [
+          "Hierarchical Tree (7 Nodes)",
+          "Fat-Tree Clos Fabric (20 Nodes)",
+          "Abilene US Backbone (12 Nodes)",
+          "NSFNET Continental Mesh (14 Nodes)",
+          "Spine-Leaf Fabric (12 Nodes)"
+        ],
+        "bottleneck_util": {
+          "OSPF (RFC 2328)": [
+            51.59,
+            93.45,
+            32.76,
+            52.32,
+            99.68
+          ],
+          "Dijkstra SPF": [
+            41.08,
+            93.49,
+            32.47,
+            52.37,
+            99.7
+          ],
+          "ECMP": [
+            43.33,
+            53.23,
+            32.26,
+            45.36,
+            55.6
+          ],
+          "WSP (Widest Path)": [
+            40.23,
+            23.14,
+            31.03,
+            25.23,
+            19.01
+          ],
+          "LLR (Least Loaded)": [
+            41.37,
+            23.15,
+            31.12,
+            25.85,
+            19.11
+          ],
+          "DQN (Ours)": [
+            38.55,
+            23.21,
+            31.29,
+            26.72,
+            19.52
+          ]
+        },
+        "latency_ms": {
+          "OSPF (RFC 2328)": [
+            111.64,
+            193.01,
+            40.66,
+            194.94,
+            165.38
+          ],
+          "Dijkstra SPF": [
+            108.95,
+            195.39,
+            28.32,
+            189.36,
+            166.27
+          ],
+          "ECMP": [
+            162.17,
+            43.23,
+            39.88,
+            190.6,
+            25.93
+          ],
+          "WSP (Widest Path)": [
+            145.39,
+            6.07,
+            21.45,
+            16.55,
+            2.45
+          ],
+          "LLR (Least Loaded)": [
+            193.29,
+            6.07,
+            22.06,
+            18.14,
+            2.45
+          ],
+          "DQN (Ours)": [
+            53.72,
+            6.09,
+            21.41,
+            15.61,
+            2.46
+          ]
+        },
+        "jitter_ms": {
+          "OSPF (RFC 2328)": [
+            6.561,
+            13.627,
+            3.138,
+            7.289,
+            15.5
+          ],
+          "Dijkstra SPF": [
+            4.698,
+            13.627,
+            3.252,
+            7.297,
+            15.5
+          ],
+          "ECMP": [
+            3.936,
+            7.54,
+            3.038,
+            5.709,
+            8.102
+          ],
+          "WSP (Widest Path)": [
+            4.826,
+            1.01,
+            3.37,
+            1.854,
+            0.508
+          ],
+          "LLR (Least Loaded)": [
+            5.239,
+            1.01,
+            3.403,
+            1.935,
+            0.508
+          ],
+          "DQN (Ours)": [
+            4.312,
+            1.019,
+            3.381,
+            1.903,
+            0.509
+          ]
+        },
+        "packet_loss_pct": {
+          "OSPF (RFC 2328)": [
+            1.933,
+            11.551,
+            0.008,
+            0.406,
+            5.54
+          ],
+          "Dijkstra SPF": [
+            1.39,
+            11.576,
+            0.0,
+            0.361,
+            5.548
+          ],
+          "ECMP": [
+            3.563,
+            0.747,
+            0.008,
+            0.779,
+            0.218
+          ],
+          "WSP (Widest Path)": [
+            0.788,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "LLR (Least Loaded)": [
+            1.256,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "DQN (Ours)": [
+            0.307,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "jains_fairness": {
+          "OSPF (RFC 2328)": [
+            0.6716,
+            0.8688,
+            0.6453,
+            0.6588,
+            0.9847
+          ],
+          "Dijkstra SPF": [
+            0.5879,
+            0.8688,
+            0.661,
+            0.662,
+            0.9847
+          ],
+          "ECMP": [
+            0.5,
+            0.667,
+            0.6461,
+            0.6102,
+            0.6824
+          ],
+          "WSP (Widest Path)": [
+            0.6037,
+            0.814,
+            0.6848,
+            0.7114,
+            0.9219
+          ],
+          "LLR (Least Loaded)": [
+            0.6051,
+            0.8137,
+            0.687,
+            0.7228,
+            0.9199
+          ],
+          "DQN (Ours)": [
+            0.6191,
+            0.8097,
+            0.6876,
+            0.7141,
+            0.9152
+          ]
+        },
+        "decision_time_ms": {
+          "OSPF (RFC 2328)": [
+            0.067,
+            0.226,
+            0.122,
+            0.143,
+            0.164
+          ],
+          "Dijkstra SPF": [
+            0.006,
+            0.012,
+            0.009,
+            0.011,
+            0.008
+          ],
+          "ECMP": [
+            0.013,
+            0.037,
+            0.019,
+            0.023,
+            0.023
+          ],
+          "WSP (Widest Path)": [
+            0.033,
+            0.047,
+            0.047,
+            0.043,
+            0.032
+          ],
+          "LLR (Least Loaded)": [
+            0.006,
+            0.009,
+            0.008,
+            0.008,
+            0.008
+          ],
+          "DQN (Ours)": [
+            0.427,
+            0.541,
+            0.456,
+            0.472,
+            0.622
+          ]
+        }
+      }
+    ]
+  }
+}

@@ -69,7 +69,7 @@ def run_simulation(mode="auto", interval=4.0, max_steps=0, base_url=DEFAULT_URL)
 
     # Ensure active topology links are populated on controller
     try:
-        http_get(f"/api/simulate/switch_topology?topo=tree", base_url=base_url)
+        http_post(f"/api/simulate/switch_topology?topo=tree", base_url=base_url)
     except Exception:
         pass
 
@@ -85,7 +85,10 @@ def run_simulation(mode="auto", interval=4.0, max_steps=0, base_url=DEFAULT_URL)
 
             # 1. Trigger simulation action on controller
             try:
-                trigger_res = http_post(f"/api/simulate/{current_action}", base_url=base_url)
+                endpoint = f"/api/simulate/{current_action}"
+                if current_action == "reset":
+                    endpoint += "?flows_only=1"
+                trigger_res = http_post(endpoint, base_url=base_url)
             except Exception as e:
                 trigger_res = {"message": f"Connection pending ({e})"}
 

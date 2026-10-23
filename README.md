@@ -29,11 +29,15 @@ This platform integrates a **Dueling Double Deep Q-Network (D3QN)** with **Prior
 | **Objective 5** | Evaluate performance using packet loss and control overhead metrics | M/M/1/K buffer overflow loss model and OpenFlow message accounting (`OFPPacketIn`, `OFPFlowMod`, decision latency) |
 | **Procedure 4** | Train DQN agent using synthetic traffic patterns to simulate load | Poisson burst generator, elephant flows, and core jamming stress tests (`topology/traffic_generator.sh`) |
 | **Procedure 5** | Benchmark RL agent against OSPF and greedy routing baselines | Automated tournament benchmark (`benchmark_routing_algorithms.py`) comparing DQN against OSPF (RFC 2328), Dijkstra SPF, ECMP, WSP, and LLR |
-| **Procedure 6** | Document findings and prepare final technical report and source code | Complete 143-page graduation thesis (`docs/Project_Report_EC499_Final.pdf`), 30-slide defense decks (`docs/EC499_Graduation_Defense_Presentation.pptx` & `.html`), 32 passing unit tests (`test_suite.py`), and 14 publication plots in `logs/plots/` |
+| **Procedure 6** | Document findings and prepare final technical report and source code | Graduation thesis, defense decks, automated tests (`test_suite.py`), and reproducible plotting tools |
 
 ---
 
 ## Head-to-Head Benchmark Summary across 5 Topologies
+
+> Historical snapshot from the checked-in result files. Run `./run_benchmarks.sh --seed 42`
+> after changing the model, queue model, or policy mode; do not treat these values as current
+> until the JSON artifacts have been regenerated.
 
 Evaluated under **closed-loop dynamic flow accumulation and lifecycle stepping** across **Hierarchical Tree**, **Fat-Tree ($k=4$)**, **Abilene US Backbone**, **NSFNet Continental Mesh**, and **Spine-Leaf Fabrics**:
 
@@ -129,28 +133,28 @@ Evaluated under **closed-loop dynamic flow accumulation and lifecycle stepping**
 
 ---
 
-## Carrier-Grade Architectural Remediations
+## Architectural Design Notes
 
 To satisfy the highest standards of IEEE transaction reviewers and academic examiners, the platform incorporates five rigorous architectural remediations:
 
-1. **On-Demand Saturated Core Detour Synthesis (`controller/state_manager.py`)**:
-   - When pre-computed candidate $K$-paths experience bottleneck loads exceeding 70%, the controller dynamically synthesizes penalty-routed bypass paths via edge-penalized Dijkstra search ($w'_e = w_e \cdot [1 + 10 \cdot (\rho_e - 0.7)^2]$), guaranteeing non-congested alternatives exist.
-2. **Receptive Field Equivalence for 10D State Vector (`docs/chapters/ch03_mathematical_modeling.tex`)**:
-   - The normalized 10-dimensional state vector is formally proven equivalent to a 1-hop Message Passing Neural Network (MPNN) edge cut aggregation, delivering topological scale invariance with sub-millisecond inference ($0.048\text{ ms}$) vs. $15\text{ ms}$ for heavy Graph Neural Networks.
+1. **Load-Aware Candidate Generation (`controller/state_manager.py`)**:
+   - The topology-only simple-path cache is separated from a load-aware Dijkstra candidate that is recomputed for every decision. A bypass is selected only when the active graph actually contains one.
+2. **Fixed-Width State Vector (`controller/state_manager.py`)**:
+   - The normalized vector summarizes candidate bottlenecks and delays and now follows `RL_STATE_SIZE`. It is a compact engineered representation, not a graph-neural-network equivalent.
 3. **Active Closed-Loop Shadow Bandwidth Reservations (`controller/state_manager.py`)**:
-   - Eliminates micro-burst herding during OpenFlow telemetry polling lag ($1.0–2.0\text{s}$) by recording immediate reservations on selected path links with continuous exponential decay ($t_{1/2} = 1.5\text{s}$), damping load oscillations by 74%.
+   - Records immediate reservations on selected path links with configurable exponential decay to reduce repeated decisions based on stale polling data.
 4. **Hierarchical TCAM Flow Table Allocation (`controller/routing_module.py`)**:
-   - Standard and short-lived mice flows install subnet wildcard rules with aggressive 15-second idle timeouts. Elephant flows ($\ge 5.0\text{ Mbps}$) dynamically trigger exact 5-tuple flow rules with higher priority ($20$) and 60-second timeouts, reducing switch TCAM table consumption by over 85%.
+   - Mice and elephant flows use distinct priorities and configurable idle timeouts. Current rules match the IPv4 source/destination pair; transport-protocol and port matching is not yet implemented.
 5. **Pareto Multi-Objective Sensitivity Ablation (`ablate_reward_weights.py`)**:
-   - A 50-episode ablation across 6 SLA weight configurations empirically proves that the asymptotic exponential barrier $\Phi_{\text{cong}}$ is mathematically mandatory: removing it ($\theta = 1.0$) causes average queuing latency to spike 3x ($12.57\text{ ms} \to 32.91\text{ ms}$) and packet loss to explode 2,100x ($0.001\% \to 2.152\%$).
+   - A deterministic multi-topology sensitivity run compares six objective-weight configurations. It evaluates path choices directly and is explicitly not presented as D3QN retraining.
 
 ---
 
 ## Quick Start & Verification
 
-Activate your Python virtual environment (e.g. `source venv/bin/activate` or `source ~/ec499_env/bin/activate`), or execute using the self-detecting portable scripts directly:
+Use Python 3.9–3.11 for the live Ryu controller (Ryu 4.34 is not compatible with Python 3.12+), create a virtual environment, and install `requirements.txt`.
 
-### 1. Run Unit & Integration Tests (32 Tests, 100% Passing)
+### 1. Run Unit & Integration Tests
 ```bash
 ./run_tests.sh
 # Or with active virtual environment:
@@ -217,13 +221,15 @@ All runtime parameters, model paths, SDN endpoints, and reinforcement learning h
 | `SDN_PLOTS_DIR` | `logs/plots/` | Directory where publication figures are generated |
 | `SDN_CONTROLLER_IP` | `127.0.0.1` | Ryu OpenFlow controller host address |
 | `SDN_CONTROLLER_PORT` | `6633` | OpenFlow switch-controller listening port |
-| `SDN_REST_HOST` | `0.0.0.0` | Dashboard server bind address |
+| `SDN_REST_HOST` | `127.0.0.1` | Dashboard server bind address |
 | `SDN_REST_PORT` | `8080` | Dashboard server HTTP port |
 | `SDN_POLL_INTERVAL` | `3.0` | OpenFlow statistics polling period (seconds) |
 | `SDN_DEFAULT_TOPOLOGY` | `tree` | Default network fabric (`tree`, `fattree`, `abilene`, `nsfnet`, `spineleaf`) |
 | `RL_LR` | `0.001` | Adam optimizer learning rate |
 | `RL_BATCH_SIZE` | `32` | Experience replay mini-batch sample size |
 | `RL_MEMORY_SIZE` | `5000` | Prioritized experience replay buffer capacity |
+| `RL_POLICY_MODE` | `pure` | `pure` DQN evaluation or explicitly labelled `safety` post-processing |
+| `SDN_API_TOKEN` | empty | Optional bearer/API-key required for state-changing POST requests |
 | `TORCH_DEVICE` | Auto (`cuda` / `cpu`) | PyTorch compute accelerator device |
 
 

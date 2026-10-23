@@ -1,0 +1,349 @@
+{
+  "timestamp": "2026-10-22 11:49:29",
+  "evaluations": [
+    {
+      "topology_name": "Random Dynamic Mesh (N=16)",
+      "num_nodes": 16,
+      "num_edges": 64,
+      "topology": {
+        "nodes": 16,
+        "edges": 64,
+        "core_nodes": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "edge_nodes": [
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ]
+      },
+      "num_flows": 200,
+      "burst_flows": 500,
+      "k_candidate_paths": 4,
+      "test1_jamming": {
+        "dqn_bottleneck_pct": 31.34,
+        "spf_bottleneck_pct": 32.47,
+        "congestion_relief_pct": 1.13,
+        "offload_rate_pct": 35.0
+      },
+      "test1_core_jamming": {
+        "dqn_bottleneck_pct": 31.34,
+        "spf_bottleneck_pct": 32.47,
+        "congestion_relief_pct": 1.13,
+        "offload_rate_pct": 35.0
+      },
+      "test2_avalanche": {
+        "burst_time_ms": 253.3,
+        "decisions_per_sec": 1973.9,
+        "jains_fairness_dqn": 0.849,
+        "jains_fairness_spf": 0.6949
+      },
+      "test3_latency": {
+        "dqn_mean_latency_ms": 8.45,
+        "spf_mean_latency_ms": 15.53,
+        "latency_improvement_ms": 7.07
+      },
+      "test4_jitter_loss": {
+        "dqn_mean_jitter_ms": 0.57,
+        "spf_mean_jitter_ms": 1.4,
+        "dqn_mean_loss_pct": 0.0,
+        "spf_mean_loss_pct": 0.0
+      }
+    },
+    {
+      "topology_name": "Random Dynamic Mesh (N=20)",
+      "num_nodes": 20,
+      "num_edges": 80,
+      "topology": {
+        "nodes": 20,
+        "edges": 80,
+        "core_nodes": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "edge_nodes": [
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20
+        ]
+      },
+      "num_flows": 200,
+      "burst_flows": 500,
+      "k_candidate_paths": 4,
+      "test1_jamming": {
+        "dqn_bottleneck_pct": 49.38,
+        "spf_bottleneck_pct": 55.0,
+        "congestion_relief_pct": 5.62,
+        "offload_rate_pct": 29.5
+      },
+      "test1_core_jamming": {
+        "dqn_bottleneck_pct": 49.38,
+        "spf_bottleneck_pct": 55.0,
+        "congestion_relief_pct": 5.62,
+        "offload_rate_pct": 29.5
+      },
+      "test2_avalanche": {
+        "burst_time_ms": 296.89,
+        "decisions_per_sec": 1684.1,
+        "jains_fairness_dqn": 0.8082,
+        "jains_fairness_spf": 0.707
+      },
+      "test3_latency": {
+        "dqn_mean_latency_ms": 32.01,
+        "spf_mean_latency_ms": 31.41,
+        "latency_improvement_ms": -0.59
+      },
+      "test4_jitter_loss": {
+        "dqn_mean_jitter_ms": 3.19,
+        "spf_mean_jitter_ms": 3.45,
+        "dqn_mean_loss_pct": 0.0,
+        "spf_mean_loss_pct": 0.0
+      }
+    },
+    {
+      "topology_name": "Random Dynamic Mesh (N=25)",
+      "num_nodes": 25,
+      "num_edges": 100,
+      "topology": {
+        "nodes": 25,
+        "edges": 100,
+        "core_nodes": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "edge_nodes": [
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25
+        ]
+      },
+      "num_flows": 200,
+      "burst_flows": 500,
+      "k_candidate_paths": 4,
+      "test1_jamming": {
+        "dqn_bottleneck_pct": 24.42,
+        "spf_bottleneck_pct": 31.7,
+        "congestion_relief_pct": 7.27,
+        "offload_rate_pct": 38.0
+      },
+      "test1_core_jamming": {
+        "dqn_bottleneck_pct": 24.42,
+        "spf_bottleneck_pct": 31.7,
+        "congestion_relief_pct": 7.27,
+        "offload_rate_pct": 38.0
+      },
+      "test2_avalanche": {
+        "burst_time_ms": 374.85,
+        "decisions_per_sec": 1333.9,
+        "jains_fairness_dqn": 0.7901,
+        "jains_fairness_spf": 0.715
+      },
+      "test3_latency": {
+        "dqn_mean_latency_ms": 10.21,
+        "spf_mean_latency_ms": 13.2,
+        "latency_improvement_ms": 2.99
+      },
+      "test4_jitter_loss": {
+        "dqn_mean_jitter_ms": 0.68,
+        "spf_mean_jitter_ms": 1.37,
+        "dqn_mean_loss_pct": 0.0,
+        "spf_mean_loss_pct": 0.0
+      }
+    },
+    {
+      "topology_name": "Random Dynamic Mesh (N=30)",
+      "num_nodes": 30,
+      "num_edges": 120,
+      "topology": {
+        "nodes": 30,
+        "edges": 120,
+        "core_nodes": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "edge_nodes": [
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30
+        ]
+      },
+      "num_flows": 200,
+      "burst_flows": 500,
+      "k_candidate_paths": 4,
+      "test1_jamming": {
+        "dqn_bottleneck_pct": 25.87,
+        "spf_bottleneck_pct": 38.16,
+        "congestion_relief_pct": 12.29,
+        "offload_rate_pct": 38.5
+      },
+      "test1_core_jamming": {
+        "dqn_bottleneck_pct": 25.87,
+        "spf_bottleneck_pct": 38.16,
+        "congestion_relief_pct": 12.29,
+        "offload_rate_pct": 38.5
+      },
+      "test2_avalanche": {
+        "burst_time_ms": 476.05,
+        "decisions_per_sec": 1050.3,
+        "jains_fairness_dqn": 0.7716,
+        "jains_fairness_spf": 0.6976
+      },
+      "test3_latency": {
+        "dqn_mean_latency_ms": 12.03,
+        "spf_mean_latency_ms": 18.51,
+        "latency_improvement_ms": 6.48
+      },
+      "test4_jitter_loss": {
+        "dqn_mean_jitter_ms": 0.78,
+        "spf_mean_jitter_ms": 1.9,
+        "dqn_mean_loss_pct": 0.0,
+        "spf_mean_loss_pct": 0.0
+      }
+    }
+  ],
+  "topology_name": "Random Dynamic Mesh (N=30)",
+  "num_nodes": 30,
+  "num_edges": 120,
+  "topology": {
+    "nodes": 30,
+    "edges": 120,
+    "core_nodes": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "edge_nodes": [
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30
+    ]
+  },
+  "num_flows": 200,
+  "burst_flows": 500,
+  "k_candidate_paths": 4,
+  "test1_jamming": {
+    "dqn_bottleneck_pct": 25.87,
+    "spf_bottleneck_pct": 38.16,
+    "congestion_relief_pct": 12.29,
+    "offload_rate_pct": 38.5
+  },
+  "test1_core_jamming": {
+    "dqn_bottleneck_pct": 25.87,
+    "spf_bottleneck_pct": 38.16,
+    "congestion_relief_pct": 12.29,
+    "offload_rate_pct": 38.5
+  },
+  "test2_avalanche": {
+    "burst_time_ms": 476.05,
+    "decisions_per_sec": 1050.3,
+    "jains_fairness_dqn": 0.7716,
+    "jains_fairness_spf": 0.6976
+  },
+  "test3_latency": {
+    "dqn_mean_latency_ms": 12.03,
+    "spf_mean_latency_ms": 18.51,
+    "latency_improvement_ms": 6.48
+  },
+  "test4_jitter_loss": {
+    "dqn_mean_jitter_ms": 0.78,
+    "spf_mean_jitter_ms": 1.9,
+    "dqn_mean_loss_pct": 0.0,
+    "spf_mean_loss_pct": 0.0
+  }
+}

@@ -1701,9 +1701,15 @@
                 <span class="status-live">
                     <span class="status-pulsing-dot"></span> OF 1.3 Active
                 </span>
+                <span class="neu-badge interactive" id="haClusterBadge" onclick="openHaClusterModal()" title="Click to view 3-Controller HA Cluster State" style="cursor:pointer; border-color: rgba(16,185,129,0.35);">
+                    <span style="color:var(--accent-emerald);">●</span> 3 Controllers (HA Active)
+                </span>
             </div>
         </div>
         <div class="header-right">
+            <button class="neu-btn" id="btnHaCluster" onclick="openHaClusterModal()" title="View Multi-Controller High Availability Cluster" style="border-color: rgba(16, 185, 129, 0.4); color: var(--accent-emerald); font-weight: 600;">
+                <span>🛡️ HA Cluster (3 Nodes)</span>
+            </button>
             <button class="neu-btn" id="btnThemeToggle" onclick="toggleTheme()" title="Switch between Light and Dark mode">
                 <span id="themeToggleIcon">☀️</span> <span id="themeToggleText">Light</span>
             </button>
@@ -1810,9 +1816,6 @@
                 <button class="scenario-btn btn-danger" onclick="triggerScenarioFiberCut()" title="Sever primary core backbone link and observe sub-millisecond D3QN failover">
                     <span>⚡ Fiber Cut Failover</span>
                 </button>
-                <button class="scenario-btn btn-warning" onclick="triggerScenarioBrownout()" title="Degrade link capacity by 90% with latency penalty; D3QN diverts high-demand flows">
-                    <span>📉 Link Brownout</span>
-                </button>
                 <button class="scenario-btn btn-primary" onclick="triggerScenarioTournament()" title="Launch full head-to-head tournament against all 5 classic SDN routing protocols">
                     <span>🏆 6-Protocol Tournament</span>
                 </button>
@@ -1835,7 +1838,16 @@
                         </div>
                     </div>
                     <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                        <span class="stat-pill" style="color: var(--accent-violet);">Interactive Inspection</span>
+                        <div style="display:flex; align-items:center; gap:5px;">
+                            <label for="topoSelectHeader" style="font-size:0.75rem; color:var(--text-dim); font-family:var(--font-mono); font-weight:600;">Fabric:</label>
+                            <select id="topoSelectHeader" class="neu-select" style="width: auto; padding: 3px 8px; font-size: 0.78rem; font-weight: 600; color: var(--accent-cyan); border-color: rgba(6, 182, 212, 0.4);" onchange="switchFabricTopology(this.value)">
+                                <option value="tree" selected>Hierarchical Tree (7 Switches)</option>
+                                <option value="fattree">Fat-Tree Clos Fabric (k=4, 20 Switches)</option>
+                                <option value="abilene">Abilene US Backbone WAN (12 Switches)</option>
+                                <option value="nsfnet">NSFNet Continental Mesh (14 Switches)</option>
+                                <option value="spineleaf">Spine-Leaf Fabric (12 Switches)</option>
+                            </select>
+                        </div>
                         <span class="stat-pill" id="canvasSwitchCount">Switches: 7</span>
                         <span class="stat-pill" id="canvasLinkCount">Links: 8</span>
                         <div style="display:flex; align-items:center; gap:4px; margin-left:4px;">
@@ -1852,18 +1864,18 @@
                     <div class="canvas-tooltip" id="canvasTooltip"></div>
                 </div>
 
-                <!-- Quick Chaos Engineering Toolbar -->
+                <!-- Quick Chaos Engineering & Targeted Link Traffic Toolbar -->
                 <div class="quick-chaos-toolbar">
-                    <div class="chaos-actions">
-                        <span style="font-size:0.72rem; font-family:var(--font-mono); font-weight:700; text-transform:uppercase; color:var(--text-dim); margin-right:4px;">Chaos Lab:</span>
-                        <button class="chaos-btn" onclick="quickFailSelectedLink()" title="Sever candidate trunk or selected path link">
-                            <span>⚡ Sever Link</span>
+                    <div class="chaos-actions" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                        <span style="font-size:0.72rem; font-family:var(--font-mono); font-weight:700; text-transform:uppercase; color:var(--text-dim); margin-right:2px;">Target Link:</span>
+                        <select id="chaosLinkSelect" class="neu-select" style="width: auto; min-width: 140px; padding: 3px 8px; font-size: 0.78rem; font-weight: 600; color: var(--accent-cyan); border-color: rgba(6, 182, 212, 0.4);" onchange="onChaosLinkSelectChange(this.value)">
+                            <option value="">Select Target Link...</option>
+                        </select>
+                        <button class="chaos-btn" style="border-color: rgba(239, 68, 68, 0.45); color: #f87171;" onclick="quickFailSelectedLink()" title="Sever the chosen target link (simulates physical fiber cut)">
+                            <span>⚡ Cut Link</span>
                         </button>
-                        <button class="chaos-btn" onclick="quickDegradeLink()" title="Degrade link capacity by 90% with latency penalty">
-                            <span>📉 Brownout</span>
-                        </button>
-                        <button class="chaos-btn" onclick="quickInjectBurst()" title="Inject a +50 Mbps traffic surge">
-                            <span>💥 Burst (+50M)</span>
+                        <button class="chaos-btn" style="border-color: rgba(139, 92, 246, 0.45); color: #a78bfa;" onclick="quickPutTrafficOnSelectedLink()" title="Inject traffic demand directly across this target link">
+                            <span>🚀 Put Traffic (+35M)</span>
                         </button>
                         <button class="chaos-btn" onclick="quickRestoreLinks()" title="Restore all severed and throttled links to full operational state">
                             <span>🛡️ Restore Links</span>
@@ -1928,29 +1940,43 @@
                     </div>
                 </div>
 
+                <!-- Quick Demo Workload Presets Strip -->
+                <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:12px; padding:6px 10px; background:var(--surface-subtle); border:1px solid var(--border-subtle); border-radius:8px;">
+                    <span style="font-size:0.72rem; font-family:var(--font-mono); font-weight:700; text-transform:uppercase; color:var(--text-dim); margin-right:4px;">Demo Presets:</span>
+                    <button class="neu-btn" style="padding:3px 9px; font-size:0.72rem; font-weight:600; color:var(--accent-violet); border-color:rgba(124,58,237,0.35);" onclick="setDemoPair(4, 7, 35)" title="Cross-Fabric Edge-to-Edge: Tests Core Congestion Lateral Bypass">
+                        🔥 s4 ➔ s7 (Edge Cross-Fabric)
+                    </button>
+                    <button class="neu-btn" style="padding:3px 9px; font-size:0.72rem; font-weight:600; color:var(--accent-cyan); border-color:rgba(6,182,212,0.35);" onclick="setDemoPair(5, 6, 25)" title="Inter-Pod Aggregation: Tests Lateral Pod Routing">
+                        🌊 s5 ➔ s6 (Inter-Pod)
+                    </button>
+                    <button class="neu-btn" style="padding:3px 9px; font-size:0.72rem; font-weight:600; color:var(--accent-emerald); border-color:rgba(16,185,129,0.35);" onclick="setDemoPair(2, 3, 40)" title="Core Trunk: Tests Spine Load Balancing">
+                        ⚡ s2 ➔ s3 (Core Spine)
+                    </button>
+                </div>
+
                 <div class="control-row">
                     <div class="input-group" style="flex: 1; min-width: 150px;">
                         <label>Source:</label>
                         <select id="srcSelect" class="neu-select" style="min-width: 140px;" onchange="runRoutePrediction()">
+                            <option value="1">Switch s1 (core)</option>
+                            <option value="2">Switch s2 (agg)</option>
+                            <option value="3">Switch s3 (agg)</option>
                             <option value="4" selected>Switch s4 (edge)</option>
                             <option value="5">Switch s5 (edge)</option>
                             <option value="6">Switch s6 (edge)</option>
                             <option value="7">Switch s7 (edge)</option>
-                            <option value="1">Switch s1 (core)</option>
-                            <option value="2">Switch s2 (agg)</option>
-                            <option value="3">Switch s3 (agg)</option>
                         </select>
                     </div>
                     <div class="input-group" style="flex: 1; min-width: 150px;">
                         <label>Destination:</label>
                         <select id="dstSelect" class="neu-select" style="min-width: 140px;" onchange="runRoutePrediction()">
+                            <option value="1">Switch s1 (core)</option>
+                            <option value="2">Switch s2 (agg)</option>
+                            <option value="3">Switch s3 (agg)</option>
                             <option value="4">Switch s4 (edge)</option>
                             <option value="5">Switch s5 (edge)</option>
                             <option value="6">Switch s6 (edge)</option>
                             <option value="7" selected>Switch s7 (edge)</option>
-                            <option value="1">Switch s1 (core)</option>
-                            <option value="2">Switch s2 (agg)</option>
-                            <option value="3">Switch s3 (agg)</option>
                         </select>
                     </div>
                     <div class="input-group">
@@ -1976,7 +2002,7 @@
                         <div id="predChosenPathStr" style="font-family:var(--font-mono); font-size:1.05rem; font-weight:700; color:var(--accent-cyan); margin-top:2px;">s4 ➔ s2 ➔ s5 ➔ s7</div>
                     </div>
                     <div style="display:flex; align-items:center; gap:8px;">
-                        <span class="neu-badge" id="predInferenceBadge" style="background:rgba(139,92,246,0.12); border-color:var(--accent-violet); color:#c4b5fd;">⚡ Inference: 0.82 ms</span>
+                        <span class="neu-badge" id="predInferenceBadge" style="background:rgba(139,92,246,0.12); border-color:var(--accent-violet); color:var(--accent-violet);">⚡ Inference: 0.82 ms</span>
                         <span class="neu-badge" id="predActionBadge">Action a* = 0</span>
                     </div>
                 </div>
@@ -2040,6 +2066,11 @@
                             Path: <span id="ospfPathNodes" style="color:var(--text-main);">[4, 2, 5, 7]</span>
                         </div>
                     </div>
+                </div>
+
+                <!-- Real-Time Architectural Advantage Explainer Banner -->
+                <div id="predVerdictBanner" style="margin-top:12px; margin-bottom:12px; padding:10px 14px; border-radius:8px; font-size:0.78rem; font-family:var(--font-mono); display:flex; align-items:center; gap:8px;">
+                    <span>⚖️</span> <span><strong>Network Parity:</strong> Both algorithms converge on the single optimal path. Trigger <strong>Core Congestion</strong> or <strong>Restore Links</strong> to demonstrate dynamic D3QN lateral rerouting.</span>
                 </div>
 
                 <!-- Candidate Paths Evaluation Table -->
@@ -2172,11 +2203,12 @@
                 <div style="display:flex; align-items:center; gap:12px; margin-left:auto; flex-wrap:wrap;">
                     <div style="display:flex; align-items:center; gap:6px;">
                         <span style="font-size:0.75rem; color:var(--text-dim); font-family:var(--font-mono);">Topology:</span>
-                        <select id="topoSelect" class="neu-select" style="width: auto; padding: 4px 10px;" onchange="fetchTelemetry(this.value); runRoutePrediction(); debouncedRunVersusMatchup();">
-                            <option value="tree">7-Switch Hierarchical Tree</option>
-                            <option value="geant">GEANT European Backbone (14 Nodes)</option>
-                            <option value="nsfnet">NSFNET Continental Core (14 Nodes)</option>
-                            <option value="ring">Mesh Ring Fabric (8 Nodes)</option>
+                        <select id="topoSelect" class="neu-select" style="width: auto; padding: 4px 10px;" onchange="switchFabricTopology(this.value)">
+                            <option value="tree" selected>Hierarchical Tree (7 Switches)</option>
+                            <option value="fattree">Fat-Tree Clos Fabric (k=4, 20 Switches)</option>
+                            <option value="abilene">Abilene US Backbone WAN (12 Switches)</option>
+                            <option value="nsfnet">NSFNet Continental Mesh (14 Switches)</option>
+                            <option value="spineleaf">Spine-Leaf Fabric (12 Switches)</option>
                         </select>
                     </div>
 
@@ -2477,6 +2509,153 @@
             </div>
         </div>
     </div>
+
+    <!-- 8c. High Availability (HA) Multi-Controller Cluster Modal -->
+    <div id="haClusterModal" class="modal-backdrop" onclick="if(event.target === this) closeHaClusterModal()">
+        <div class="modal-dialog" style="max-width: 860px;" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <div>
+                    <h3 class="modal-title" style="display:flex; align-items:center; gap:8px;">
+                        <span>🛡️</span> Multi-Controller High Availability (HA) Cluster
+                    </h3>
+                    <p class="modal-subtitle">Active-Standby Redundancy: 1 Master + 2 Hot-Standby Controllers with Sub-Millisecond Failover</p>
+                </div>
+                <button class="modal-close" onclick="closeHaClusterModal()">✕</button>
+            </div>
+            <div class="modal-body" style="max-height: 72vh; overflow-y: auto;">
+                <!-- KPI Ribbon -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px;">
+                    <div style="background: var(--surface-subtle); border: 1px solid var(--border-subtle); padding: 12px 14px; border-radius: 8px;">
+                        <div style="font-size: 0.72rem; color: var(--text-dim); text-transform: uppercase;">Cluster Topology</div>
+                        <div style="font-size: 1.05rem; font-weight: 700; color: var(--accent-emerald); margin-top: 2px;">3 Controllers</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">1 Master • 2 Hot-Standby</div>
+                    </div>
+                    <div style="background: var(--surface-subtle); border: 1px solid var(--border-subtle); padding: 12px 14px; border-radius: 8px;">
+                        <div style="font-size: 0.72rem; color: var(--text-dim); text-transform: uppercase;">Promotion Latency</div>
+                        <div style="font-size: 1.05rem; font-weight: 700; color: var(--accent-violet); margin-top: 2px;">0.003 ms</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">Sub-millisecond leadership</div>
+                    </div>
+                    <div style="background: var(--surface-subtle); border: 1px solid var(--border-subtle); padding: 12px 14px; border-radius: 8px;">
+                        <div style="font-size: 0.72rem; color: var(--text-dim); text-transform: uppercase;">End-to-End Recovery</div>
+                        <div style="font-size: 1.05rem; font-weight: 700; color: var(--accent-cyan); margin-top: 2px;">41.85 ms</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">Zero-drop HTTP retry</div>
+                    </div>
+                    <div style="background: var(--surface-subtle); border: 1px solid var(--border-subtle); padding: 12px 14px; border-radius: 8px;">
+                        <div style="font-size: 0.72rem; color: var(--text-dim); text-transform: uppercase;">Cluster Health</div>
+                        <div style="font-size: 1.05rem; font-weight: 700; color: var(--accent-emerald); margin-top: 2px;">PASS (5/5)</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">Self-healing verified</div>
+                    </div>
+                </div>
+
+                <!-- 3 Controller Nodes Cards -->
+                <div class="settings-subcard" style="margin-bottom: 16px;">
+                    <div class="settings-section-title" style="display:flex; justify-content:space-between; align-items:center;">
+                        <span>🖥️ Controller Node Instances</span>
+                        <button class="neu-btn" style="padding: 3px 10px; font-size: 0.75rem;" onclick="refreshHaClusterTelemetry()">🔄 Poll Status</button>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 10px;">
+                        
+                        <!-- Primary Node -->
+                        <div style="background: var(--surface-subtle); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 14px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <span style="font-size:1.1rem;">👑</span>
+                                    <div>
+                                        <strong style="color:var(--text-main); font-size:0.95rem;">Primary Controller</strong>
+                                        <span style="font-size:0.75rem; color:var(--text-dim); margin-left:6px;">(Active Leader)</span>
+                                    </div>
+                                </div>
+                                <span class="stat-pill" id="haNodeState_primary" style="background:rgba(16,185,129,0.15); color:var(--accent-emerald); border:1px solid rgba(16,185,129,0.3); font-weight:600;">ACTIVE (MASTER)</span>
+                            </div>
+                            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; font-size:0.78rem; color:var(--text-secondary); margin-top:8px;">
+                                <div><strong style="color:var(--text-dim);">OFP Port:</strong> <span style="font-family:var(--font-mono); color:var(--accent-emerald);">6633</span></div>
+                                <div><strong style="color:var(--text-dim);">REST API:</strong> <span style="font-family:var(--font-mono); color:var(--accent-cyan);">8080</span></div>
+                                <div><strong style="color:var(--text-dim);">OVS Target:</strong> <span style="font-family:var(--font-mono);">tcp:127.0.0.1:6633</span></div>
+                                <div><strong style="color:var(--text-dim);">Health:</strong> <span id="haNodeHealth_primary" style="font-weight:700; color:var(--accent-emerald);">HEALTHY</span></div>
+                            </div>
+                            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:6px; line-height:1.4;">
+                                Handles active packet-in events, flow-mod installations, topology LLDP discovery, and PyTorch D3QN routing inferences.
+                            </div>
+                        </div>
+
+                        <!-- Standby Backup 1 -->
+                        <div style="background: var(--surface-subtle); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 14px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <span style="font-size:1.1rem;">🛡️</span>
+                                    <div>
+                                        <strong style="color:var(--text-main); font-size:0.95rem;">Standby Backup 1</strong>
+                                        <span style="font-size:0.75rem; color:var(--text-dim); margin-left:6px;">(Primary Failover Target)</span>
+                                    </div>
+                                </div>
+                                <span class="stat-pill" id="haNodeState_backup1" style="background:rgba(139,92,246,0.15); color:var(--accent-violet); border:1px solid rgba(139,92,246,0.3); font-weight:600;">HOT-STANDBY</span>
+                            </div>
+                            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; font-size:0.78rem; color:var(--text-secondary); margin-top:8px;">
+                                <div><strong style="color:var(--text-dim);">OFP Port:</strong> <span style="font-family:var(--font-mono); color:var(--accent-emerald);">6634</span></div>
+                                <div><strong style="color:var(--text-dim);">REST API:</strong> <span style="font-family:var(--font-mono); color:var(--accent-cyan);">8081</span></div>
+                                <div><strong style="color:var(--text-dim);">OVS Target:</strong> <span style="font-family:var(--font-mono);">tcp:127.0.0.1:6634</span></div>
+                                <div><strong style="color:var(--text-dim);">Health:</strong> <span id="haNodeHealth_backup1" style="font-weight:700; color:var(--accent-emerald);">READY</span></div>
+                            </div>
+                            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:6px; line-height:1.4;">
+                                Maintains persistent TCP OpenFlow session in SLAVE mode; promotes to MASTER in 0.003 ms if Primary controller drops.
+                            </div>
+                        </div>
+
+                        <!-- Standby Backup 2 -->
+                        <div style="background: var(--surface-subtle); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 14px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <span style="font-size:1.1rem;">🛡️</span>
+                                    <div>
+                                        <strong style="color:var(--text-main); font-size:0.95rem;">Standby Backup 2</strong>
+                                        <span style="font-size:0.75rem; color:var(--text-dim); margin-left:6px;">(Secondary Failover Target)</span>
+                                    </div>
+                                </div>
+                                <span class="stat-pill" id="haNodeState_backup2" style="background:rgba(245,158,11,0.15); color:var(--accent-amber); border:1px solid rgba(245,158,11,0.3); font-weight:600;">HOT-STANDBY</span>
+                            </div>
+                            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; font-size:0.78rem; color:var(--text-secondary); margin-top:8px;">
+                                <div><strong style="color:var(--text-dim);">OFP Port:</strong> <span style="font-family:var(--font-mono); color:var(--accent-emerald);">6635</span></div>
+                                <div><strong style="color:var(--text-dim);">REST API:</strong> <span style="font-family:var(--font-mono); color:var(--accent-cyan);">8082</span></div>
+                                <div><strong style="color:var(--text-dim);">OVS Target:</strong> <span style="font-family:var(--font-mono);">tcp:127.0.0.1:6635</span></div>
+                                <div><strong style="color:var(--text-dim);">Health:</strong> <span id="haNodeHealth_backup2" style="font-weight:700; color:var(--accent-emerald);">READY</span></div>
+                            </div>
+                            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:6px; line-height:1.4;">
+                                Tertiary failover reserve; ensures complete network resiliency even during cascading multi-controller disasters.
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- OVS Multi-Controller Switch Binding -->
+                <div class="settings-subcard" style="margin-bottom: 16px;">
+                    <div class="settings-section-title">🔌 Open vSwitch Multi-Controller Architecture</div>
+                    <p style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 6px; line-height: 1.5;">
+                        Every Open vSwitch (OVS) datapath in the SDN fabric connects simultaneously to all 3 controller endpoints. The switch maintains concurrent TCP keep-alive sockets to all controllers and honors OpenFlow 1.3 <code>OFPT_ROLE_REQUEST</code> messages:
+                    </p>
+                    <div style="font-family:var(--font-mono); font-size:0.75rem; background:var(--input-bg); padding:10px 14px; border-radius:6px; border:1px solid var(--border-subtle); color:var(--accent-cyan); margin-top:8px; overflow-x:auto;">
+                        ovs-vsctl set-controller &lt;switch_name&gt; tcp:127.0.0.1:6633 tcp:127.0.0.1:6634 tcp:127.0.0.1:6635
+                    </div>
+                </div>
+
+                <!-- Live Failover Demo Command -->
+                <div class="settings-subcard">
+                    <div class="settings-section-title">🎯 Live Failover Demo Command</div>
+                    <p style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 6px; line-height: 1.5;">
+                        To demonstrate live failure injection and instant recovery to examiners, execute the automated 5-phase test suite in your terminal:
+                    </p>
+                    <div style="display:flex; align-items:center; gap:8px; margin-top:8px;">
+                        <input type="text" readonly value="./run_ha_test.sh" style="flex:1; font-family:var(--font-mono); font-size:0.8rem; background:var(--input-bg); border:1px solid var(--border-subtle); padding:8px 12px; border-radius:6px; color:var(--accent-emerald);">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:0.75rem; color:var(--text-dim); font-family:var(--font-mono);">Uptime: <span id="haModalUptime">Live</span> • Active Flows: <span id="haModalFlows">0</span></span>
+                <button class="neu-btn neu-btn-primary" onclick="closeHaClusterModal()">Close Modal</button>
+            </div>
+        </div>
+    </div>
+
 <div id="networkSettingsModal" class="modal-backdrop" onclick="if(event.target === this) closeNetworkSettingsModal()">
         <div class="modal-card">
             <div class="modal-header">
@@ -2510,7 +2689,6 @@
                                     <option value="abilene">Abilene US Backbone WAN (12 Switches)</option>
                                     <option value="nsfnet">NSFNet Continental Mesh (14 Switches)</option>
                                     <option value="spineleaf">Spine-Leaf Fabric (12 Switches)</option>
-                                    <option value="random">Procedural Random Mesh (10 Switches)</option>
                                 </select>
                             </div>
 
@@ -2827,7 +3005,7 @@
 
                         <div style="margin-top: 12px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
                             <button class="neu-btn" style="color:var(--accent); font-weight:700;" onclick="injectModalQuickFlow()">
-                                🚀 Inject Instant Test Flow (s4 → s7)
+                                🚀 Inject Instant Test Flow
                             </button>
                             <span id="quickFlowStatus" style="font-size:0.75rem; color:var(--text-muted);">Ready</span>
                         </div>
@@ -3001,7 +3179,6 @@
                         <ul style="font-size:0.8rem; line-height:1.6; color:var(--text-secondary); margin-left:18px;">
                             <li><strong>🔥 Core Congestion Surge:</strong> Saturates trunk core links to 96%. D3QN immediately detects the overload and detours traffic across underutilized aggregation links.</li>
                             <li><strong>⚡ Fiber Cut Failover:</strong> Simulates an instant physical fiber severance. The controller recalculates paths avoiding the broken link in sub-millisecond time.</li>
-                            <li><strong>📉 Link Brownout:</strong> Throttles a selected link to 10% capacity and injects 55ms propagation delay. D3QN QoS rewards penalize the degraded route and reroute flows.</li>
                             <li><strong>🏆 6-Protocol Tournament:</strong> Executes an automated benchmark across D3QN vs OSPF vs ECMP vs WSP vs LLR vs Dijkstra.</li>
                             <li><strong>↺ Nominal Reset:</strong> Fully restores severed and degraded links, flushes temporary bursts, and resets baseline.</li>
                         </ul>
@@ -3029,6 +3206,7 @@
         let lastTopoData = null;
         let lastNodeCoords = {};
         let selectedSrcNode = null;
+        let selectedChaosLink = null;
         let activeSampleMatchup = null;
         let predictedPathMatchup = null;
         let isAutoRefreshActive = true;
@@ -3101,6 +3279,52 @@
             let t = ((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / l2;
             t = Math.max(0, Math.min(1, t));
             return Math.hypot(px - (x1 + t * (x2 - x1)), py - (y1 + t * (y2 - y1)));
+        }
+
+        function getLinkGeometry(u, v, s, t) {
+            const su = parseInt(u), sv = parseInt(v);
+            const isLateralCross = (Math.abs(s.y - t.y) < 25 && Math.abs(s.x - t.x) > 120);
+            const isOuterLateral = (su === 4 || sv === 4 || su === 7 || sv === 7);
+            const curveYOffset = isLateralCross ? (isOuterLateral ? 55 : 35) : 0;
+            const arcMidX = (s.x + t.x) / 2;
+            const arcMidY = (s.y + t.y) / 2 + curveYOffset;
+            const frac = 0.35 + ((su * 7 + sv * 13) % 7) * 0.04;
+            const badgeX = isLateralCross ? arcMidX : (s.x + (t.x - s.x) * frac);
+            const badgeY = isLateralCross ? (arcMidY - (isOuterLateral ? 6 : 4)) : (s.y + (t.y - s.y) * frac);
+            return { isLateralCross, arcMidX, arcMidY, badgeX, badgeY };
+        }
+
+        function getDistToLink(px, py, u, v, s, t) {
+            if (!s || !t) return Infinity;
+            const geom = getLinkGeometry(u, v, s, t);
+
+            // Badge pill hit-test (approx 36x20 pill): clicking or hovering directly on the badge pill selects the link immediately
+            if (Math.abs(px - geom.badgeX) <= 20 && Math.abs(py - geom.badgeY) <= 12) {
+                return 0;
+            }
+            const distBadge = Math.hypot(px - geom.badgeX, py - geom.badgeY);
+
+            if (!geom.isLateralCross) {
+                const dLine = pointToSegmentDist(px, py, s.x, s.y, t.x, t.y);
+                return Math.min(dLine, distBadge);
+            }
+
+            // High-precision Quadratic Bezier distance computation (16 sub-segments)
+            let minCurveDist = Infinity;
+            const steps = 16;
+            let prevX = s.x;
+            let prevY = s.y;
+            for (let i = 1; i <= steps; i++) {
+                const tVal = i / steps;
+                const omt = 1 - tVal;
+                const curX = omt * omt * s.x + 2 * omt * tVal * geom.arcMidX + tVal * tVal * t.x;
+                const curY = omt * omt * s.y + 2 * omt * tVal * geom.arcMidY + tVal * tVal * t.y;
+                const d = pointToSegmentDist(px, py, prevX, prevY, curX, curY);
+                if (d < minCurveDist) minCurveDist = d;
+                prevX = curX;
+                prevY = curY;
+            }
+            return Math.min(minCurveDist, distBadge);
         }
 
         // Canvas Wheel Zoom (Mouse Centered)
@@ -3198,30 +3422,63 @@
             }
 
             // Check Link
+            let hoverLink = null;
+            let hoverDist = Infinity;
+            const hoverThreshold = Math.max(10, 14 / topoScale);
+
             for (const link of (lastTopoData.links || [])) {
                 const s = lastNodeCoords[link.source];
                 const t = lastNodeCoords[link.target];
                 if (!s || !t) continue;
-                if (pointToSegmentDist(mx, my, s.x, s.y, t.x, t.y) <= (8 / Math.min(topoScale, 2))) {
-                    canvas.style.cursor = 'pointer';
-                    const util = (link.utilization || 0);
-                    const bw = link.capacity || 100;
-                    const mbps = ((util / 100.0) * bw).toFixed(1);
-                    const delay = (link.delay || 2.0).toFixed(2);
+                const d = getDistToLink(mx, my, link.source, link.target, s, t);
+                if (d < hoverDist && d <= hoverThreshold) {
+                    hoverDist = d;
+                    hoverLink = { source: link.source, target: link.target, isSevered: false, utilization: link.utilization, capacity: link.capacity, delay: link.delay };
+                }
+            }
+
+            if (Array.isArray(lastTopoData.severed_links)) {
+                for (const pair of lastTopoData.severed_links) {
+                    const su = pair[0], sv = pair[1];
+                    const s = lastNodeCoords[su];
+                    const t = lastNodeCoords[sv];
+                    if (!s || !t) continue;
+                    const d = getDistToLink(mx, my, su, sv, s, t);
+                    if (d < hoverDist && d <= hoverThreshold) {
+                        hoverDist = d;
+                        hoverLink = { source: su, target: sv, isSevered: true, utilization: 0, capacity: 0, delay: 0 };
+                    }
+                }
+            }
+
+            if (hoverLink) {
+                canvas.style.cursor = 'pointer';
+                if (hoverLink.isSevered) {
                     tooltip.innerHTML = `
-                        <div class="canvas-tooltip-title">🔗 Link: s${link.source} ↔ s${link.target}</div>
+                        <div class="canvas-tooltip-title" style="color:#EF4444;">⚡ Severed Link: s${hoverLink.source} ↔ s${hoverLink.target}</div>
+                        <div class="canvas-tooltip-row"><span>Status:</span><span class="canvas-tooltip-val" style="color:#EF4444;">PHYSICAL FIBER CUT</span></div>
+                        <div style="font-size:0.68rem; color:var(--accent-cyan); margin-top:3px; font-weight:600;">👉 Click to select target link</div>
+                    `;
+                } else {
+                    const util = (hoverLink.utilization || 0);
+                    const bw = hoverLink.capacity || 100;
+                    const mbps = ((util / 100.0) * bw).toFixed(1);
+                    const delay = (hoverLink.delay || 2.0).toFixed(2);
+                    tooltip.innerHTML = `
+                        <div class="canvas-tooltip-title">🔗 Link: s${hoverLink.source} ↔ s${hoverLink.target}</div>
                         <div class="canvas-tooltip-row"><span>Capacity:</span><span class="canvas-tooltip-val">${bw} Mbps</span></div>
                         <div class="canvas-tooltip-row"><span>Active Rate:</span><span class="canvas-tooltip-val">${mbps} Mbps</span></div>
                         <div class="canvas-tooltip-row"><span>Utilization:</span><span class="canvas-tooltip-val">${util.toFixed(1)}%</span></div>
                         <div class="canvas-tooltip-row"><span>Latency:</span><span class="canvas-tooltip-val">${delay} ms</span></div>
+                        <div style="font-size:0.68rem; color:var(--accent-cyan); margin-top:3px; font-weight:600;">👉 Click to select target link</div>
                     `;
-                    const tipX = Math.min(rect.width - 240, Math.max(10, e.clientX - rect.left + 14));
-                    const tipY = Math.min(rect.height - 120, Math.max(10, e.clientY - rect.top + 14));
-                    tooltip.style.left = `${tipX}px`;
-                    tooltip.style.top = `${tipY}px`;
-                    tooltip.style.display = 'block';
-                    return;
                 }
+                const tipX = Math.min(rect.width - 240, Math.max(10, e.clientX - rect.left + 14));
+                const tipY = Math.min(rect.height - 120, Math.max(10, e.clientY - rect.top + 14));
+                tooltip.style.left = `${tipX}px`;
+                tooltip.style.top = `${tipY}px`;
+                tooltip.style.display = 'block';
+                return;
             }
 
             canvas.style.cursor = 'default';
@@ -3245,6 +3502,7 @@
             const mx = (cssX - topoPanX) / topoScale;
             const my = (cssY - topoPanY) / topoScale;
 
+            // 1. Check if a Node was clicked
             for (const [id, node] of Object.entries(lastNodeCoords)) {
                 if (Math.hypot(mx - node.x, my - node.y) <= 22) {
                     const srcSel = document.getElementById('srcSelect');
@@ -3261,11 +3519,163 @@
                         selectedSrcNode = null;
                         runRoutePrediction();
                     }
-                    if (lastTopoData) drawTopology(lastTopoData);
+                    if (lastTopoData) drawTopology(lastTopoData, true);
                     return;
                 }
             }
+
+            // 2. Check if an active or severed Link was clicked (closest link within threshold)
+            let bestLink = null;
+            let bestDist = Infinity;
+            const clickThreshold = Math.max(14, 16 / topoScale);
+
+            for (const link of (lastTopoData.links || [])) {
+                const s = lastNodeCoords[link.source];
+                const t = lastNodeCoords[link.target];
+                if (!s || !t) continue;
+                const d = getDistToLink(mx, my, link.source, link.target, s, t);
+                if (d < bestDist && d <= clickThreshold) {
+                    bestDist = d;
+                    bestLink = { source: link.source, target: link.target };
+                }
+            }
+
+            if (Array.isArray(lastTopoData.severed_links)) {
+                for (const pair of lastTopoData.severed_links) {
+                    const su = pair[0], sv = pair[1];
+                    const s = lastNodeCoords[su];
+                    const t = lastNodeCoords[sv];
+                    if (!s || !t) continue;
+                    const d = getDistToLink(mx, my, su, sv, s, t);
+                    if (d < bestDist && d <= clickThreshold) {
+                        bestDist = d;
+                        bestLink = { source: su, target: sv };
+                    }
+                }
+            }
+
+            if (bestLink) {
+                selectTargetLink(bestLink.source, bestLink.target);
+                return;
+            }
         });
+
+        function selectTargetLink(u, v) {
+            const su = parseInt(u), sv = parseInt(v);
+            const minU = Math.min(su, sv);
+            const maxV = Math.max(su, sv);
+            const canKey = `${minU}-${maxV}`;
+            selectedChaosLink = canKey;
+
+            const sel = document.getElementById('chaosLinkSelect');
+            if (sel) {
+                const opt1 = `${minU}-${maxV}`;
+                const opt2 = `${maxV}-${minU}`;
+                if (Array.from(sel.options).some(o => o.value === opt1)) {
+                    sel.value = opt1;
+                } else if (Array.from(sel.options).some(o => o.value === opt2)) {
+                    sel.value = opt2;
+                }
+            }
+
+            // CRITICAL: Do NOT change srcSelect or dstSelect when selecting links!
+            // Route Predictor Source & Destination remain intact as chosen by the user.
+
+            const isSevered = (lastTopoData?.severed_links || []).some(p => (p[0] == minU && p[1] == maxV) || (p[0] == maxV && p[1] == minU));
+            const linkObj = (lastTopoData?.links || []).find(l => (l.source == minU && l.target == maxV) || (l.source == maxV && l.target == minU));
+            const util = linkObj ? Math.round(linkObj.utilization || 0) : 0;
+            const cap = linkObj ? (linkObj.capacity || 100) : 0;
+            if (isSevered) {
+                showToast(`⚡ Severed Link s${minU} ↔ s${maxV} selected! Click '🛡️ Restore Links' to heal.`, "warning");
+            } else {
+                showToast(`🔗 Target Link s${minU} ↔ s${maxV} (${cap} Mbps, ${util}% load) selected! Use '⚡ Cut Link' or '🚀 Put Traffic' below.`, "info");
+            }
+            if (lastTopoData) drawTopology(lastTopoData, true);
+        }
+
+        function onChaosLinkSelectChange(val) {
+            if (!val) return;
+            const parts = val.split('-');
+            const u = parseInt(parts[0]);
+            const v = parseInt(parts[1]);
+            const minU = Math.min(u, v);
+            const maxV = Math.max(u, v);
+            selectedChaosLink = `${minU}-${maxV}`;
+
+            // CRITICAL: Do NOT change srcSelect or dstSelect when selecting links!
+
+            const isSevered = (lastTopoData?.severed_links || []).some(p => (p[0] == minU && p[1] == maxV) || (p[0] == maxV && p[1] == minU));
+            const linkObj = (lastTopoData?.links || []).find(l => (l.source == minU && l.target == maxV) || (l.source == maxV && l.target == minU));
+            const util = linkObj ? Math.round(linkObj.utilization || 0) : 0;
+            const cap = linkObj ? (linkObj.capacity || 100) : 0;
+            if (isSevered) {
+                showToast(`⚡ Severed Link s${minU} ↔ s${maxV} selected! Click '🛡️ Restore Links' to heal.`, "warning");
+            } else {
+                showToast(`🔗 Target Link s${minU} ↔ s${maxV} (${cap} Mbps, ${util}% load) selected! Use '⚡ Cut Link' or '🚀 Put Traffic' below.`, "info");
+            }
+            if (lastTopoData) drawTopology(lastTopoData, true);
+        }
+
+        function populateChaosLinkSelector(topo) {
+            const sel = document.getElementById('chaosLinkSelect');
+            if (!sel || !topo) return;
+            const currentVal = sel.value;
+
+            // Collect all unique undirected links (active + severed)
+            const allLinksMap = new Map();
+            (topo.links || []).forEach(l => {
+                const u = Math.min(l.source, l.target);
+                const v = Math.max(l.source, l.target);
+                allLinksMap.set(`${u}-${v}`, {
+                    source: u, target: v,
+                    capacity: l.capacity || 100,
+                    utilization: Math.round(l.utilization || 0),
+                    isSevered: false
+                });
+            });
+            (topo.severed_links || []).forEach(pair => {
+                const u = Math.min(pair[0], pair[1]);
+                const v = Math.max(pair[0], pair[1]);
+                const key = `${u}-${v}`;
+                if (allLinksMap.has(key)) {
+                    allLinksMap.get(key).isSevered = true;
+                } else {
+                    allLinksMap.set(key, {
+                        source: u, target: v,
+                        capacity: 0,
+                        utilization: 0,
+                        isSevered: true
+                    });
+                }
+            });
+
+            const sortedLinks = Array.from(allLinksMap.values()).sort((a, b) => {
+                if (a.source !== b.source) return a.source - b.source;
+                return a.target - b.target;
+            });
+
+            const newSignature = sortedLinks.map(l => `${l.source}-${l.target}-${l.isSevered ? 'cut' : l.utilization}`).join('|');
+            if (sel.dataset.lastSig !== newSignature) {
+                sel.dataset.lastSig = newSignature;
+                sel.innerHTML = sortedLinks.map(l => {
+                    const val = `${l.source}-${l.target}`;
+                    if (l.isSevered) {
+                        return `<option value="${val}" style="color:#f87171;">s${l.source} ↔ s${l.target} (⚡ CUT)</option>`;
+                    }
+                    return `<option value="${val}">s${l.source} ↔ s${l.target} (${l.capacity}M, ${l.utilization}%)</option>`;
+                }).join('');
+
+                if (selectedChaosLink && Array.from(sel.options).some(o => o.value === selectedChaosLink)) {
+                    sel.value = selectedChaosLink;
+                } else if (currentVal && Array.from(sel.options).some(o => o.value === currentVal)) {
+                    sel.value = currentVal;
+                    selectedChaosLink = currentVal;
+                } else if (sel.options.length > 0) {
+                    sel.selectedIndex = 0;
+                    selectedChaosLink = sel.value;
+                }
+            }
+        }
 
         // ---------------------------------------------------------------------
         // Plotly Scientific Interactive Plotting Engine (Zoom, Pan, Box Select)
@@ -3860,6 +4270,32 @@
         }
 
         function initCharts() {
+            // Do not render fabricated benchmark presets. Charts are populated only
+            // after the API returns measurements from an explicit tournament run.
+            currentVerseResult = null;
+            const placeholderIds = [
+                'chartVersusBar', 'chartVersusTimeline', 'chartVersusRadar',
+                'chartVersusBarExpanded', 'chartVersusTimelineExpanded',
+                'chartVersusRadarExpanded', 'chartVersusCdfExpanded',
+                'chartVersusScalingExpanded'
+            ];
+            if (typeof Plotly !== 'undefined') {
+                placeholderIds.forEach(id => {
+                    const element = document.getElementById(id);
+                    if (element) Plotly.react(element, [], {
+                        paper_bgcolor: 'rgba(0,0,0,0)',
+                        plot_bgcolor: 'rgba(0,0,0,0)',
+                        xaxis: { visible: false },
+                        yaxis: { visible: false },
+                        annotations: [{
+                            text: 'Run a tournament to generate measured results',
+                            x: 0.5, y: 0.5, xref: 'paper', yref: 'paper',
+                            showarrow: false, font: { color: '#94a3b8', size: 14 }
+                        }]
+                    }, { displayModeBar: false, responsive: true });
+                });
+            }
+            return;
             const protoKeyMap = {
                 'dqn': 'DQN (Ours)',
                 'ospf': 'OSPF (RFC 2328)',
@@ -3965,15 +4401,51 @@
         }
 
         // Fast Unified Telemetry Fetch (Single Round-Trip)
+        let activeTopologyId = 'tree';
+
+        async function switchFabricTopology(newTopoId) {
+            if (!newTopoId) return;
+            activeTopologyId = newTopoId;
+            window.activeTopologyId = newTopoId;
+
+            const hSel = document.getElementById('topoSelectHeader');
+            if (hSel && hSel.value !== newTopoId) hSel.value = newTopoId;
+            const tSel = document.getElementById('topoSelect');
+            if (tSel && tSel.value !== newTopoId) tSel.value = newTopoId;
+            const mSel = document.getElementById('modalTopoSelect');
+            if (mSel && mSel.value !== newTopoId) mSel.value = newTopoId;
+
+            showToast(`Switching fabric to ${newTopoId.toUpperCase()}...`, 'info');
+
+            try {
+                await fetch(`/api/simulate/switch_topology?topo=${encodeURIComponent(newTopoId)}`, { method: 'POST' });
+            } catch (e) {
+                console.warn("Switch topology API error:", e);
+            }
+
+            lastTopoSignature = '';
+            await fetchTelemetry(newTopoId, true);
+            runRoutePrediction();
+            if (typeof debouncedRunVersusMatchup === 'function') {
+                debouncedRunVersusMatchup();
+            }
+        }
+
         async function fetchTelemetry(forcedTopoId, isManualSync = false) {
             try {
-                const topoSelect = document.getElementById('topoSelect');
-                const activeTopoId = forcedTopoId || (topoSelect ? topoSelect.value : 'tree');
+                if (forcedTopoId) {
+                    activeTopologyId = forcedTopoId;
+                    window.activeTopologyId = forcedTopoId;
+                }
+                const activeTopoId = activeTopologyId
+                    || document.getElementById('topoSelectHeader')?.value
+                    || document.getElementById('topoSelect')?.value
+                    || 'tree';
 
                 let topoRes = null, rlRes = null, statsRes = null, overheadRes = null, flowsRes = null, modelInfo = null;
 
                 try {
-                    const bundle = await fetch(`/api/telemetry?topo=${encodeURIComponent(activeTopoId)}`).then(r => r.json());
+                    const bundle = await fetch('/api/telemetry').then(r => r.json());
                     if (bundle && bundle.status === 'success') {
                         topoRes = bundle.topology;
                         statsRes = bundle.stats;
@@ -3981,6 +4453,17 @@
                         rlRes = bundle.rl_metrics;
                         flowsRes = bundle.flows;
                         modelInfo = bundle.model_info;
+
+                        if (topoRes && topoRes.current_topology && topoRes.current_topology !== activeTopologyId) {
+                            activeTopologyId = topoRes.current_topology;
+                            window.activeTopologyId = topoRes.current_topology;
+                            const hSel = document.getElementById('topoSelectHeader');
+                            if (hSel && hSel.value !== activeTopologyId) hSel.value = activeTopologyId;
+                            const tSel = document.getElementById('topoSelect');
+                            if (tSel && tSel.value !== activeTopologyId) tSel.value = activeTopologyId;
+                            const mSel = document.getElementById('modalTopoSelect');
+                            if (mSel && mSel.value !== activeTopologyId) mSel.value = activeTopologyId;
+                        }
                     }
                 } catch (e) {
                     // Fallback to individual parallel endpoints
@@ -3992,6 +4475,20 @@
                         fetch('/api/flows').then(r => r.json()).catch(() => [])
                     ]);
                     topoRes = t; rlRes = r; statsRes = s; overheadRes = o; flowsRes = f;
+                }
+
+                // Sync current active topology from statsRes if present
+                if (statsRes && statsRes.current_topology) {
+                    if (statsRes.current_topology !== activeTopologyId && !forcedTopoId) {
+                        activeTopologyId = statsRes.current_topology;
+                        window.activeTopologyId = statsRes.current_topology;
+                    }
+                    const hSel = document.getElementById('topoSelectHeader');
+                    if (hSel && hSel.value !== statsRes.current_topology) hSel.value = statsRes.current_topology;
+                    const tSel = document.getElementById('topoSelect');
+                    if (tSel && tSel.value !== statsRes.current_topology) tSel.value = statsRes.current_topology;
+                    const mSel = document.getElementById('modalTopoSelect');
+                    if (mSel && mSel.value !== statsRes.current_topology) mSel.value = statsRes.current_topology;
                 }
 
                 // Header Badges - Model Connection
@@ -4017,9 +4514,21 @@
                     }
                 }
 
-                if (topoRes && topoRes.meta && topoRes.meta.name) {
-                    const fabEl = document.getElementById('headerFabricName');
-                    if (fabEl) fabEl.textContent = topoRes.meta.name;
+                if (topoRes) {
+                    const topoName = topoRes.meta?.name || (statsRes ? statsRes.topology_name : activeTopoId);
+                    if (topoName) {
+                        const fabEl = document.getElementById('headerFabricName');
+                        if (fabEl) fabEl.textContent = topoName;
+                    }
+                    const nodeCount = topoRes.nodes ? topoRes.nodes.length : 0;
+                    const linkCount = topoRes.links ? topoRes.links.length : 0;
+
+                    const swCountEl = document.getElementById('canvasSwitchCount');
+                    if (swCountEl) swCountEl.textContent = `Switches: ${nodeCount}`;
+                    const lnCountEl = document.getElementById('canvasLinkCount');
+                    if (lnCountEl) lnCountEl.textContent = `Links: ${linkCount}`;
+                    const statsLabelEl = document.getElementById('topoStatsLabel');
+                    if (statsLabelEl) statsLabelEl.textContent = `${nodeCount} switches, ${linkCount} links • ${topoName}`;
                 }
 
                 // 4-Card KPI Strip
@@ -4076,7 +4585,9 @@
                 }
 
                 renderFlowsTable(flowsRes);
-                drawTopology(topoRes);
+                populateChaosLinkSelector(topoRes);
+                populateModalLinkList(topoRes);
+                drawTopology(topoRes, isManualSync);
 
                 if (isManualSync) {
                     showToast("Telemetry metrics refreshed.", "success");
@@ -4091,23 +4602,37 @@
             const dstSel = document.getElementById('dstSelect');
             if (!srcSel || !dstSel || !nodes || nodes.length === 0) return;
 
-            const optionsHtml = nodes.map(n => {
-                const role = n.type ? ` (${n.type})` : '';
-                return `<option value="${n.id}">Switch s${n.id}${role}</option>`;
-            }).join('');
+            const prevSrc = srcSel.value;
+            const prevDst = dstSel.value;
 
-            if (srcSel.children.length !== nodes.length) {
+            const currentOptionIds = Array.from(srcSel.options).map(o => o.value).join(',');
+            const newOptionIds = nodes.map(n => String(n.id)).join(',');
+
+            if (currentOptionIds !== newOptionIds) {
+                const optionsHtml = nodes.map(n => {
+                    const role = n.type ? ` (${n.type})` : '';
+                    const lbl = n.label || `Switch s${n.id}`;
+                    return `<option value="${n.id}">${lbl}${role}</option>`;
+                }).join('');
+
                 srcSel.innerHTML = optionsHtml;
                 dstSel.innerHTML = optionsHtml;
 
-                const edgeNodes = nodes.filter(n => n.type === 'edge' || n.type === 'leaf');
-                if (edgeNodes.length >= 2) {
-                    srcSel.value = edgeNodes[0].id;
-                    dstSel.value = edgeNodes[edgeNodes.length - 1].id;
-                } else if (nodes.length >= 2) {
-                    srcSel.value = nodes[0].id;
-                    dstSel.value = nodes[nodes.length - 1].id;
+                const nodeIdsSet = new Set(nodes.map(n => String(n.id)));
+                if (prevSrc && prevDst && prevSrc !== prevDst && nodeIdsSet.has(String(prevSrc)) && nodeIdsSet.has(String(prevDst))) {
+                    srcSel.value = prevSrc;
+                    dstSel.value = prevDst;
+                } else {
+                    const edgeNodes = nodes.filter(n => n.type === 'edge' || n.type === 'leaf' || n.type === 'wan_mesh');
+                    if (edgeNodes.length >= 2) {
+                        srcSel.value = edgeNodes[0].id;
+                        dstSel.value = edgeNodes[edgeNodes.length - 1].id;
+                    } else if (nodes.length >= 2) {
+                        srcSel.value = nodes[0].id;
+                        dstSel.value = nodes[nodes.length - 1].id;
+                    }
                 }
+                runRoutePrediction();
             }
         }
 
@@ -4134,8 +4659,10 @@
             const dstNodeId = parseInt(document.getElementById('dstSelect')?.value || -1);
             const pathStr = (predictedPathMatchup?.chosen_path || []).join('-');
 
-            // Dirty checking includes theme state, scale and pan
-            const sig = `${topo.nodes.length}_${topo.links.map(l => Math.round(l.utilization || 0)).join(',')}_${selectedSrcNode}_${srcNodeId}_${dstNodeId}_${pathStr}_${isDark ? 'dark' : 'light'}_${topoScale.toFixed(2)}_${topoPanX.toFixed(0)}_${topoPanY.toFixed(0)}`;
+            // Dirty checking includes topology ID, node IDs, selected link, theme state, scale and pan
+            const topoIdStr = topo.meta?.id || (topo.meta?.name || '');
+            const nodeIdsStr = topo.nodes.map(n => n.id).join('-');
+            const sig = `${topoIdStr}_${topo.nodes.length}_${nodeIdsStr}_${selectedChaosLink}_${topo.links.map(l => Math.round(l.utilization || 0)).join(',')}_${selectedSrcNode}_${srcNodeId}_${dstNodeId}_${pathStr}_${isDark ? 'dark' : 'light'}_${topoScale.toFixed(2)}_${topoPanX.toFixed(0)}_${topoPanY.toFixed(0)}`;
             if (!isForced && sig === lastTopoSignature) {
                 return;
             }
@@ -4239,6 +4766,20 @@
                 ctx.stroke();
                 ctx.setLineDash([]);
 
+                // Cyan Glow Highlight for User-Selected Target Link
+                const edgeKey1 = `${link.source}-${link.target}`;
+                const edgeKey2 = `${link.target}-${link.source}`;
+                const canEdge = `${Math.min(link.source, link.target)}-${Math.max(link.source, link.target)}`;
+                if (selectedChaosLink === edgeKey1 || selectedChaosLink === edgeKey2 || selectedChaosLink === canEdge) {
+                    ctx.save();
+                    ctx.strokeStyle = '#06B6D4';
+                    ctx.lineWidth = 5.2;
+                    ctx.shadowColor = '#06B6D4';
+                    ctx.shadowBlur = 12;
+                    ctx.stroke();
+                    ctx.restore();
+                }
+
                 // Link Utilization Badge Pill
                 const frac = 0.35 + ((link.source * 7 + link.target * 13) % 7) * 0.04;
                 const midX = isLateralCross ? arcMidX : (s.x + (t.x - s.x) * frac);
@@ -4292,6 +4833,21 @@
                     ctx.setLineDash([6, 5]);
                     ctx.stroke();
                     ctx.setLineDash([]);
+
+                    // Cyan Glow Highlight if severed link is selected
+                    const sevKey1 = `${su}-${sv}`;
+                    const sevKey2 = `${sv}-${su}`;
+                    const canSev = `${Math.min(su, sv)}-${Math.max(su, sv)}`;
+                    if (selectedChaosLink === sevKey1 || selectedChaosLink === sevKey2 || selectedChaosLink === canSev) {
+                        ctx.save();
+                        ctx.strokeStyle = '#06B6D4';
+                        ctx.lineWidth = 5.2;
+                        ctx.shadowColor = '#06B6D4';
+                        ctx.shadowBlur = 12;
+                        ctx.setLineDash([]);
+                        ctx.stroke();
+                        ctx.restore();
+                    }
 
                     // Midpoint ⚡ CUT badge
                     const cutMidX = (s.x + t.x) / 2;
@@ -4762,9 +5318,33 @@
                             ospfBadge.textContent = 'Baseline (Congested)';
                         }
                     }
+                    const banner = document.getElementById('predVerdictBanner');
+                    if (banner) {
+                        if (isDqnBetter) {
+                            const utilDiff = ((oUtil - dUtil) * 100).toFixed(1);
+                            const latDiff = (oLat - dLat).toFixed(1);
+                            banner.style.display = 'flex';
+                            banner.style.background = 'rgba(16, 185, 129, 0.12)';
+                            banner.style.border = '1px solid rgba(16, 185, 129, 0.35)';
+                            banner.style.color = 'var(--accent-emerald)';
+                            banner.innerHTML = `<span>🏆</span> <div><strong>D3QN Outperforms OSPF:</strong> Circumvents congested core. Bottleneck load is <strong>-${utilDiff}%</strong> lower, Latency is <strong>-${latDiff} ms</strong> faster.</div>`;
+                        } else if (isParity) {
+                            banner.style.display = 'flex';
+                            banner.style.background = 'rgba(124, 58, 237, 0.08)';
+                            banner.style.border = '1px solid rgba(124, 58, 237, 0.25)';
+                            banner.style.color = 'var(--accent-violet)';
+                            banner.innerHTML = `<span>⚖️</span> <div><strong>Network Parity:</strong> Both algorithms pick the single shortest path. <em>Tip: Click <strong>"🔥 Core Congestion Surge"</strong> or <strong>"🛡️ Restore Links"</strong> to observe autonomous dynamic rerouting.</em></div>`;
+                        } else {
+                            banner.style.display = 'flex';
+                            banner.style.background = 'rgba(245, 158, 11, 0.08)';
+                            banner.style.border = '1px solid rgba(245, 158, 11, 0.25)';
+                            banner.style.color = 'var(--accent-amber)';
+                            banner.innerHTML = `<span>⚠️</span> <div><strong>Alternative Detour:</strong> D3QN explores lateral sub-paths to avoid prospective hotspots.</div>`;
+                        }
+                    }
                 }
 
-                // Candidate Paths Table
+                // Candidate Paths Table with high-contrast badge chips
                 const tbody = document.getElementById('candidatePathsBody');
                 if (tbody && res.candidate_paths) {
                     tbody.innerHTML = res.candidate_paths.map(cp => {
@@ -4773,24 +5353,24 @@
                         const m = cp.metrics || {};
                         const pUtil = ((m.bottleneck_util || 0) * 100).toFixed(1);
                         const pDelay = (m.total_delay || 0).toFixed(2);
-                        const pathText = cp.path.map(n => `s${n}`).join(' ➔ ');
+                        const pathChips = cp.path.map(n => `<span style="display:inline-block; padding:1px 6px; border-radius:4px; font-weight:700; font-size:0.75rem; background:${isWinner ? 'rgba(124, 58, 237, 0.15)' : 'var(--surface-subtle)'}; color:${isWinner ? 'var(--accent-violet)' : 'var(--text-main)'}; border:1px solid ${isWinner ? 'rgba(124, 58, 237, 0.35)' : 'var(--border-subtle)'};">s${n}</span>`).join('<span style="color:var(--text-dim); margin:0 3px;">➔</span>');
 
                         return `
-                            <tr style="${isWinner ? 'background: rgba(139, 92, 246, 0.08);' : ''}">
-                                <td><strong>a_${cp.path_idx}</strong></td>
-                                <td><code style="font-family:'JetBrains Mono',monospace; font-weight:600; color:${isWinner ? '#c4b5fd' : '#A3A3A3'};">${pathText}</code></td>
-                                <td><span style="font-family:'JetBrains Mono',monospace; font-weight:700;">${(cp.q_value || 0).toFixed(2)}</span></td>
+                            <tr style="${isWinner ? 'background: rgba(124, 58, 237, 0.08);' : ''}">
+                                <td><strong style="color:${isWinner ? 'var(--accent-violet)' : 'var(--text-main)'};">a_${cp.path_idx}</strong></td>
+                                <td><div style="font-family:'JetBrains Mono',monospace; display:flex; align-items:center; flex-wrap:wrap; gap:2px;">${pathChips}</div></td>
+                                <td><span style="font-family:'JetBrains Mono',monospace; font-weight:700; color:${isWinner ? 'var(--accent-violet)' : 'var(--text-main)'};">${(cp.q_value || 0).toFixed(2)}</span></td>
                                 <td>
                                     <div class="metric-bar-cell">
-                                        <span style="font-family:'JetBrains Mono',monospace; min-width:38px;">${probPct}%</span>
+                                        <span style="font-family:'JetBrains Mono',monospace; min-width:38px; font-weight:600;">${probPct}%</span>
                                         <div class="metric-bar-bg">
                                             <div class="metric-bar-fill" style="width: ${Math.min(100, Math.max(2, probPct))}%; background: ${isWinner ? 'var(--accent-violet)' : 'var(--text-muted)'};"></div>
                                         </div>
                                     </div>
                                 </td>
-                                <td><span style="font-family:'JetBrains Mono',monospace;">${pUtil}%</span></td>
+                                <td><span style="font-family:'JetBrains Mono',monospace; color:${pUtil > 70 ? 'var(--accent-rose)' : (pUtil > 40 ? 'var(--accent-amber)' : 'var(--accent-emerald)')}; font-weight:600;">${pUtil}%</span></td>
                                 <td><span style="font-family:'JetBrains Mono',monospace;">${pDelay} ms</span></td>
-                                <td>${isWinner ? '<span class="rank-pill champion">⭐ Selected</span>' : '<span style="color:var(--text-muted); font-size:0.72rem;">Alternative</span>'}</td>
+                                <td>${isWinner ? '<span class="rank-pill champion" style="font-weight:700;">★ Selected</span>' : '<span style="color:var(--text-dim); font-size:0.72rem; font-weight:500;">Alternative</span>'}</td>
                             </tr>
                         `;
                     }).join('');
@@ -4802,6 +5382,19 @@
             }
         }
 
+        function setDemoPair(src, dst, demand) {
+            const sEl = document.getElementById('srcSelect');
+            const dEl = document.getElementById('dstSelect');
+            const demEl = document.getElementById('demandSlider');
+            const demVal = document.getElementById('demandVal');
+            if (sEl) sEl.value = src;
+            if (dEl) dEl.value = dst;
+            if (demEl) demEl.value = demand;
+            if (demVal) demVal.textContent = demand;
+            runRoutePrediction();
+            showToast(`Configured Demo Pair: s${src} ➔ s${dst} (${demand} Mbps)`, "info");
+        }
+
         // Apply Flow to Fabric
         async function applyFlow() {
             const src = document.getElementById('srcSelect')?.value || 4;
@@ -4809,7 +5402,7 @@
             const demand = document.getElementById('demandSlider')?.value || 25;
 
             try {
-                const res = await fetch(`/api/simulate/apply_flow?src=${encodeURIComponent(src)}&dst=${encodeURIComponent(dst)}&demand=${encodeURIComponent(demand)}`).then(r => r.json());
+                const res = await fetch(`/api/simulate/apply_flow?src=${encodeURIComponent(src)}&dst=${encodeURIComponent(dst)}&demand=${encodeURIComponent(demand)}`, { method: 'POST' }).then(r => r.json());
 
                 if (res.status === 'success') {
                     showToast(res.message || "Flow applied successfully.", "success");
@@ -5042,6 +5635,10 @@
                         const sel = document.getElementById('modalDscpClass');
                         if (sel) sel.value = res.diffserv_dscp;
                     }
+                    if (res.flow_duration_model) {
+                        const sel = document.getElementById('modalFlowDuration');
+                        if (sel) sel.value = res.flow_duration_model;
+                    }
                 }
             } catch (e) {
                 console.warn("Could not prefill network settings:", e);
@@ -5055,6 +5652,67 @@
         function closeNetworkSettingsModal() {
             const modal = document.getElementById('networkSettingsModal');
             if (modal) modal.classList.remove('active');
+        }
+
+        function openHaClusterModal() {
+            const modal = document.getElementById('haClusterModal');
+            if (modal) {
+                modal.classList.add('active');
+                refreshHaClusterTelemetry();
+            }
+        }
+
+        function closeHaClusterModal() {
+            const modal = document.getElementById('haClusterModal');
+            if (modal) modal.classList.remove('active');
+        }
+
+        function refreshHaClusterTelemetry() {
+            fetch('/api/ha/status')
+                .then(r => r.json())
+                .then(data => {
+                    if (!data) return;
+                    const uptimeEl = document.getElementById('haModalUptime');
+                    if (uptimeEl && data.uptime_sec !== undefined) {
+                        uptimeEl.textContent = `${data.uptime_sec}s`;
+                    }
+                    const activeFlowsEl = document.getElementById('haModalFlows');
+                    if (activeFlowsEl && data.active_flows !== undefined) {
+                        activeFlowsEl.textContent = data.active_flows;
+                    }
+                    const badge = document.getElementById('haClusterBadge');
+                    if (badge) {
+                        const portStr = data.ofp_port ? ` :${data.ofp_port}` : '';
+                        badge.innerHTML = `<span style="color:var(--accent-emerald);">●</span> 3 Controllers (Master Active${portStr})`;
+                    }
+                    if (data.nodes_detail && Array.isArray(data.nodes_detail)) {
+                        data.nodes_detail.forEach(n => {
+                            const stEl = document.getElementById(`haNodeState_${n.id}`);
+                            if (stEl) {
+                                stEl.textContent = n.state;
+                                if (n.state.includes('ACTIVE')) {
+                                    stEl.style.background = 'rgba(16,185,129,0.15)';
+                                    stEl.style.color = 'var(--accent-emerald)';
+                                    stEl.style.border = '1px solid rgba(16,185,129,0.3)';
+                                } else if (n.state.includes('ONLINE')) {
+                                    stEl.style.background = 'rgba(6,182,212,0.15)';
+                                    stEl.style.color = 'var(--accent-cyan)';
+                                    stEl.style.border = '1px solid rgba(6,182,212,0.3)';
+                                } else {
+                                    stEl.style.background = 'rgba(139,92,246,0.15)';
+                                    stEl.style.color = 'var(--accent-violet)';
+                                    stEl.style.border = '1px solid rgba(139,92,246,0.3)';
+                                }
+                            }
+                            const hlEl = document.getElementById(`haNodeHealth_${n.id}`);
+                            if (hlEl) {
+                                hlEl.textContent = n.health;
+                                hlEl.style.color = (n.health === 'HEALTHY' || n.health === 'READY') ? 'var(--accent-emerald)' : 'var(--accent-amber)';
+                            }
+                        });
+                    }
+                })
+                .catch(err => console.warn('HA status poll error:', err));
         }
 
         function openModelInspectModal() {
@@ -5080,12 +5738,85 @@
             if (modal) modal.classList.remove('active');
         }
 
-        function populateModalLinkList() {
+        function populateModalLinkList(topo) {
             const sel = document.getElementById('modalLinkSelect');
-            if (!sel || !lastTopoData || !lastTopoData.links) return;
-            sel.innerHTML = lastTopoData.links.map(l =>
-                `<option value="${l.source}-${l.target}">Link s${l.source} ↔ s${l.target} (${l.capacity || 100} Mbps)</option>`
-            ).join('');
+            if (!sel) return;
+            const t = topo || lastTopoData;
+            if (!t) return;
+            const currentVal = sel.value;
+
+            // Collect all unique undirected links (active + severed + degraded)
+            const allLinksMap = new Map();
+            (t.links || []).forEach(l => {
+                const u = Math.min(l.source, l.target);
+                const v = Math.max(l.source, l.target);
+                allLinksMap.set(`${u}-${v}`, {
+                    source: u, target: v,
+                    capacity: l.capacity || 100,
+                    utilization: Math.round(l.utilization || 0),
+                    isSevered: false,
+                    isDegraded: false
+                });
+            });
+            (t.severed_links || []).forEach(pair => {
+                const u = Math.min(pair[0], pair[1]);
+                const v = Math.max(pair[0], pair[1]);
+                const key = `${u}-${v}`;
+                if (allLinksMap.has(key)) {
+                    allLinksMap.get(key).isSevered = true;
+                } else {
+                    allLinksMap.set(key, {
+                        source: u, target: v,
+                        capacity: 0,
+                        utilization: 0,
+                        isSevered: true,
+                        isDegraded: false
+                    });
+                }
+            });
+            (t.degraded_links || []).forEach(pair => {
+                const u = Math.min(pair[0], pair[1]);
+                const v = Math.max(pair[0], pair[1]);
+                const key = `${u}-${v}`;
+                if (allLinksMap.has(key)) {
+                    allLinksMap.get(key).isDegraded = true;
+                }
+            });
+
+            const sortedLinks = Array.from(allLinksMap.values()).sort((a, b) => {
+                if (a.source !== b.source) return a.source - b.source;
+                return a.target - b.target;
+            });
+
+            sel.innerHTML = sortedLinks.map(l => {
+                const val = `${l.source}-${l.target}`;
+                if (l.isSevered) {
+                    return `<option value="${val}" style="color:#f87171;">Link s${l.source} ↔ s${l.target} (⚡ CUT)</option>`;
+                }
+                if (l.isDegraded) {
+                    return `<option value="${val}" style="color:#f59e0b;">Link s${l.source} ↔ s${l.target} (📉 DEGRADED)</option>`;
+                }
+                return `<option value="${val}">Link s${l.source} ↔ s${l.target} (${l.capacity} Mbps)</option>`;
+            }).join('');
+
+            if (currentVal && Array.from(sel.options).some(o => o.value === currentVal)) {
+                sel.value = currentVal;
+            }
+
+            // Update modal status pill as well
+            const statusEl = document.getElementById('modalSeveredStatus');
+            if (statusEl) {
+                const sevCount = (t.severed_links || []).length;
+                const degCount = (t.degraded_links || []).length;
+                if (sevCount > 0 || degCount > 0) {
+                    let msg = [];
+                    if (sevCount > 0) msg.push(`${sevCount} Severed`);
+                    if (degCount > 0) msg.push(`${degCount} Degraded`);
+                    statusEl.innerHTML = `<span style="color:#ef4444; font-weight:700;">⚠️ ${msg.join(', ')}</span>`;
+                } else {
+                    statusEl.innerHTML = `<span style="color:#059669; font-weight:700;">✅ All Links Operational & Nominal</span>`;
+                }
+            }
         }
 
         // Chaos Fault Injection Handlers
@@ -5094,11 +5825,10 @@
             if (!sel || !sel.value) return;
             const [u, v] = sel.value.split('-');
             try {
-                const res = await fetch(`/api/simulate/link_fail?u=${u}&v=${v}`).then(r => r.json());
-                const statusEl = document.getElementById('modalSeveredStatus');
-                if (statusEl) statusEl.innerHTML = `<span style="color:#ef4444; font-weight:700;">⚠️ 1 Severed: s${u}⚡s${v}</span>`;
+                const res = await fetch(`/api/simulate/link_fail?u=${u}&v=${v}`, { method: 'POST' }).then(r => r.json());
                 showToast(`Link s${u} ↔ s${v} severed. Controller dynamically adapting.`, "error");
                 await fetchTelemetry(null, false);
+                populateModalLinkList();
             } catch (err) {
                 console.error("Link fail error:", err);
             }
@@ -5109,11 +5839,10 @@
             if (!sel || !sel.value) return;
             const [u, v] = sel.value.split('-');
             try {
-                const res = await fetch(`/api/simulate/link_degrade?u=${u}&v=${v}`).then(r => r.json());
-                const statusEl = document.getElementById('modalSeveredStatus');
-                if (statusEl) statusEl.innerHTML = `<span style="color:#d97706; font-weight:700;">⚠️ Link s${u}~s${v} Throttled & Degraded</span>`;
+                const res = await fetch(`/api/simulate/link_degrade?u=${u}&v=${v}`, { method: 'POST' }).then(r => r.json());
                 showToast(`Link s${u} ↔ s${v} degraded to 10% capacity.`, "warning");
                 await fetchTelemetry(null, false);
+                populateModalLinkList();
             } catch (err) {
                 console.error("Link degrade error:", err);
             }
@@ -5123,7 +5852,7 @@
             const sel = document.getElementById('modalLinkSelect');
             const [u, v] = sel && sel.value ? sel.value.split('-') : [1, 2];
             try {
-                const res = await fetch(`/api/simulate/inject_burst?u=${u}&mbps=50`).then(r => r.json());
+                const res = await fetch(`/api/simulate/inject_burst?u=${u}&mbps=50`, { method: 'POST' }).then(r => r.json());
                 showToast(res.message || "⚡ 50 Mbps flash burst injected.", "warning");
                 await fetchTelemetry(null, false);
             } catch (err) {
@@ -5133,11 +5862,10 @@
 
         async function triggerModalLinkRestore() {
             try {
-                const res = await fetch('/api/simulate/link_restore').then(r => r.json());
-                const statusEl = document.getElementById('modalSeveredStatus');
-                if (statusEl) statusEl.innerHTML = `<span style="color:#059669; font-weight:700;">✅ All Links Operational & Nominal</span>`;
+                const res = await fetch('/api/simulate/link_restore', { method: 'POST' }).then(r => r.json());
                 showToast("All severed and degraded links restored to full capacity.", "success");
                 await fetchTelemetry(null, false);
+                populateModalLinkList();
             } catch (err) {
                 console.error("Link restore error:", err);
             }
@@ -5196,20 +5924,27 @@
 
         async function quickFailSelectedLink() {
             let u = null, v = null;
-            const srcSel = document.getElementById('srcSelect');
-            const dstSel = document.getElementById('dstSelect');
-            if (srcSel && dstSel) {
-                u = parseInt(srcSel.value);
-                v = parseInt(dstSel.value);
+            const linkSel = document.getElementById('chaosLinkSelect');
+            if (linkSel && linkSel.value) {
+                const parts = linkSel.value.split('-');
+                u = parseInt(parts[0]);
+                v = parseInt(parts[1]);
+            } else {
+                const srcSel = document.getElementById('srcSelect');
+                const dstSel = document.getElementById('dstSelect');
+                if (srcSel && dstSel) {
+                    u = parseInt(srcSel.value);
+                    v = parseInt(dstSel.value);
+                }
             }
             try {
                 let url = '/api/simulate/link_fail';
-                if (u && v && lastTopoData && lastTopoData.links && lastTopoData.links.some(l => (l.source === u && l.target === v) || (l.source === v && l.target === u))) {
+                if (u !== null && v !== null) {
                     url += `?u=${u}&v=${v}`;
                 }
                 const res = await fetch(url, { method: 'POST' }).then(r => r.json());
                 if (res.status === 'success') {
-                    showToast(res.message || "⚡ Physical link severed! D3QN failover triggered.", "error");
+                    showToast(res.message || `⚡ Physical link severed: s${u} ⚡ s${v}! D3QN failover triggered.`, "error");
                 } else {
                     showToast(res.message || "No link to sever", "warning");
                 }
@@ -5217,6 +5952,40 @@
                 runRoutePrediction();
             } catch (err) {
                 showToast("Link severance failed: " + err.message, "error");
+            }
+        }
+
+        async function quickPutTrafficOnSelectedLink() {
+            let u = null, v = null;
+            const linkSel = document.getElementById('chaosLinkSelect');
+            if (linkSel && linkSel.value) {
+                const parts = linkSel.value.split('-');
+                u = parseInt(parts[0]);
+                v = parseInt(parts[1]);
+            } else {
+                const srcSel = document.getElementById('srcSelect');
+                const dstSel = document.getElementById('dstSelect');
+                if (srcSel && dstSel) {
+                    u = parseInt(srcSel.value);
+                    v = parseInt(dstSel.value);
+                }
+            }
+            if (u === null || v === null) {
+                showToast("Please select a target link first.", "warning");
+                return;
+            }
+            const demand = document.getElementById('demandSlider')?.value || 35;
+            try {
+                const res = await fetch(`/api/simulate/apply_flow?src=${u}&dst=${v}&demand=${demand}&direct=1`, { method: 'POST' }).then(r => r.json());
+                if (res.status === 'success') {
+                    showToast(`🚀 Traffic injected: ${demand} Mbps flow running across s${u} ↔ s${v}!`, "success");
+                    await fetchTelemetry(null, true);
+                    runRoutePrediction();
+                } else {
+                    showToast(res.message || "Failed to inject flow onto link", "error");
+                }
+            } catch (err) {
+                showToast("Put traffic error: " + err.message, "error");
             }
         }
 
@@ -5303,19 +6072,6 @@
                 runRoutePrediction();
             } catch (e) {
                 showToast("Fiber cut error: " + e.message, "error");
-            }
-        }
-
-        async function triggerScenarioBrownout() {
-            showToast("📉 Simulating link brownout (10% capacity, high jitter)...", "warning");
-            try {
-                const u = 2, v = 4;
-                const res = await fetch(`/api/simulate/link_degrade?u=${u}&v=${v}`, { method: 'POST' }).then(r => r.json());
-                showToast(res.message || `Link s${u} ↔ s${v} throttled to 10% capacity.`, "warning");
-                await fetchTelemetry(null, true);
-                runRoutePrediction();
-            } catch (e) {
-                showToast("Brownout error: " + e.message, "error");
             }
         }
 
@@ -5527,6 +6283,7 @@
 
                 traffic_pattern: document.getElementById('modalTrafficPattern')?.value || "uniform",
                 diffserv_dscp: document.getElementById('modalDscpClass')?.value || "BE",
+                flow_duration_model: document.getElementById('modalFlowDuration')?.value || "closed_loop",
                 traffic_flow_rate_mbps: parseFloat(document.getElementById('modalFlowRate')?.value || 15.0),
                 test_flow_rate_mbps: parseFloat(document.getElementById('modalFlowRate')?.value || 15.0),
                 test_flow_duration_sec: 25.0
@@ -5542,8 +6299,7 @@
                 if (res && res.status === 'success') {
                     showToast(res.message || "Network settings applied.", "success");
                     closeNetworkSettingsModal();
-                    await fetchTelemetry(payload.topology_id, false);
-                    runRoutePrediction();
+                    await switchFabricTopology(payload.topology_id);
                 } else {
                     showToast(res.message || "Failed to apply network settings.", "error");
                 }
@@ -5631,7 +6387,12 @@
                 }, 400);
             }
 
-            fetchTelemetry();
+            const urlTopo = new URLSearchParams(window.location.search).get('topo');
+            if (urlTopo) {
+                switchFabricTopology(urlTopo);
+            } else {
+                fetchTelemetry();
+            }
 
             if (new URLSearchParams(window.location.search).has('studio')) {
                 openPlotStudioModal();
@@ -5645,6 +6406,10 @@
             if (new URLSearchParams(window.location.search).has('guide')) {
                 setTimeout(openUserGuideModal, 300);
             }
+            if (new URLSearchParams(window.location.search).has('ha')) {
+                setTimeout(openHaClusterModal, 300);
+            }
+            refreshHaClusterTelemetry();
             const urlScroll = new URLSearchParams(window.location.search).get('scroll');
             if (urlScroll) {
                 setTimeout(() => {

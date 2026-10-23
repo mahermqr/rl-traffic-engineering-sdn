@@ -17,7 +17,7 @@ All OpenFlow 1.3 protocol messages begin with an 8-byte common header. The binar
 \textbf{Byte Offset} & \textbf{Field Name} & \textbf{Width} & \textbf{Description \& Wire Value} \\
 \midrule
 0 & \texttt{version} & 8 bits & Protocol version. For OpenFlow 1.3, wire value is \texttt{0x04}. \\
-1 & \texttt{type} & 8 bits & Message type code (e.g., \texttt{OFPT_PACKET_IN = 10}). \\
+1 & \texttt{type} & 8 bits & Message type code (e.g., \texttt{OFPT\_PACKET\_IN = 10}). \\
 2--3 & \texttt{length} & 16 bits & Total length of message including header in bytes. \\
 4--7 & \texttt{xid} & 32 bits & Transaction ID associated with this message for matching requests to replies. \\
 \bottomrule

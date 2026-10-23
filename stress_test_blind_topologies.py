@@ -88,6 +88,7 @@ except ImportError:
 
 from dqn_router import DQNRoutingAgent
 from state_manager import StateManager
+from policy_selector import select_dqn_path
 from topology_library import get_topology
 from traditional_routing import compute_path_metrics
 
@@ -164,36 +165,18 @@ def run_blind_topology_stress_tests(model_path=None, json_path=None, plots_dir=N
         print(f" • Core Nodes: {core_nodes} | Edge Nodes: {len(edge_nodes)} switches")
 
         sm = StateManager()
-        sm.graph = g.copy()
-        for u, v, d in g.edges(data=True):
-            sm.update_link(u, v, src_port=1, dst_port=1,
-                           capacity_mbps=d.get('capacity', 100.0),
-                           delay_ms=d.get('delay', 2.0))
-
-        topo_path_cache = {}
+        sm.set_topology(topo_id, g, meta)
 
         def evaluate_flow(src, dst):
-            if (src, dst) not in topo_path_cache:
-                try:
-                    topo_path_cache[(src, dst)] = list(itertools.islice(nx.shortest_simple_paths(sm.graph, src, dst), 4))
-                except Exception:
-                    topo_path_cache[(src, dst)] = [[src, dst]]
-            candidate_paths = topo_path_cache[(src, dst)]
+            candidate_paths = sm.get_candidate_paths(src, dst, k=4)
+            if not candidate_paths:
+                raise RuntimeError(f"No route between {src} and {dst}")
             spf_path = candidate_paths[0]
-            state = sm.get_routing_state(src, dst)
-            q_vals = router_agent.get_q_values(state) if hasattr(router_agent, 'get_q_values') else [0.0] * len(candidate_paths)
-            q_min, q_max = min(q_vals), max(q_vals)
-            rng = max(1e-3, q_max - q_min)
-            best_p = None
-            best_score = -float('inf')
-            for idx, cpath in enumerate(candidate_paths):
-                q_norm = (float(q_vals[idx]) - q_min) / rng if idx < len(q_vals) else 0.0
-                pm = compute_path_metrics(cpath, sm.link_utilization, sm.link_delays, sm.link_bandwidths)
-                score = 1.0 * q_norm - 2.4 * (pm['bottleneck_util'] ** 2) - 0.01 * pm['total_delay'] - 1.8 * pm['packet_loss']
-                if score > best_score:
-                    best_score = score
-                    best_p = cpath
-            chosen_path = best_p if best_p is not None else candidate_paths[0]
+            decision = select_dqn_path(
+                router_agent, sm, src, dst, candidate_paths=candidate_paths,
+                mode=getattr(config, 'POLICY_MODE', 'pure')
+            )
+            chosen_path = decision['path']
 
             m_dqn = compute_path_metrics(chosen_path, sm.link_utilization, sm.link_delays, sm.link_bandwidths)
             m_spf = compute_path_metrics(spf_path, sm.link_utilization, sm.link_delays, sm.link_bandwidths)
@@ -245,18 +228,15 @@ def run_blind_topology_stress_tests(model_path=None, json_path=None, plots_dir=N
             src = random.choice(edge_nodes)
             dst = random.choice([n for n in edge_nodes if n != src])
             cands = sm.get_candidate_paths(src, dst, k=k_paths)
-            st = sm.get_routing_state(src, dst)
-            q_vals = router_agent.get_q_values(st) if hasattr(router_agent, 'get_q_values') else [0.0] * len(cands)
-            best_p = None
-            best_score = -float('inf')
-            for idx, cpath in enumerate(cands):
-                q_val = float(q_vals[idx]) if idx < len(q_vals) else 0.0
-                path_load = sum([link_loads_dqn.get((cpath[j], cpath[j+1]), 0.0) for j in range(len(cpath)-1)])
-                score = q_val - 0.25 * path_load
-                if score > best_score:
-                    best_score = score
-                    best_p = cpath
-            p_dqn = best_p if best_p is not None else cands[0]
+            if not cands:
+                continue
+            for edge, count in link_loads_dqn.items():
+                sm.link_utilization[edge] = max(0.0, count * 0.02)
+            decision = select_dqn_path(
+                router_agent, sm, src, dst, candidate_paths=cands,
+                mode=getattr(config, 'POLICY_MODE', 'pure')
+            )
+            p_dqn = decision['path']
             p_spf = cands[0]
             for i in range(len(p_dqn)-1):
                 e = (p_dqn[i], p_dqn[i+1])
@@ -430,7 +410,10 @@ def plot_blind_stress_dashboard(results_summary, plots_dir, topo_order=None, top
 
     fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(16, 11), dpi=300)
     plt.subplots_adjust(top=0.91, bottom=0.08, left=0.08, right=0.96, hspace=0.32, wspace=0.22)
-    short_labels = ['Tree', 'Fat-Tree', 'Abilene', 'NSFNet', 'Spine-Leaf']
+    short_names = {'tree': 'Tree', 'fattree': 'Fat-Tree', 'abilene': 'Abilene',
+                   'nsfnet': 'NSFNet', 'spineleaf': 'Spine-Leaf'}
+    topo_order = [topo for topo in topo_order if topo in results_summary]
+    short_labels = [short_names.get(topo, topo) for topo in topo_order]
     x = np.arange(len(short_labels))
     width = 0.35
 
@@ -500,7 +483,7 @@ def plot_blind_stress_dashboard(results_summary, plots_dir, topo_order=None, top
     ax4.legend(loc='upper left', fontsize=8.5)
     ax4.grid(True, linestyle='--', alpha=0.45)
 
-    plt.suptitle('Multi-Topology Blind Stress Testing: DQN Traffic Engineering Generalization Benchmark\n(Zero-Shot Evaluation on 5 Topologies without Retraining)', fontsize=13, fontweight='bold', y=0.975)
+    plt.suptitle('Multi-Topology Stress Testing: DQN Traffic Engineering Benchmark\n(Evaluated on five built-in topology fixtures)', fontsize=13, fontweight='bold', y=0.975)
     bench_plot = os.path.join(plots_dir, 'blind_topologies_stress_benchmark.png')
     plt.savefig(bench_plot, dpi=300, bbox_inches='tight')
     plt.close()
@@ -579,7 +562,7 @@ def plot_blind_radar(results_summary, plots_dir, topo_order=None, topo_labels=No
     ax_r.set_yticks([20, 40, 60, 80, 100])
     ax_r.set_yticklabels(['20%', '40%', '60%', '80%', '100%'], fontsize=8, color='#64748b')
     ax_r.grid(True, linestyle='--', alpha=0.5)
-    ax_r.set_title('Multi-Topology Resilience & Generalization Radar\n(Zero-Shot Evaluation Across 5 Diverse Topologies)', size=12, fontweight='bold', pad=26)
+    ax_r.set_title('Multi-Topology Resilience Radar\n(Evaluated across five built-in topology fixtures)', size=12, fontweight='bold', pad=26)
     ax_r.legend(loc='lower center', bbox_to_anchor=(0.50, -0.15), ncol=3, fontsize=9.5, frameon=True, facecolor='#ffffff', edgecolor='#cbd5e1')
     radar_plot = os.path.join(plots_dir, 'blind_topologies_radar.png')
     plt.savefig(radar_plot, dpi=300, bbox_inches='tight')

@@ -67,10 +67,12 @@ from config import (
     STATE_SIZE,
     ACTION_SIZE,
     K_CANDIDATE_PATHS,
+    POLICY_MODE,
     TORCH_DEVICE,
 )
 from dqn_router import DQNRoutingAgent
 from state_manager import StateManager
+from policy_selector import select_dqn_path
 from topology_library import build_random_topology
 from traditional_routing import dijkstra_spf, compute_path_metrics
 
@@ -115,9 +117,7 @@ def evaluate_random_blind_topology(
     print(f" • Edge Nodes:             {len(meta['edge_nodes'])} switches")
 
     sm = StateManager()
-    sm.graph = graph.copy()
-    for u, v, d in graph.edges(data=True):
-        sm.update_link(u, v, src_port=1, dst_port=1, capacity_mbps=d.get('capacity', 100.0), delay_ms=d.get('delay', 2.0))
+    sm.set_topology('random', graph, meta)
 
     core_nodes = meta['core_nodes']
     edge_nodes = meta['edge_nodes']
@@ -141,21 +141,13 @@ def evaluate_random_blind_topology(
     def evaluate_flow(src, dst):
         cand_paths = sm.get_candidate_paths(src, dst, k=k_val)
         spf_p = dijkstra_spf(sm.graph, src, dst)
-
-        st = sm.get_routing_state(src, dst)
-        q_vals = router_agent.get_q_values(st) if hasattr(router_agent, 'get_q_values') else [0.0] * len(cand_paths)
-        q_min, q_max = min(q_vals), max(q_vals)
-        rng = max(1e-3, q_max - q_min)
-        best_p = None
-        best_score = -float('inf')
-        for idx, cpath in enumerate(cand_paths):
-            q_norm = (float(q_vals[idx]) - q_min) / rng if idx < len(q_vals) else 0.0
-            pm = compute_path_metrics(cpath, sm.link_utilization, sm.link_delays, sm.link_bandwidths)
-            score = 1.0 * q_norm - 2.4 * (pm['bottleneck_util'] ** 2) - 0.01 * pm['total_delay'] - 1.8 * pm['packet_loss']
-            if score > best_score:
-                best_score = score
-                best_p = cpath
-        dqn_p = best_p if best_p is not None else cand_paths[0]
+        decision = select_dqn_path(
+            router_agent, sm, src, dst, candidate_paths=cand_paths,
+            mode=POLICY_MODE
+        )
+        if decision['status'] != 'success' or not spf_p:
+            raise RuntimeError(f"No route between {src} and {dst}")
+        dqn_p = decision['path']
 
         m_dqn = compute_path_metrics(dqn_p, sm.link_utilization, sm.link_delays, sm.link_bandwidths)
         m_spf = compute_path_metrics(spf_p, sm.link_utilization, sm.link_delays, sm.link_bandwidths)
@@ -191,26 +183,29 @@ def evaluate_random_blind_topology(
     print("\n" + "-" * 85)
     print(f" [TEST 2/4] HIGH-CONCURRENCY DECISION AVALANCHE ({burst_flows_count} Simultaneous Ingress Flows)")
     print("-" * 85)
-    burst_flows = [(random.choice(edge_nodes), random.choice([n for n in edge_nodes if n != s])) for s in [random.choice(edge_nodes) for _ in range(burst_flows_count)]]
+    burst_flows = []
+    for _ in range(burst_flows_count):
+        s = random.choice(edge_nodes)
+        d = random.choice([n for n in edge_nodes if n != s])
+        burst_flows.append((s, d))
     t0 = time.time()
     link_loads_dqn = {e: 0 for e in sm.graph.edges()}
     link_loads_spf = {e: 0 for e in sm.graph.edges()}
 
     for s, d in burst_flows:
         cands = sm.get_candidate_paths(s, d, k=k_val)
-        st = sm.get_routing_state(s, d)
-        q_vals = router_agent.get_q_values(st) if hasattr(router_agent, 'get_q_values') else [0.0] * len(cands)
-        best_p = None
-        best_score = -float('inf')
-        for idx, cpath in enumerate(cands):
-            q_val = float(q_vals[idx]) if idx < len(q_vals) else 0.0
-            load_p = sum([link_loads_dqn.get((cpath[j], cpath[j+1]), 0) for j in range(len(cpath)-1)])
-            score = q_val - 0.25 * load_p
-            if score > best_score:
-                best_score = score
-                best_p = cpath
-        p_dqn = best_p if best_p is not None else cands[0]
+        if not cands:
+            continue
+        for edge, count in link_loads_dqn.items():
+            sm.link_utilization[edge] = max(0.0, count * 0.02)
+        decision = select_dqn_path(
+            router_agent, sm, s, d, candidate_paths=cands,
+            mode=POLICY_MODE
+        )
+        p_dqn = decision.get('path')
         p_spf = dijkstra_spf(sm.graph, s, d)
+        if not p_dqn or not p_spf:
+            continue
         for i in range(len(p_dqn)-1):
             if (p_dqn[i], p_dqn[i+1]) in link_loads_dqn:
                 link_loads_dqn[(p_dqn[i], p_dqn[i+1])] += 1
@@ -293,10 +288,22 @@ def evaluate_random_blind_topology(
         'topology_name': topo_name,
         'num_nodes': n_nodes,
         'num_edges': n_edges,
+        'topology': {
+            'nodes': n_nodes,
+            'edges': n_edges,
+            'core_nodes': core_nodes,
+            'edge_nodes': edge_nodes
+        },
         'num_flows': num_flows,
         'burst_flows': burst_flows_count,
         'k_candidate_paths': k_val,
         'test1_jamming': {
+            'dqn_bottleneck_pct': float(round(mean_dqn_b, 2)),
+            'spf_bottleneck_pct': float(round(mean_spf_b, 2)),
+            'congestion_relief_pct': float(round(congestion_relief, 2)),
+            'offload_rate_pct': float(round(offload_rate, 2))
+        },
+        'test1_core_jamming': {
             'dqn_bottleneck_pct': float(round(mean_dqn_b, 2)),
             'spf_bottleneck_pct': float(round(mean_spf_b, 2)),
             'congestion_relief_pct': float(round(congestion_relief, 2)),
@@ -326,8 +333,32 @@ def evaluate_random_blind_topology(
         out_dir = os.path.dirname(os.path.abspath(output_json))
         if out_dir:
             os.makedirs(out_dir, exist_ok=True)
+        existing_evals = []
+        if os.path.isfile(output_json):
+            try:
+                with open(output_json, 'r') as f:
+                    prev = json.load(f)
+                    if isinstance(prev, dict) and 'evaluations' in prev:
+                        existing_evals = prev['evaluations']
+                    elif isinstance(prev, list):
+                        existing_evals = prev
+                    elif isinstance(prev, dict):
+                        existing_evals = [prev]
+            except Exception:
+                existing_evals = []
+        existing_evals = [
+            e for e in existing_evals
+            if e.get('num_nodes') != n_nodes and e.get('topology', {}).get('nodes') != n_nodes
+        ]
+        existing_evals.append(results)
+        existing_evals.sort(key=lambda x: x.get('num_nodes', x.get('topology', {}).get('nodes', 0)))
+        payload = {
+            'timestamp': time.strftime("%Y-%m-%d %H:%M:%S"),
+            'evaluations': existing_evals,
+            **results
+        }
         with open(output_json, 'w') as f:
-            json.dump(results, f, indent=2)
+            json.dump(payload, f, indent=2)
         print(f"[Saved] Blind evaluation metrics exported to: {output_json}")
 
     return results

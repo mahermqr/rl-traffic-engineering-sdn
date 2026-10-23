@@ -29,19 +29,9 @@ else
 fi
 
 echo "======================================================================"
-echo " 1. Running 5-Topology Head-to-Head Tournament Benchmark..."
+echo " Running tournament and stress suites with validated shared arguments..."
 echo "======================================================================"
-"$PYTHON_BIN" benchmark_routing_algorithms.py "$@"
-
-echo "======================================================================"
-echo " 2. Running High-Intensity Load Balancer Stress Test..."
-echo "======================================================================"
-"$PYTHON_BIN" stress_test_load_balancer.py "$@"
-
-echo "======================================================================"
-echo " 3. Running Multi-Topology Blind Stress Benchmark..."
-echo "======================================================================"
-"$PYTHON_BIN" stress_test_blind_topologies.py "$@"
+"$PYTHON_BIN" run_benchmarks.py "$@"
 
 echo "======================================================================"
 echo " All Benchmarks and Stress Tests Completed Successfully!"

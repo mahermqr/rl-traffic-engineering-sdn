@@ -1,0 +1,212 @@
+{
+  "metadata": {
+    "model_seeds": [
+      101,
+      102,
+      103,
+      104,
+      105
+    ],
+    "workload_seeds": [
+      42,
+      43,
+      44,
+      45,
+      46
+    ],
+    "topologies": [
+      "tree",
+      "fattree",
+      "abilene",
+      "nsfnet",
+      "spineleaf"
+    ],
+    "total_evaluations": 125
+  },
+  "model_summaries": {
+    "seed_101": {
+      "bottleneck_util": {
+        "mean": 291.8924,
+        "std": 286.7473
+      },
+      "mean_latency_ms": {
+        "mean": 1124.8069,
+        "std": 1208.0805
+      },
+      "p95_latency_ms": {
+        "mean": 2603.585,
+        "std": 2395.71
+      },
+      "jains_fairness": {
+        "mean": 0.9151,
+        "std": 0.0259
+      },
+      "packet_loss_pct": {
+        "mean": 21.7277,
+        "std": 27.5324
+      }
+    },
+    "seed_102": {
+      "bottleneck_util": {
+        "mean": 315.4912,
+        "std": 304.2355
+      },
+      "mean_latency_ms": {
+        "mean": 990.7134,
+        "std": 989.4258
+      },
+      "p95_latency_ms": {
+        "mean": 2648.0415,
+        "std": 2444.3096
+      },
+      "jains_fairness": {
+        "mean": 0.8724,
+        "std": 0.0688
+      },
+      "packet_loss_pct": {
+        "mean": 21.1238,
+        "std": 25.3193
+      }
+    },
+    "seed_103": {
+      "bottleneck_util": {
+        "mean": 274.278,
+        "std": 172.1838
+      },
+      "mean_latency_ms": {
+        "mean": 1210.0565,
+        "std": 1136.0988
+      },
+      "p95_latency_ms": {
+        "mean": 2648.9168,
+        "std": 1994.7634
+      },
+      "jains_fairness": {
+        "mean": 0.8512,
+        "std": 0.0556
+      },
+      "packet_loss_pct": {
+        "mean": 26.7723,
+        "std": 27.5614
+      }
+    },
+    "seed_104": {
+      "bottleneck_util": {
+        "mean": 271.8688,
+        "std": 223.7525
+      },
+      "mean_latency_ms": {
+        "mean": 1045.7781,
+        "std": 1087.6215
+      },
+      "p95_latency_ms": {
+        "mean": 2579.1487,
+        "std": 2349.7901
+      },
+      "jains_fairness": {
+        "mean": 0.9113,
+        "std": 0.032
+      },
+      "packet_loss_pct": {
+        "mean": 21.7616,
+        "std": 26.691
+      }
+    },
+    "seed_105": {
+      "bottleneck_util": {
+        "mean": 254.3636,
+        "std": 189.2106
+      },
+      "mean_latency_ms": {
+        "mean": 927.7892,
+        "std": 889.1382
+      },
+      "p95_latency_ms": {
+        "mean": 2428.2596,
+        "std": 1999.7549
+      },
+      "jains_fairness": {
+        "mean": 0.8833,
+        "std": 0.0396
+      },
+      "packet_loss_pct": {
+        "mean": 21.1096,
+        "std": 24.8256
+      }
+    }
+  },
+  "hierarchical_variance_decomposition": {
+    "bottleneck_util": {
+      "model_seed_pct": 0.73,
+      "workload_seed_pct": 0.02,
+      "topology_pct": 93.51,
+      "residual_pct": 5.74,
+      "grand_mean": 281.5788,
+      "grand_std": 241.8434
+    },
+    "mean_latency_ms": {
+      "model_seed_pct": 0.86,
+      "workload_seed_pct": 0.03,
+      "topology_pct": 96.76,
+      "residual_pct": 2.36,
+      "grand_mean": 1059.8288,
+      "grand_std": 1072.5511
+    },
+    "p95_latency_ms": {
+      "model_seed_pct": 0.13,
+      "workload_seed_pct": 0.04,
+      "topology_pct": 98.14,
+      "residual_pct": 1.69,
+      "grand_mean": 2581.5903,
+      "grand_std": 2247.0709
+    },
+    "jains_fairness": {
+      "model_seed_pct": 20.65,
+      "workload_seed_pct": 0.4,
+      "topology_pct": 9.71,
+      "residual_pct": 69.24,
+      "grand_mean": 0.8867,
+      "grand_std": 0.0529
+    },
+    "packet_loss_pct": {
+      "model_seed_pct": 0.66,
+      "workload_seed_pct": 0.01,
+      "topology_pct": 98.53,
+      "residual_pct": 0.8,
+      "grand_mean": 22.499,
+      "grand_std": 26.4978
+    }
+  },
+  "overall_stability": {
+    "bottleneck_util": {
+      "grand_mean": 281.5788,
+      "model_seed_std": 20.7107,
+      "workload_seed_std": 3.0816,
+      "topology_std": 233.8694
+    },
+    "mean_latency_ms": {
+      "grand_mean": 1059.8288,
+      "model_seed_std": 99.1961,
+      "workload_seed_std": 17.55,
+      "topology_std": 1055.0133
+    },
+    "p95_latency_ms": {
+      "grand_mean": 2581.5903,
+      "model_seed_std": 81.1772,
+      "workload_seed_std": 45.8731,
+      "topology_std": 2226.0589
+    },
+    "jains_fairness": {
+      "grand_mean": 0.8867,
+      "model_seed_std": 0.024,
+      "workload_seed_std": 0.0034,
+      "topology_std": 0.0165
+    },
+    "packet_loss_pct": {
+      "grand_mean": 22.499,
+      "model_seed_std": 2.1551,
+      "workload_seed_std": 0.2738,
+      "topology_std": 26.3019
+    }
+  }
+}

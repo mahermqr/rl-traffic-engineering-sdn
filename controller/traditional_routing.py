@@ -30,14 +30,20 @@ try:
     import config
 except ImportError:
     config = None
+try:
+    from .queue_model import mm1k_metrics
+except ImportError:
+    from queue_model import mm1k_metrics
 
 
-def compute_path_metrics(path, link_utilization, link_delays=None, link_bandwidths=None, jitter_history=None):
+def compute_path_metrics(path, link_utilization, link_delays=None, link_bandwidths=None,
+                         jitter_history=None, queue_depth=None, observed_delays=True):
     """
     Computes bottleneck utilization, total latency, network jitter, packet loss rate, and hop count.
 
     Mathematical Models:
-      1. Latency (ms): D_total = sum(D_e) + queuing_delay(U_e)
+      1. Latency (ms): sum observed D_e; when ``observed_delays=False``,
+         D_total = sum(base D_e + M/M/1/K queue_delay(U_e)).
       2. Jitter (ms): Packet Delay Variation (RFC 3393). In packet queues, queuing variation
          scales non-linearly with bottleneck link utilization:
          Jitter = base_jitter + 0.15 * total_delay * (U_bottleneck / max(0.01, 1.0 - min(0.98, U_bottleneck)))
@@ -60,7 +66,9 @@ def compute_path_metrics(path, link_utilization, link_delays=None, link_bandwidt
     total_queue_delay = 0.0
     bottleneck_util = 0.0
     default_delay = getattr(config, 'DEFAULT_LINK_DELAY', 2.0)
-    loss_threshold = getattr(config, 'CONGESTION_BARRIER_THRESHOLD', 0.70)
+    queue_depth = int(queue_depth or getattr(config, 'SWITCH_QUEUE_DEPTH', 256))
+    max_queue_delay = float(getattr(config, 'MAX_QUEUE_DELAY_MS', 1000.0))
+    survival_probability = 1.0
 
     for i in range(len(path) - 1):
         u, v = path[i], path[i + 1]
@@ -70,16 +78,20 @@ def compute_path_metrics(path, link_utilization, link_delays=None, link_bandwidt
             util = float(link_utilization[(v, u)])
 
         prop_delay = float(delays.get((u, v), delays.get((v, u), default_delay)))
-        prop_delay = max(1.0, min(10.0, prop_delay))
+        prop_delay = max(0.0, prop_delay)
 
-        # Queuing delay scales with link utilization: M/M/1/K finite buffer model
-        clamped_util = min(0.96, max(0.0, util))
-        if clamped_util <= 0.15:
-            queue_delay = clamped_util * 0.5
-        else:
-            queue_delay = min(15.0, prop_delay * (0.8 * clamped_util / max(0.06, 1.0 - clamped_util)))
+        queue = mm1k_metrics(
+            util,
+            queue_depth=queue_depth,
+            service_time_ms=max(0.01, prop_delay),
+            max_queue_delay_ms=max_queue_delay,
+        )
+        queue_delay = queue['queue_delay_ms']
+        survival_probability *= 1.0 - queue['blocking_probability']
 
-        total_delay += (prop_delay + queue_delay)
+        # StateManager delays are end-to-end link observations that already include
+        # queueing. Static/base delays can opt into analytical queue addition.
+        total_delay += prop_delay if observed_delays else (prop_delay + queue_delay)
         total_queue_delay += queue_delay
         bottleneck_util = max(bottleneck_util, util)
 
@@ -90,14 +102,7 @@ def compute_path_metrics(path, link_utilization, link_delays=None, link_bandwidt
     queuing_latency_portion = float(total_queue_delay)
     jitter_ms = float(base_jitter + min(15.0, 0.22 * queuing_latency_portion * min(2.5, congestion_factor)))
 
-    # 2. Packet Loss Rate (%):
-    # Under low load (util <= threshold), loss is negligible (< 0.05%)
-    # Under high load (util > threshold), queue drops escalate exponentially up to 25-35%
-    if bottleneck_util <= loss_threshold:
-        loss_pct = float(max(0.0, bottleneck_util * 0.05))
-    else:
-        excess = (bottleneck_util - loss_threshold) / max(0.01, 1.0 - loss_threshold)
-        loss_pct = float(min(35.0, 0.05 + 30.0 * (excess ** 2.2)))
+    loss_pct = 100.0 * (1.0 - survival_probability)
 
     return {
         'bottleneck_util': float(bottleneck_util),
@@ -128,7 +133,7 @@ def ospf_routing(graph, src, dst, link_bandwidths=None, reference_bandwidth=100.
     try:
         return list(nx.shortest_path(ospf_graph, src, dst, weight='ospf_cost'))
     except (nx.NetworkXNoPath, nx.NodeNotFound):
-        return [src, dst]
+        return []
 
 
 def dijkstra_spf(graph, src, dst, weight=None):
@@ -139,7 +144,7 @@ def dijkstra_spf(graph, src, dst, weight=None):
     try:
         return list(nx.shortest_path(graph, src, dst, weight=weight))
     except (nx.NetworkXNoPath, nx.NodeNotFound):
-        return [src, dst]
+        return []
 
 
 def ecmp_routing(graph, src, dst, flow_hash=0, weight=None):
@@ -151,11 +156,11 @@ def ecmp_routing(graph, src, dst, flow_hash=0, weight=None):
     try:
         all_shortest = list(nx.all_shortest_paths(graph, src, dst, weight=weight))
         if not all_shortest:
-            return [src, dst]
+            return []
         selected_idx = int(flow_hash) % len(all_shortest)
         return all_shortest[selected_idx]
     except (nx.NetworkXNoPath, nx.NodeNotFound):
-        return [src, dst]
+        return []
 
 
 def widest_shortest_path(graph, src, dst, link_utilization, link_delays=None, candidate_paths=None):
@@ -168,10 +173,10 @@ def widest_shortest_path(graph, src, dst, link_utilization, link_delays=None, ca
         try:
             candidate_paths = list(itertools.islice(nx.shortest_simple_paths(graph, src, dst), 8))
         except Exception:
-            candidate_paths = [[src, dst]]
+            candidate_paths = []
 
     if not candidate_paths:
-        return [src, dst]
+        return []
 
     delays = link_delays or {}
     scored_paths = []
@@ -194,10 +199,10 @@ def least_loaded_routing(graph, src, dst, link_utilization, candidate_paths=None
         try:
             candidate_paths = list(itertools.islice(nx.shortest_simple_paths(graph, src, dst), 8))
         except Exception:
-            candidate_paths = [[src, dst]]
+            candidate_paths = []
 
     if not candidate_paths:
-        return [src, dst]
+        return []
 
     scored_paths = []
     for p in candidate_paths:
@@ -223,10 +228,10 @@ def random_routing(graph, src, dst, candidate_paths=None):
         try:
             candidate_paths = list(itertools.islice(nx.shortest_simple_paths(graph, src, dst), 4))
         except Exception:
-            candidate_paths = [[src, dst]]
+            candidate_paths = []
 
     if not candidate_paths:
-        return [src, dst]
+        return []
 
     idx = np.random.randint(0, len(candidate_paths))
     return candidate_paths[idx]

@@ -109,24 +109,23 @@ class FatTreeTopology(Topo):
 
         core_switches = []
         for i in range(1, num_cores + 1):
-            dpid = f"{i:016x}"
+            dpid = f"{100 + i:016x}"
             sw = self.addSwitch(f'c{i}', dpid=dpid)
             core_switches.append(sw)
 
         host_id = 1
-        dpid_counter = 100
         for pod in range(num_pods):
             aggr_switches = []
             edge_switches = []
 
             for a in range(num_aggr_per_pod):
-                dpid_counter += 1
-                sw = self.addSwitch(f'a{pod}_{a}', dpid=f"{dpid_counter:016x}")
+                logical_id = 201 + pod * num_aggr_per_pod + a
+                sw = self.addSwitch(f'a{pod}_{a}', dpid=f"{logical_id:016x}")
                 aggr_switches.append(sw)
 
             for e in range(num_edge_per_pod):
-                dpid_counter += 1
-                sw = self.addSwitch(f'e{pod}_{e}', dpid=f"{dpid_counter:016x}")
+                logical_id = 301 + pod * num_edge_per_pod + e
+                sw = self.addSwitch(f'e{pod}_{e}', dpid=f"{logical_id:016x}")
                 edge_switches.append(sw)
 
             for e_idx, e_sw in enumerate(edge_switches):
@@ -134,8 +133,9 @@ class FatTreeTopology(Topo):
                     self.addLink(e_sw, a_sw, bw=edge_bw, delay=edge_delay)
 
                 for h in range(num_hosts_per_edge):
-                    host_ip = f"10.{pod}.{e_idx}.{h+2}/24"
-                    host_mac = f"00:00:00:{pod:02x}:{e_idx:02x}:{h+2:02x}"
+                    edge_index = pod * num_edge_per_pod + e_idx + 1
+                    host_ip = f"10.0.{edge_index}.{h+1}/24"
+                    host_mac = f"00:00:00:00:00:{host_id:02x}"
                     host = self.addHost(f'h{host_id}', ip=host_ip, mac=host_mac)
                     self.addLink(host, e_sw, bw=core_bw, delay='1ms')
                     host_id += 1
@@ -184,7 +184,7 @@ def start_elephant_flows(net, rate="45M", duration=35, src_host='h4', dst_host='
 
 
 def run_network(topo_choice='tree', controller_ip=DEFAULT_CTRL_IP, controller_port=DEFAULT_CTRL_PORT,
-                core_bw=DEFAULT_CORE_BW, core_delay=DEFAULT_CORE_DELAY,
+                backup_controllers=None, core_bw=DEFAULT_CORE_BW, core_delay=DEFAULT_CORE_DELAY,
                 elephant_rate="45M", auto_traffic=True):
     setLogLevel('info')
 
@@ -195,18 +195,32 @@ def run_network(topo_choice='tree', controller_ip=DEFAULT_CTRL_IP, controller_po
         info("*** Selected Topology: Hierarchical Tree (7 switches, 8 hosts, redundant mesh)\n")
         topo = TreeTopology(core_bw=int(core_bw), core_delay=core_delay)
 
-    info(f"*** Initializing Mininet Network with Remote Ryu Controller on {controller_ip}:{controller_port}\n")
+    info(f"*** Initializing Mininet Network with Primary Controller on {controller_ip}:{controller_port}\n")
+    controllers = [RemoteController('c0', ip=controller_ip, port=int(controller_port))]
+    if backup_controllers:
+        for i, (b_ip, b_port) in enumerate(backup_controllers, 1):
+            info(f"*** Adding Standby Backup Controller c{i} on {b_ip}:{b_port}\n")
+            controllers.append(RemoteController(f'c{i}', ip=b_ip, port=int(b_port)))
+
     net = Mininet(
         topo=topo,
         switch=OVSSwitch,
-        controller=RemoteController('c0', ip=controller_ip, port=int(controller_port)),
+        controller=None,
         link=TCLink,
         autoSetMacs=True,
         autoStaticArp=True
     )
+    for c in controllers:
+        net.addController(c)
 
     net.start()
-    info("\n*** Network Started successfully! Waiting 5s for LLDP discovery...\n")
+    # Configure OVS switches to attach to all controller targets for High Availability
+    ctrl_targets = ' '.join([f'tcp:{c.ip}:{c.port}' for c in controllers])
+    for sw in net.switches:
+        sw.cmd(f'ovs-vsctl set-controller {sw.name} {ctrl_targets}')
+
+    info(f"\n*** Network Started successfully with {len(controllers)} controllers connected to all switches!\n")
+    info("*** Waiting 5s for LLDP discovery...\n")
     time.sleep(5)
 
     info("*** Performing Initial Host Ping Test...\n")
@@ -239,6 +253,8 @@ if __name__ == '__main__':
                         help=f'OpenFlow controller IP address (default: {DEFAULT_CTRL_IP})')
     parser.add_argument('--controller-port', type=int, default=DEFAULT_CTRL_PORT,
                         help=f'OpenFlow controller port (default: {DEFAULT_CTRL_PORT})')
+    parser.add_argument('--backup-ports', type=int, nargs='*', default=[6634, 6635],
+                        help='OpenFlow ports for standby backup controllers (default: 6634 6635)')
     parser.add_argument('--core-bw', type=float, default=DEFAULT_CORE_BW,
                         help=f'Core link bandwidth in Mbps (default: {DEFAULT_CORE_BW})')
     parser.add_argument('--core-delay', default=DEFAULT_CORE_DELAY,
@@ -249,10 +265,13 @@ if __name__ == '__main__':
                         help='Disable automatic synthetic traffic generation')
     args = parser.parse_args()
 
+    backups = [(args.controller_ip, p) for p in args.backup_ports] if args.backup_ports else None
+
     run_network(
         topo_choice=args.topo,
         controller_ip=args.controller_ip,
         controller_port=args.controller_port,
+        backup_controllers=backups,
         core_bw=args.core_bw,
         core_delay=args.core_delay,
         elephant_rate=args.elephant_rate,

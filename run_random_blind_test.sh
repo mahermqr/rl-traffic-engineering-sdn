@@ -32,13 +32,20 @@ echo "==========================================================================
 echo " 🎲 RUNNING TRUE BLIND ZERO-SHOT TEST SUITE ON UNSEEN RANDOM TOPOLOGIES"
 echo "================================================================================"
 
+OUTPUT_JSON="${OUTPUT_JSON:-logs/random_blind_topologies_results.json}"
 TEST_NODES="${TEST_NODES:-16 20 25 30}"
 
 for NODES in $TEST_NODES; do
     echo ""
     echo ">>> Evaluating on Random Connected Mesh with N=$NODES nodes..."
-    "$PYTHON_BIN" evaluate_random_blind_topology.py --nodes "$NODES" "$@"
+    "$PYTHON_BIN" evaluate_random_blind_topology.py --nodes "$NODES" --output-json "$OUTPUT_JSON" "$@"
 done
+
+if [ -f "$OUTPUT_JSON" ]; then
+    echo ""
+    echo ">>> Rendering Figure 6 (random_blind_topologies_evaluation.png)..."
+    "$PYTHON_BIN" -c "from generate_detailed_plots import plot_random_blind_evaluation; plot_random_blind_evaluation()" || true
+fi
 
 echo ""
 echo "================================================================================"

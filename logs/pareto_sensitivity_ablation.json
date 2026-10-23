@@ -11,11 +11,13 @@
       "description": "Standard telecom carrier profile with exponential barrier at 70% load."
     },
     "metrics": {
-      "mean_bottleneck_pct": 45.11,
-      "mean_latency_ms": 12.57,
-      "mean_loss_pct": 0.001,
-      "mean_jitter_ms": 0.98,
-      "pareto_rank_score": 0.705
+      "mean_bottleneck_pct": 78.98,
+      "mean_latency_ms": 164.54,
+      "mean_loss_pct": 1.698,
+      "mean_jitter_ms": 9.54,
+      "pareto_rank_score": 1.214,
+      "samples": 50,
+      "method": "deterministic multi-topology routing-objective sensitivity; no retraining"
     }
   },
   "loss_averse": {
@@ -30,11 +32,13 @@
       "description": "Heavy packet loss penalty with aggressive barrier at 65% load."
     },
     "metrics": {
-      "mean_bottleneck_pct": 45.11,
-      "mean_latency_ms": 12.57,
-      "mean_loss_pct": 0.001,
-      "mean_jitter_ms": 0.98,
-      "pareto_rank_score": 0.705
+      "mean_bottleneck_pct": 78.79,
+      "mean_latency_ms": 164.61,
+      "mean_loss_pct": 1.698,
+      "mean_jitter_ms": 9.54,
+      "pareto_rank_score": 1.213,
+      "samples": 50,
+      "method": "deterministic multi-topology routing-objective sensitivity; no retraining"
     }
   },
   "latency_prioritized": {
@@ -49,11 +53,13 @@
       "description": "Minimizes propagation delay, accepting higher core utilization up to 80%."
     },
     "metrics": {
-      "mean_bottleneck_pct": 41.92,
-      "mean_latency_ms": 11.22,
-      "mean_loss_pct": 0.002,
-      "mean_jitter_ms": 1.11,
-      "pareto_rank_score": 0.646
+      "mean_bottleneck_pct": 79.29,
+      "mean_latency_ms": 163.37,
+      "mean_loss_pct": 1.922,
+      "mean_jitter_ms": 9.52,
+      "pareto_rank_score": 1.209,
+      "samples": 50,
+      "method": "deterministic multi-topology routing-objective sensitivity; no retraining"
     }
   },
   "utilization_only": {
@@ -68,11 +74,13 @@
       "description": "Greedily offloads core trunks without regard for detour propagation delay."
     },
     "metrics": {
-      "mean_bottleneck_pct": 45.11,
-      "mean_latency_ms": 12.57,
-      "mean_loss_pct": 0.001,
-      "mean_jitter_ms": 0.98,
-      "pareto_rank_score": 0.705
+      "mean_bottleneck_pct": 78.55,
+      "mean_latency_ms": 164.82,
+      "mean_loss_pct": 1.698,
+      "mean_jitter_ms": 9.54,
+      "pareto_rank_score": 1.213,
+      "samples": 50,
+      "method": "deterministic multi-topology routing-objective sensitivity; no retraining"
     }
   },
   "no_barrier_ablation": {
@@ -87,11 +95,13 @@
       "description": "Linear penalty only; demonstrates failure without exponential congestion barrier."
     },
     "metrics": {
-      "mean_bottleneck_pct": 70.4,
-      "mean_latency_ms": 32.91,
-      "mean_loss_pct": 2.152,
-      "mean_jitter_ms": 2.52,
-      "pareto_rank_score": 7.842
+      "mean_bottleneck_pct": 78.98,
+      "mean_latency_ms": 164.54,
+      "mean_loss_pct": 1.698,
+      "mean_jitter_ms": 9.54,
+      "pareto_rank_score": 1.214,
+      "samples": 50,
+      "method": "deterministic multi-topology routing-objective sensitivity; no retraining"
     }
   },
   "equal_weights": {
@@ -106,11 +116,13 @@
       "description": "Uncalibrated unit weights across all QoS dimensions."
     },
     "metrics": {
-      "mean_bottleneck_pct": 45.11,
-      "mean_latency_ms": 12.57,
-      "mean_loss_pct": 0.001,
-      "mean_jitter_ms": 0.98,
-      "pareto_rank_score": 0.705
+      "mean_bottleneck_pct": 79.29,
+      "mean_latency_ms": 163.37,
+      "mean_loss_pct": 1.922,
+      "mean_jitter_ms": 9.52,
+      "pareto_rank_score": 1.209,
+      "samples": 50,
+      "method": "deterministic multi-topology routing-objective sensitivity; no retraining"
     }
   }
 }

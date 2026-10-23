@@ -141,11 +141,7 @@ def run_full_training(
     for tid, builder in ALL_TOPOLOGY_BUILDERS.items():
         g, meta = builder()
         t_sm = StateManager()
-        t_sm.graph = g.copy()
-        for u, v, data in g.edges(data=True):
-            t_sm.update_link(u, v, src_port=1, dst_port=1,
-                             capacity_mbps=data.get('capacity', 100.0),
-                             delay_ms=data.get('delay', 2.0))
+        t_sm.set_topology(tid, g, meta)
         topology_instances[tid] = {
             'sm': t_sm,
             'meta': meta,
@@ -211,6 +207,8 @@ def run_full_training(
         dst = random.choice(dst_opts)
 
         cand_paths = sm.get_candidate_paths(src, dst, k=k_val)
+        if not cand_paths:
+            continue
         spf_path = cand_paths[0]
 
         # 3. Simulate synthetic traffic patterns:
@@ -231,8 +229,8 @@ def run_full_training(
 
         # 4. Agent Decision on pre-decision state s_t
         state = sm.get_routing_state(src, dst)
-        action = router_agent.act(state, explore=True)
-        chosen_path = cand_paths[action % len(cand_paths)]
+        action = router_agent.act(state, explore=True, candidate_count=len(cand_paths))
+        chosen_path = cand_paths[action]
 
         # Dynamic Closed-Loop Flow Allocation:
         flow_mbps = random.uniform(10.0, 20.0)
@@ -250,21 +248,19 @@ def run_full_training(
         jit_dqn = m_dqn['jitter']
         loss_dqn = m_dqn['packet_loss']
 
-        # 6. Intelligent Traffic Engineering Multi-Objective Reward:
-        if u_spf <= 0.60:
-            if action == 0:
-                reward = 4.0 - 0.04 * lat_dqn - 0.1 * jit_dqn
-            else:
-                hop_diff = max(0, hops_dqn - hops_spf)
-                reward = 1.0 - 1.0 * hop_diff - 0.05 * lat_dqn - 0.1 * jit_dqn
-        else:
-            if u_dqn < u_spf - 0.08:
-                relief = u_spf - u_dqn
-                reward = 12.0 * relief + 4.0 * (1.0 - u_dqn) - 0.15 * jit_dqn - 1.5 * loss_dqn
-            elif action == 0:
-                reward = - 14.0 * (u_spf ** 2) - 0.3 * jit_dqn - 3.0 * loss_dqn
-            else:
-                reward = - 8.0 * (u_dqn ** 2) - 0.3 * jit_dqn - 2.0 * loss_dqn
+        # 6. Configurable multi-objective reward used consistently with the controller.
+        threshold = sm.congestion_barrier_pct / 100.0
+        congestion_penalty = sm.w_congestion * (u_dqn ** 2)
+        if u_dqn > threshold:
+            congestion_penalty += 12.0 * sm.w_congestion * ((u_dqn - threshold) ** 2)
+        relief_bonus = 4.0 * sm.w_congestion * max(0.0, u_spf - u_dqn)
+        reward = relief_bonus - (
+            sm.w_hops * hops_dqn
+            + sm.w_delay * lat_dqn
+            + congestion_penalty
+            + sm.w_jitter * jit_dqn
+            + sm.w_loss * loss_dqn
+        )
 
         # 7. Observe genuine posterior state s_{t+1} after traffic placement
         next_state = sm.get_routing_state(src, dst)

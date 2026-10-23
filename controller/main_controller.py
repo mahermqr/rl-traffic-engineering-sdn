@@ -1,3 +1,8 @@
+try:
+    import setuptools  # Ensures distutils compatibility for Ryu on Python 3.12+
+except ImportError:
+    pass
+
 from ryu.base import app_manager
 from ryu.controller import ofp_event
 from ryu.controller.handler import CONFIG_DISPATCHER, MAIN_DISPATCHER, DEAD_DISPATCHER
@@ -47,7 +52,7 @@ class MainController(app_manager.RyuApp):
         # Pre-populate state manager with default baseline topology
         default_topo = os.environ.get("SDN_DEFAULT_TOPOLOGY", getattr(config, "DEFAULT_TOPOLOGY_ID", "tree"))
         builder = ALL_TOPOLOGY_BUILDERS.get(default_topo, ALL_TOPOLOGY_BUILDERS.get("tree"))
-        if builder:
+        if builder and getattr(config, 'RUNTIME_MODE', 'simulation') != 'live':
             g_init, meta = builder()
             self.state_manager.set_topology(default_topo, g_init, meta)
 
@@ -56,7 +61,7 @@ class MainController(app_manager.RyuApp):
 
         # Initialize Live Web Dashboard & REST Server (configurable host and port)
         rest_port = int(os.environ.get("SDN_REST_PORT", getattr(config, "REST_PORT", 8080)))
-        rest_host = os.environ.get("SDN_REST_HOST", getattr(config, "REST_HOST", "0.0.0.0"))
+        rest_host = os.environ.get("SDN_REST_HOST", getattr(config, "REST_HOST", "127.0.0.1"))
         self.dashboard_server = DashboardServer(self, self.state_manager, host=rest_host, port=rest_port)
 
         self.logger.info("=" * 65)
@@ -110,7 +115,7 @@ class MainController(app_manager.RyuApp):
         self.state_manager.record_stats_request(byte_size=56)
 
     def _send_echo_request(self, datapath):
-        """Sends EchoRequest with timestamp to measure controller-switch RTT latency and link jitter."""
+        """Sends EchoRequest with a timestamp to measure controller-switch RTT."""
         parser = datapath.ofproto_parser
         data = f"{time.time():.6f}".encode('ascii')
         echo_req = parser.OFPEchoRequest(datapath, data=data)
@@ -119,14 +124,13 @@ class MainController(app_manager.RyuApp):
 
     @set_ev_cls(ofp_event.EventOFPEchoReply, [MAIN_DISPATCHER, CONFIG_DISPATCHER])
     def echo_reply_handler(self, ev):
-        """Measures RTT from EchoReply and updates link latency and jitter."""
+        """Measures controller-switch RTT without treating it as inter-switch latency."""
         try:
             sent_time = float(ev.msg.data.decode('ascii'))
             rtt_ms = (time.time() - sent_time) * 1000.0
             dpid = ev.msg.datapath.id
             self.state_manager.record_stats_reply(byte_size=32)
-            for neighbor in self.state_manager.graph.neighbors(dpid):
-                self.state_manager.update_link_latency(dpid, neighbor, delay_ms=max(0.5, rtt_ms / 2.0))
+            self.state_manager.record_switch_rtt(dpid, rtt_ms)
         except Exception:
             pass
 
@@ -149,7 +153,7 @@ class MainController(app_manager.RyuApp):
         parser = datapath.ofproto_parser
 
         inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
-        if buffer_id:
+        if buffer_id is not None:
             mod = parser.OFPFlowMod(datapath=datapath, buffer_id=buffer_id,
                                     priority=priority, match=match,
                                     instructions=inst, idle_timeout=idle_timeout,
@@ -184,7 +188,11 @@ class MainController(app_manager.RyuApp):
         in_port = msg.match['in_port']
 
         pkt = packet.Packet(msg.data)
-        eth = pkt.get_protocols(ethernet.ethernet)[0]
+        eth_packets = pkt.get_protocols(ethernet.ethernet)
+        if not eth_packets:
+            self.logger.warning("[MainController] Dropping malformed PacketIn without Ethernet header")
+            return
+        eth = eth_packets[0]
 
         # Account for Packet-In control overhead
         self.state_manager.record_packet_in(byte_size=len(msg.data) + 32)
@@ -297,3 +305,9 @@ class MainController(app_manager.RyuApp):
         self.state_manager.update_link(src, dst, src_port, dst_port, capacity_mbps=cap, delay_ms=delay)
         self.logger.info("[Topology] Discovered Link: Switch %s (port %s) <-> Switch %s (port %s)",
                          src, src_port, dst, dst_port)
+
+    def close(self):
+        """Stops background components before Ryu tears down the app."""
+        self.routing_module.stop_training_worker()
+        self.dashboard_server.stop()
+        return super().close()

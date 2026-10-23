@@ -1,0 +1,433 @@
+{
+  "metadata": {
+    "training_seeds": [
+      42,
+      101,
+      102,
+      103,
+      104
+    ],
+    "workload_seeds": [
+      42,
+      43,
+      44,
+      45,
+      46
+    ],
+    "topologies": [
+      "tree",
+      "fattree",
+      "abilene",
+      "nsfnet",
+      "spineleaf"
+    ],
+    "total_evaluations_per_variant": 125,
+    "episodes_per_training": 350,
+    "bootstrap_method": "3-way hierarchical cluster bootstrap resampling (training_seed, workload_seed, topology)",
+    "iterations": 10000
+  },
+  "variant_summaries": {
+    "plain_dqn": {
+      "bottleneck_util": {
+        "grand_mean": 248.9,
+        "grand_std": 173.73,
+        "inter_seed_mean": 248.9,
+        "inter_seed_std": 9.16,
+        "p95": 626.46,
+        "p99": 681.2
+      },
+      "mean_latency_ms": {
+        "grand_mean": 759.66,
+        "grand_std": 779.53,
+        "inter_seed_mean": 759.66,
+        "inter_seed_std": 206.85,
+        "p95": 2146.62,
+        "p99": 2558.02
+      },
+      "p95_latency_ms": {
+        "grand_mean": 2053.18,
+        "grand_std": 1764.06,
+        "inter_seed_mean": 2053.18,
+        "inter_seed_std": 454.66,
+        "p95": 5297.5,
+        "p99": 6526.07
+      },
+      "p99_latency_ms": {
+        "grand_mean": 2410.78,
+        "grand_std": 1988.16,
+        "inter_seed_mean": 2410.78,
+        "inter_seed_std": 549.23,
+        "p95": 6474.11,
+        "p99": 7514.8
+      },
+      "mean_jitter_ms": {
+        "grand_mean": 9.14,
+        "grand_std": 3.43,
+        "inter_seed_mean": 9.14,
+        "inter_seed_std": 0.51,
+        "p95": 13.9,
+        "p99": 14.16
+      },
+      "packet_loss_pct": {
+        "grand_mean": 18.24,
+        "grand_std": 21.8,
+        "inter_seed_mean": 18.24,
+        "inter_seed_std": 2.45,
+        "p95": 65.77,
+        "p99": 68.89
+      },
+      "worst_link_loss_pct": {
+        "grand_mean": 44.66,
+        "grand_std": 24.6,
+        "inter_seed_mean": 44.66,
+        "inter_seed_std": 1.97,
+        "p95": 84.04,
+        "p99": 85.32
+      },
+      "jains_fairness": {
+        "grand_mean": 0.86,
+        "grand_std": 0.06,
+        "inter_seed_mean": 0.86,
+        "inter_seed_std": 0.03,
+        "p95": 0.94,
+        "p99": 0.95
+      },
+      "decision_time_ms": {
+        "grand_mean": 0.28,
+        "grand_std": 0.03,
+        "inter_seed_mean": 0.28,
+        "inter_seed_std": 0.01,
+        "p95": 0.34,
+        "p99": 0.37
+      }
+    },
+    "double_dqn": {
+      "bottleneck_util": {
+        "grand_mean": 248.17,
+        "grand_std": 167.13,
+        "inter_seed_mean": 248.17,
+        "inter_seed_std": 9.3,
+        "p95": 622.22,
+        "p99": 680.03
+      },
+      "mean_latency_ms": {
+        "grand_mean": 710.86,
+        "grand_std": 745.11,
+        "inter_seed_mean": 710.86,
+        "inter_seed_std": 244.1,
+        "p95": 2274.04,
+        "p99": 2642.49
+      },
+      "p95_latency_ms": {
+        "grand_mean": 1959.67,
+        "grand_std": 1646.67,
+        "inter_seed_mean": 1959.67,
+        "inter_seed_std": 526.34,
+        "p95": 5055.42,
+        "p99": 6686.6
+      },
+      "p99_latency_ms": {
+        "grand_mean": 2272.56,
+        "grand_std": 1799.96,
+        "inter_seed_mean": 2272.56,
+        "inter_seed_std": 590.18,
+        "p95": 6203.35,
+        "p99": 7487.75
+      },
+      "mean_jitter_ms": {
+        "grand_mean": 9.34,
+        "grand_std": 3.06,
+        "inter_seed_mean": 9.34,
+        "inter_seed_std": 0.51,
+        "p95": 13.75,
+        "p99": 14.29
+      },
+      "packet_loss_pct": {
+        "grand_mean": 17.65,
+        "grand_std": 21.07,
+        "inter_seed_mean": 17.65,
+        "inter_seed_std": 3.25,
+        "p95": 64.95,
+        "p99": 71.59
+      },
+      "worst_link_loss_pct": {
+        "grand_mean": 45.99,
+        "grand_std": 22.36,
+        "inter_seed_mean": 45.99,
+        "inter_seed_std": 2.34,
+        "p95": 83.93,
+        "p99": 85.29
+      },
+      "jains_fairness": {
+        "grand_mean": 0.84,
+        "grand_std": 0.06,
+        "inter_seed_mean": 0.84,
+        "inter_seed_std": 0.03,
+        "p95": 0.94,
+        "p99": 0.95
+      },
+      "decision_time_ms": {
+        "grand_mean": 0.29,
+        "grand_std": 0.05,
+        "inter_seed_mean": 0.29,
+        "inter_seed_std": 0.02,
+        "p95": 0.37,
+        "p99": 0.48
+      }
+    },
+    "dueling_ddqn": {
+      "bottleneck_util": {
+        "grand_mean": 252.87,
+        "grand_std": 187.28,
+        "inter_seed_mean": 252.87,
+        "inter_seed_std": 23.86,
+        "p95": 680.65,
+        "p99": 857.81
+      },
+      "mean_latency_ms": {
+        "grand_mean": 825.52,
+        "grand_std": 832.28,
+        "inter_seed_mean": 825.52,
+        "inter_seed_std": 156.24,
+        "p95": 2167.59,
+        "p99": 2567.61
+      },
+      "p95_latency_ms": {
+        "grand_mean": 2224.5,
+        "grand_std": 1903.16,
+        "inter_seed_mean": 2224.5,
+        "inter_seed_std": 353.62,
+        "p95": 5847.01,
+        "p99": 6228.27
+      },
+      "p99_latency_ms": {
+        "grand_mean": 2628.3,
+        "grand_std": 2113.42,
+        "inter_seed_mean": 2628.3,
+        "inter_seed_std": 391.15,
+        "p95": 6644.84,
+        "p99": 7119.44
+      },
+      "mean_jitter_ms": {
+        "grand_mean": 9.53,
+        "grand_std": 3.1,
+        "inter_seed_mean": 9.53,
+        "inter_seed_std": 0.3,
+        "p95": 14.1,
+        "p99": 14.24
+      },
+      "packet_loss_pct": {
+        "grand_mean": 19.05,
+        "grand_std": 23.25,
+        "inter_seed_mean": 19.05,
+        "inter_seed_std": 2.04,
+        "p95": 66.83,
+        "p99": 71.21
+      },
+      "worst_link_loss_pct": {
+        "grand_mean": 45.39,
+        "grand_std": 23.26,
+        "inter_seed_mean": 45.39,
+        "inter_seed_std": 2.44,
+        "p95": 85.29,
+        "p99": 88.34
+      },
+      "jains_fairness": {
+        "grand_mean": 0.87,
+        "grand_std": 0.05,
+        "inter_seed_mean": 0.87,
+        "inter_seed_std": 0.03,
+        "p95": 0.96,
+        "p99": 0.97
+      },
+      "decision_time_ms": {
+        "grand_mean": 0.34,
+        "grand_std": 0.03,
+        "inter_seed_mean": 0.34,
+        "inter_seed_std": 0.0,
+        "p95": 0.39,
+        "p99": 0.4
+      }
+    },
+    "full_d3qn": {
+      "bottleneck_util": {
+        "grand_mean": 248.22,
+        "grand_std": 157.8,
+        "inter_seed_mean": 248.22,
+        "inter_seed_std": 29.46,
+        "p95": 613.13,
+        "p99": 662.72
+      },
+      "mean_latency_ms": {
+        "grand_mean": 864.88,
+        "grand_std": 864.9,
+        "inter_seed_mean": 864.88,
+        "inter_seed_std": 231.3,
+        "p95": 2487.16,
+        "p99": 2665.37
+      },
+      "p95_latency_ms": {
+        "grand_mean": 2318.46,
+        "grand_std": 1986.26,
+        "inter_seed_mean": 2318.46,
+        "inter_seed_std": 441.24,
+        "p95": 6333.1,
+        "p99": 6793.39
+      },
+      "p99_latency_ms": {
+        "grand_mean": 2674.98,
+        "grand_std": 2170.39,
+        "inter_seed_mean": 2674.98,
+        "inter_seed_std": 454.58,
+        "p95": 7201.55,
+        "p99": 7520.02
+      },
+      "mean_jitter_ms": {
+        "grand_mean": 9.67,
+        "grand_std": 3.24,
+        "inter_seed_mean": 9.67,
+        "inter_seed_std": 0.39,
+        "p95": 13.92,
+        "p99": 14.22
+      },
+      "packet_loss_pct": {
+        "grand_mean": 20.33,
+        "grand_std": 21.75,
+        "inter_seed_mean": 20.33,
+        "inter_seed_std": 4.22,
+        "p95": 67.22,
+        "p99": 70.69
+      },
+      "worst_link_loss_pct": {
+        "grand_mean": 47.62,
+        "grand_std": 21.58,
+        "inter_seed_mean": 47.62,
+        "inter_seed_std": 5.47,
+        "p95": 83.69,
+        "p99": 84.91
+      },
+      "jains_fairness": {
+        "grand_mean": 0.87,
+        "grand_std": 0.06,
+        "inter_seed_mean": 0.87,
+        "inter_seed_std": 0.04,
+        "p95": 0.95,
+        "p99": 0.96
+      },
+      "decision_time_ms": {
+        "grand_mean": 0.34,
+        "grand_std": 0.03,
+        "inter_seed_mean": 0.34,
+        "inter_seed_std": 0.01,
+        "p95": 0.39,
+        "p99": 0.4
+      }
+    }
+  },
+  "three_way_bootstrap_paired_effects": {
+    "full_d3qn_vs_plain_dqn": {
+      "bottleneck_util": {
+        "point_estimate": 0.6775,
+        "ci95_low": -30.2154,
+        "ci95_high": 52.6868,
+        "win_rate_pct": 43.19
+      },
+      "mean_latency_ms": {
+        "point_estimate": -105.2117,
+        "ci95_low": -425.7933,
+        "ci95_high": 152.7898,
+        "win_rate_pct": 17.39
+      },
+      "packet_loss_pct": {
+        "point_estimate": -2.0893,
+        "ci95_low": -6.4709,
+        "ci95_high": 2.9791,
+        "win_rate_pct": 15.28
+      },
+      "jains_fairness": {
+        "point_estimate": 0.0106,
+        "ci95_low": -0.0431,
+        "ci95_high": 0.0638,
+        "win_rate_pct": 66.75
+      }
+    },
+    "full_d3qn_vs_double_dqn": {
+      "bottleneck_util": {
+        "point_estimate": -0.0528,
+        "ci95_low": -28.6961,
+        "ci95_high": 39.8997,
+        "win_rate_pct": 44.95
+      },
+      "mean_latency_ms": {
+        "point_estimate": -154.0156,
+        "ci95_low": -444.796,
+        "ci95_high": 29.2787,
+        "win_rate_pct": 5.22
+      },
+      "packet_loss_pct": {
+        "point_estimate": -2.6792,
+        "ci95_low": -6.7063,
+        "ci95_high": 0.7085,
+        "win_rate_pct": 6.48
+      },
+      "jains_fairness": {
+        "point_estimate": 0.0255,
+        "ci95_low": -0.0352,
+        "ci95_high": 0.0946,
+        "win_rate_pct": 77.92
+      }
+    },
+    "dueling_ddqn_vs_double_dqn": {
+      "bottleneck_util": {
+        "point_estimate": -4.7074,
+        "ci95_low": -45.5029,
+        "ci95_high": 20.3132,
+        "win_rate_pct": 42.63
+      },
+      "mean_latency_ms": {
+        "point_estimate": -114.6623,
+        "ci95_low": -427.4486,
+        "ci95_high": 84.2228,
+        "win_rate_pct": 17.19
+      },
+      "packet_loss_pct": {
+        "point_estimate": -1.3957,
+        "ci95_low": -6.2401,
+        "ci95_high": 1.4642,
+        "win_rate_pct": 23.75
+      },
+      "jains_fairness": {
+        "point_estimate": 0.0296,
+        "ci95_low": -0.0106,
+        "ci95_high": 0.0863,
+        "win_rate_pct": 90.89
+      }
+    },
+    "full_d3qn_vs_dueling_ddqn": {
+      "bottleneck_util": {
+        "point_estimate": 4.6546,
+        "ci95_low": -33.0955,
+        "ci95_high": 65.3937,
+        "win_rate_pct": 50.81
+      },
+      "mean_latency_ms": {
+        "point_estimate": -39.3534,
+        "ci95_low": -372.166,
+        "ci95_high": 294.1513,
+        "win_rate_pct": 36.46
+      },
+      "packet_loss_pct": {
+        "point_estimate": -1.2835,
+        "ci95_low": -6.6627,
+        "ci95_high": 5.3068,
+        "win_rate_pct": 28.46
+      },
+      "jains_fairness": {
+        "point_estimate": -0.0041,
+        "ci95_low": -0.0595,
+        "ci95_high": 0.0544,
+        "win_rate_pct": 44.1
+      }
+    }
+  }
+}

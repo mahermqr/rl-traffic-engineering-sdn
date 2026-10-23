@@ -97,15 +97,25 @@ def load_json(filename, default=None):
 # ==============================================================================
 # FIGURE 1: 6-PANEL BENCHMARK TOURNAMENT ACROSS 5 TOPOLOGIES
 # ==============================================================================
-def plot_tournament_benchmarks(data=None):
+def plot_tournament_benchmarks(data=None, output_dir=None):
     if not data:
         data = load_json('routing_tournament_results.json')
     if not data or 'bottleneck_util' not in data:
         print("[Skip] Tournament data not available.")
         return
 
-    topos = ['Hierarchical Tree', 'Fat-Tree Clos', 'Abilene US Backbone', 'NSFNet Continental', 'Spine-Leaf Fabric']
-    topos_display = ['Tree', 'Fat-Tree', 'Abilene', 'NSFNet', 'Spine-Leaf']
+    topos = data.get('topologies', [])
+    if not topos:
+        print("[Skip] Tournament topology labels are absent.")
+        return
+    replacements = {
+        'Hierarchical Tree (7 Nodes)': 'Tree',
+        'Fat-Tree Clos Fabric (20 Nodes)': 'Fat-Tree',
+        'Abilene US Backbone (12 Nodes)': 'Abilene',
+        'NSFNET Continental Mesh (14 Nodes)': 'NSFNet',
+        'Spine-Leaf Fabric (12 Nodes)': 'Spine-Leaf',
+    }
+    topos_display = [replacements.get(name, name) for name in topos]
     x = np.arange(len(topos))
     width = 0.13
     algos = list(COLORS.keys())
@@ -220,7 +230,8 @@ def plot_tournament_benchmarks(data=None):
     fig.legend(algo_handles, algo_labels, loc='upper center', bbox_to_anchor=(0.50, 0.932), ncol=6, fontsize=9.5, frameon=True, facecolor='#ffffff', edgecolor='#cbd5e1')
     fig.suptitle("Adaptive SDN Traffic Engineering Tournament Benchmark (EC499)\nDouble Deep Q-Network vs OSPF RFC 2328, Dijkstra SPF, ECMP, WSP & LLR Baselines (★ = Best-in-Class Winner)", fontsize=13, fontweight='bold', y=0.980)
 
-    out_file = os.path.join(PLOTS_DIR, 'proposal_benchmarks_all_metrics.png')
+    out_file = os.path.join(output_dir or PLOTS_DIR, 'proposal_benchmarks_all_metrics.png')
+    os.makedirs(os.path.dirname(out_file), exist_ok=True)
     plt.savefig(out_file, dpi=300, bbox_inches='tight')
     plt.close()
     print(f" [Figure 1] Saved Detailed 6-Panel Benchmark Tournament: {out_file}")
@@ -229,7 +240,7 @@ def plot_tournament_benchmarks(data=None):
 # ==============================================================================
 # FIGURE 2: MULTI-OBJECTIVE RADAR COMPARISON
 # ==============================================================================
-def plot_tournament_radar(data=None):
+def plot_tournament_radar(data=None, output_dir=None):
     if not data:
         data = load_json('routing_tournament_results.json')
     if not data or 'bottleneck_util' not in data:
@@ -302,10 +313,11 @@ def plot_tournament_radar(data=None):
     ax.set_yticks([0.2, 0.4, 0.6, 0.8, 1.0])
     ax.set_yticklabels(['20%', '40%', '60%', '80%', '100%'], fontsize=8, color='#64748b')
     ax.grid(True, linestyle='--', alpha=0.45)
-    ax.set_title("Multi-Objective Performance Radar: DQN vs Traditional Baselines\n(DQN Outer Envelope Dominates Multi-Criteria Pareto Frontier Across 5 Topologies)", fontsize=12, fontweight='bold', pad=26)
+    ax.set_title("Normalized Multi-Objective Comparison Across Evaluated Baselines\n(Five evaluated topologies)", fontsize=12, fontweight='bold', pad=26)
     ax.legend(loc='lower center', bbox_to_anchor=(0.50, -0.15), ncol=3, fontsize=9.5, frameon=True, facecolor='#ffffff', edgecolor='#cbd5e1')
 
-    out_file = os.path.join(PLOTS_DIR, 'proposal_tournament_radar.png')
+    out_file = os.path.join(output_dir or PLOTS_DIR, 'proposal_tournament_radar.png')
+    os.makedirs(os.path.dirname(out_file), exist_ok=True)
     plt.savefig(out_file, dpi=300, bbox_inches='tight')
     plt.close()
     print(f" [Figure 2] Saved Multi-Objective Tournament Radar: {out_file}")
@@ -445,14 +457,14 @@ def plot_training_dynamics(csv_path=None):
     ax6 = axes[1, 2]
     ax6.plot(ep, epsilons, color='#0284c7', linewidth=2.0, label=r'Exploration Rate $\epsilon$')
     ax6.axhline(0.01, color='#64748b', linestyle=':', label=r'$\epsilon_{min} = 0.01$')
-    ax6.set_title("6. Exploration Schedule & Policy Crystallization", fontsize=11, fontweight='bold')
+    ax6.set_title("6. Exploration Schedule", fontsize=11, fontweight='bold')
     ax6.set_xlabel("Training Episodes", fontweight='bold')
     ax6.set_ylabel(r"$\epsilon$ Value", fontweight='bold')
     ax6.set_ylim(-0.05, 1.05)
     ax6.grid(True, linestyle='--', alpha=0.45)
     ax6.legend(loc='upper right', fontsize=8)
 
-    fig.suptitle(f"Dueling Double Deep Q-Network Traffic Engineering: Training Progression & Metric Dynamics\n(EC499 Curriculum Learning Across {N} Training Episodes)", fontsize=13, fontweight='bold', y=0.985)
+    fig.suptitle(f"Dueling Double Deep Q-Network Traffic Engineering: Training Progression & Metric Dynamics\n(EC499 curriculum trace across {N} training episodes)", fontsize=13, fontweight='bold', y=0.985)
 
     out_file = os.path.join(PLOTS_DIR, 'dqn_te_training_convergence.png')
     plt.savefig(out_file, dpi=300, bbox_inches='tight')
@@ -463,29 +475,15 @@ def plot_training_dynamics(csv_path=None):
 # ==============================================================================
 # FIGURE 4: EMPIRICAL CDFS OF PATH LATENCY & JITTER
 # ==============================================================================
-def plot_latency_and_jitter_cdfs():
-    """Generates empirical Cumulative Distribution Functions comparing all 6 algorithms."""
-    np.random.seed(42)
-    n_flows = 600
-
-    # Flow latency distributions modeling realistic multi-path delay distributions
-    lat_distributions = {
-        'OSPF (RFC 2328)': np.clip(np.random.normal(160, 45, n_flows), 25, 450),
-        'Dijkstra SPF': np.clip(np.random.normal(155, 48, n_flows), 20, 480),
-        'ECMP': np.clip(np.random.normal(95, 30, n_flows), 15, 320),
-        'WSP (Widest Path)': np.clip(np.random.normal(32, 14, n_flows), 4, 180),
-        'LLR (Least Loaded)': np.clip(np.random.normal(28, 12, n_flows), 4, 160),
-        'DQN (Ours)': np.clip(np.random.normal(18, 6.5, n_flows), 3, 95)
-    }
-
-    jit_distributions = {
-        'OSPF (RFC 2328)': np.clip(np.random.exponential(28, n_flows), 1, 150),
-        'Dijkstra SPF': np.clip(np.random.exponential(32, n_flows), 1, 170),
-        'ECMP': np.clip(np.random.exponential(16, n_flows), 0.8, 90),
-        'WSP (Widest Path)': np.clip(np.random.exponential(6.0, n_flows), 0.4, 45),
-        'LLR (Least Loaded)': np.clip(np.random.exponential(5.5, n_flows), 0.4, 40),
-        'DQN (Ours)': np.clip(np.random.exponential(1.8, n_flows), 0.2, 18)
-    }
+def plot_latency_and_jitter_cdfs(data=None):
+    """Generate CDFs only from recorded per-flow benchmark samples."""
+    data = data or load_json('routing_tournament_results.json')
+    raw = data.get('raw_samples', {}) if data else {}
+    lat_distributions = raw.get('latency_ms', {})
+    jit_distributions = raw.get('jitter_ms', {})
+    if not lat_distributions or not jit_distributions:
+        print("[Skip] Per-flow benchmark samples are absent; refusing to synthesize empirical CDFs.")
+        return
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6.5), dpi=300)
     plt.subplots_adjust(top=0.86, bottom=0.12, left=0.08, right=0.96, wspace=0.22)
@@ -499,10 +497,12 @@ def plot_latency_and_jitter_cdfs():
     ax1.set_title("A. Flow End-to-End Latency CDF", fontsize=11, fontweight='bold', pad=8)
     ax1.set_xlabel("Path Latency (ms)", fontweight='bold')
     ax1.set_ylabel("Cumulative Probability P(Latency ≤ x)", fontweight='bold')
-    ax1.set_xlim(0, 300)
+    ax1.set_xlim(left=0)
     ax1.set_ylim(0, 1.02)
     ax1.grid(True, linestyle='--', alpha=0.45)
-    ax1.axvline(x=25.0, color='#059669', linestyle=':', alpha=0.7, label='DQN P95 (28ms)')
+    if lat_distributions.get('DQN (Ours)'):
+        p95 = float(np.percentile(lat_distributions['DQN (Ours)'], 95))
+        ax1.axvline(x=p95, color='#059669', linestyle=':', alpha=0.7, label=f'DQN P95 ({p95:.1f} ms)')
     ax1.legend(loc='lower right', fontsize=8.5, frameon=True)
 
     # 2. Jitter CDF
@@ -514,13 +514,16 @@ def plot_latency_and_jitter_cdfs():
     ax2.set_title("B. RFC 3393 Delay Variation (Jitter) CDF", fontsize=11, fontweight='bold', pad=8)
     ax2.set_xlabel("Network Jitter (ms)", fontweight='bold')
     ax2.set_ylabel("Cumulative Probability P(Jitter ≤ x)", fontweight='bold')
-    ax2.set_xlim(0, 60)
+    ax2.set_xlim(left=0)
     ax2.set_ylim(0, 1.02)
     ax2.grid(True, linestyle='--', alpha=0.45)
-    ax2.axvline(x=4.0, color='#059669', linestyle=':', alpha=0.7, label='DQN P95 (3.8ms)')
+    if jit_distributions.get('DQN (Ours)'):
+        p95 = float(np.percentile(jit_distributions['DQN (Ours)'], 95))
+        ax2.axvline(x=p95, color='#059669', linestyle=':', alpha=0.7, label=f'DQN P95 ({p95:.1f} ms)')
     ax2.legend(loc='lower right', fontsize=8.5, frameon=True)
 
-    fig.suptitle("Empirical Cumulative Distribution Functions (CDFs) across 600 Simulated Ingress Flows\n(DQN Adaptive Routing vs Classical Routing Protocols)", fontsize=13, fontweight='bold', y=0.98)
+    sample_count = sum(len(v) for v in lat_distributions.values())
+    fig.suptitle(f"Empirical CDFs from {sample_count} Recorded Routing Decisions\n(DQN Adaptive Routing vs Classical Routing Protocols)", fontsize=13, fontweight='bold', y=0.98)
 
     out_file = os.path.join(PLOTS_DIR, 'routing_cdfs_latency_jitter.png')
     plt.savefig(out_file, dpi=300, bbox_inches='tight')
@@ -532,30 +535,25 @@ def plot_latency_and_jitter_cdfs():
 # FIGURE 5: TRAFFIC LOAD & CONGESTION SCALING CURVES (M/M/1/K QUEUE CLIFF)
 # ==============================================================================
 def plot_traffic_load_scaling_curves():
-    """Plots system behavior as offered traffic intensity scales from 10% to 100% capacity."""
+    """Plot an explicitly analytical M/M/1/K single-vs-two-path capacity study."""
+    from controller.queue_model import mm1k_metrics
     loads = np.linspace(10, 100, 19)
-
-    # Analytical queuing models matching state_manager
-    spf_bottleneck = np.clip(loads * 1.08, 10, 100)
-    dqn_bottleneck = np.where(loads < 65, loads * 0.45, np.clip(30 + (loads - 65) * 0.55, 30, 48))
-
-    # M/M/1 queue latency: T = T_0 / (1 - rho)
-    spf_latency = np.where(spf_bottleneck < 95, 4.0 / np.maximum(0.05, 1.0 - (spf_bottleneck / 100.0)), 220.0)
-    dqn_latency = 4.0 / np.maximum(0.20, 1.0 - (dqn_bottleneck / 100.0)) + (loads * 0.05)
-
-    # M/M/1/K buffer loss (strictly continuous transition)
-    spf_excess = np.maximum(0.0, (spf_bottleneck - 70.0) / 30.0)
-    dqn_excess = np.maximum(0.0, (dqn_bottleneck - 70.0) / 30.0)
-    spf_loss = np.where(spf_bottleneck <= 70.0, spf_bottleneck * 0.005, 0.35 + 29.65 * (spf_excess ** 2.2))
-    dqn_loss = np.where(dqn_bottleneck <= 70.0, dqn_bottleneck * 0.003, 0.21 + 0.9 * (dqn_excess ** 2.0))
+    single_bottleneck = loads
+    split_bottleneck = loads / 2.0
+    single_queue = [mm1k_metrics(load / 100.0, queue_depth=256, service_time_ms=4.0) for load in loads]
+    split_queue = [mm1k_metrics(load / 200.0, queue_depth=256, service_time_ms=4.0) for load in loads]
+    single_latency = np.array([4.0 + item['queue_delay_ms'] for item in single_queue])
+    split_latency = np.array([4.0 + item['queue_delay_ms'] for item in split_queue])
+    single_loss = np.array([item['loss_pct'] for item in single_queue])
+    split_loss = np.array([item['loss_pct'] for item in split_queue])
 
     fig, axes = plt.subplots(1, 3, figsize=(18, 5.5), dpi=300)
     plt.subplots_adjust(top=0.86, bottom=0.14, left=0.06, right=0.96, wspace=0.22)
 
     # 1. Bottleneck Load vs Offered Traffic
     ax1 = axes[0]
-    ax1.plot(loads, spf_bottleneck, color='#dc2626', linewidth=2.2, linestyle='--', label='Dijkstra SPF (Linear Saturation)')
-    ax1.plot(loads, dqn_bottleneck, color='#059669', linewidth=2.6, label='DQN TE (Adaptive Offloading)')
+    ax1.plot(loads, single_bottleneck, color='#dc2626', linewidth=2.2, linestyle='--', label='Single-Path Placement')
+    ax1.plot(loads, split_bottleneck, color='#059669', linewidth=2.6, label='Ideal Equal Two-Path Split')
     ax1.axhline(70.0, color='#d97706', linestyle=':', label='Congestion Barrier Threshold (70%)')
     ax1.set_title("A. Core Bottleneck Utilization (%)", fontsize=11, fontweight='bold', pad=8)
     ax1.set_xlabel("Offered Traffic Load (% Link Capacity)", fontweight='bold')
@@ -566,8 +564,8 @@ def plot_traffic_load_scaling_curves():
 
     # 2. Path Latency vs Offered Traffic
     ax2 = axes[1]
-    ax2.plot(loads, spf_latency, color='#dc2626', linewidth=2.2, linestyle='--', label='Dijkstra SPF (Queue Cliff)')
-    ax2.plot(loads, dqn_latency, color='#059669', linewidth=2.6, label='DQN TE (Low-Delay Lateral Bypass)')
+    ax2.plot(loads, single_latency, color='#dc2626', linewidth=2.2, linestyle='--', label='Single-Path Placement')
+    ax2.plot(loads, split_latency, color='#059669', linewidth=2.6, label='Ideal Equal Two-Path Split')
     ax2.set_title("B. Path Latency (Queue Congestion Cliff)", fontsize=11, fontweight='bold', pad=8)
     ax2.set_xlabel("Offered Traffic Load (% Link Capacity)", fontweight='bold')
     ax2.set_ylabel("End-to-End Latency (ms)", fontweight='bold')
@@ -578,8 +576,8 @@ def plot_traffic_load_scaling_curves():
 
     # 3. Buffer Overflow Packet Loss Rate
     ax3 = axes[2]
-    ax3.plot(loads, spf_loss, color='#dc2626', linewidth=2.2, linestyle='--', label='Dijkstra SPF (Severe Dropping)')
-    ax3.plot(loads, dqn_loss, color='#059669', linewidth=2.6, label='DQN TE (Near-Zero Dropping)')
+    ax3.plot(loads, single_loss, color='#dc2626', linewidth=2.2, linestyle='--', label='Single-Path Placement')
+    ax3.plot(loads, split_loss, color='#059669', linewidth=2.6, label='Ideal Equal Two-Path Split')
     ax3.set_title("C. Analytical Buffer Overflow Loss (%)", fontsize=11, fontweight='bold', pad=8)
     ax3.set_xlabel("Offered Traffic Load (% Link Capacity)", fontweight='bold')
     ax3.set_ylabel("Packet Loss Rate (%)", fontweight='bold')
@@ -587,7 +585,7 @@ def plot_traffic_load_scaling_curves():
     ax3.grid(True, linestyle='--', alpha=0.45)
     ax3.legend(loc='upper left', fontsize=8.5)
 
-    fig.suptitle("Network Scalability & Queuing Transition Curves under Escalating Offered Traffic Intensity\n(Evaluating M/M/1/K Congestion Transition between Single-Path SPF and Multi-Objective D3QN)", fontsize=13, fontweight='bold', y=0.98)
+    fig.suptitle("Analytical M/M/1/K Capacity Illustration under Escalating Offered Load\n(Not an empirical DQN benchmark; K=256, equal-capacity paths)", fontsize=13, fontweight='bold', y=0.98)
 
     out_file = os.path.join(PLOTS_DIR, 'traffic_load_scaling_curves.png')
     plt.savefig(out_file, dpi=300, bbox_inches='tight')
@@ -598,16 +596,38 @@ def plot_traffic_load_scaling_curves():
 # ==============================================================================
 # FIGURE 6: RANDOM UNSEEN BLIND TOPOLOGY EVALUATION SUMMARY
 # ==============================================================================
-def plot_random_blind_evaluation():
-    """Plots performance on unseen random dynamic topologies (N=20, N=25, N=30)."""
-    node_sizes = ['N = 20 Nodes', 'N = 25 Nodes', 'N = 30 Nodes']
+def plot_random_blind_evaluation(data=None):
+    """Plot recorded random-topology runs; never substitute hard-coded results."""
+    data = data or load_json('random_blind_topologies_results.json')
+    evaluations = data.get('evaluations', []) if isinstance(data, dict) else data
+    if isinstance(data, dict) and ('topology' in data or 'num_nodes' in data):
+        evaluations = [data]
+    if not evaluations:
+        print("[Skip] Random blind evaluation records are absent; refusing to plot invented values.")
+        return
+    node_sizes = [
+        f"N = {item.get('topology', {}).get('nodes', item.get('num_nodes', '?'))} Nodes"
+        for item in evaluations
+    ]
     x = np.arange(len(node_sizes))
     width = 0.35
 
-    dqn_bottlenecks = [23.9, 23.9, 27.1]
-    spf_bottlenecks = [28.5, 31.5, 38.3]
-    offload_rates = [16.0, 19.0, 25.0]
-    latency_improvements = [1.99, 12.38, 9.34]
+    dqn_bottlenecks = [
+        item.get('test1_core_jamming', item.get('test1_jamming', {})).get('dqn_bottleneck_pct', 0.0)
+        for item in evaluations
+    ]
+    spf_bottlenecks = [
+        item.get('test1_core_jamming', item.get('test1_jamming', {})).get('spf_bottleneck_pct', 0.0)
+        for item in evaluations
+    ]
+    offload_rates = [
+        item.get('test1_core_jamming', item.get('test1_jamming', {})).get('offload_rate_pct', 0.0)
+        for item in evaluations
+    ]
+    latency_improvements = [
+        item.get('test3_latency', {}).get('latency_improvement_ms', 0.0)
+        for item in evaluations
+    ]
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5.5), dpi=300)
     plt.subplots_adjust(top=0.86, bottom=0.12, left=0.08, right=0.96, wspace=0.25)
@@ -623,7 +643,7 @@ def plot_random_blind_evaluation():
     ax1.set_ylabel("Bottleneck Utilization (%)", fontweight='bold')
     ax1.set_xticks(x)
     ax1.set_xticklabels(node_sizes, fontweight='bold')
-    ax1.set_ylim(0, 52)
+    ax1.set_ylim(0, max(spf_bottlenecks + dqn_bottlenecks) * 1.3)
     ax1.grid(axis='y', linestyle='--', alpha=0.45)
     ax1.legend(loc='upper left', fontsize=8.5)
 
@@ -637,11 +657,11 @@ def plot_random_blind_evaluation():
     ax2.set_ylabel("Metric Value (% / ms)", fontweight='bold')
     ax2.set_xticks(x)
     ax2.set_xticklabels(node_sizes, fontweight='bold')
-    ax2.set_ylim(0, 32)
+    ax2.set_ylim(0, max(offload_rates + latency_improvements) * 1.3)
     ax2.grid(axis='y', linestyle='--', alpha=0.45)
     ax2.legend(loc='upper left', fontsize=8.5)
 
-    fig.suptitle("Zero-Shot Blind Transfer Evaluation on Unseen Dynamically Generated Random Topologies\n(Zero Retraining / Pure Architectural Generalization Across Arbitrary Topologies)", fontsize=13, fontweight='bold', y=0.98)
+    fig.suptitle("No-Retraining Transfer Checks on Dynamically Generated Random Topologies\n(Three evaluated instances; not a universal generalization estimate)", fontsize=13, fontweight='bold', y=0.98)
 
     out_file = os.path.join(PLOTS_DIR, 'random_blind_topologies_evaluation.png')
     plt.savefig(out_file, dpi=300, bbox_inches='tight')
@@ -764,4 +784,3 @@ def generate_all():
 
 if __name__ == '__main__':
     generate_all()
-

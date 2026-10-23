@@ -76,6 +76,7 @@ except ImportError:
 
 from dqn_router import DQNRoutingAgent
 from state_manager import StateManager
+from policy_selector import select_dqn_path
 from benchmark_evaluation import build_evaluation_topology
 
 def jains_fairness_index(loads):
@@ -112,24 +113,21 @@ def run_stress_tests(model_path=None, json_path=None, plots_dir=None, n_samples=
 
     sm = StateManager()
     topo = build_evaluation_topology()
-    sm.graph = topo.copy()
-    for u, v, data in topo.edges(data=True):
-        sm.update_link(u, v, src_port=1, dst_port=1, capacity_mbps=data['capacity'], delay_ms=data['delay'])
+    sm.set_topology('stress_tree', topo, {'id': 'stress_tree', 'name': 'Stress Tree', 'core_nodes': [1], 'edge_nodes': [4, 5, 6, 7], 'hosts': []})
 
     core_links = [(1, 2), (2, 1), (1, 3), (3, 1), (2, 4), (4, 2), (2, 5), (5, 2), (3, 6), (6, 3), (3, 7), (7, 3)]
     cross_links = [(4, 6), (6, 4), (5, 7), (7, 5)]
 
     def evaluate_flow(src_sw, dst_sw):
-        import itertools
         primary_tree_path = [src_sw, 2 if src_sw in [4, 5] else 3, 1, 3 if dst_sw in [6, 7] else 2, dst_sw]
-        try:
-            candidate_paths = list(itertools.islice(nx.shortest_simple_paths(sm.graph, src_sw, dst_sw), 4))
-        except Exception:
-            candidate_paths = [[src_sw, dst_sw]]
-
-        state = sm.get_routing_state(src_sw, dst_sw)
-        action = agent.act(state, explore=False)
-        chosen_path = candidate_paths[action % len(candidate_paths)]
+        candidate_paths = sm.get_candidate_paths(src_sw, dst_sw, k=4)
+        decision = select_dqn_path(
+            agent, sm, src_sw, dst_sw, candidate_paths=candidate_paths,
+            mode=getattr(config, 'POLICY_MODE', 'pure')
+        )
+        if decision['status'] != 'success':
+            raise RuntimeError(f"No route between {src_sw} and {dst_sw}")
+        chosen_path = decision['path']
         spf_path = primary_tree_path
 
         def p_metrics(p):
@@ -155,7 +153,6 @@ def run_stress_tests(model_path=None, json_path=None, plots_dir=None, n_samples=
     for u, v in cross_links:
         sm.link_utilization[(u, v)] = random.uniform(0.10, 0.25)
 
-    n_samples = 200
     s1_dqn_u, s1_spf_u, s1_dqn_lat, s1_spf_lat, s1_reroutes = [], [], [], [], 0
 
     for _ in range(n_samples):
@@ -193,7 +190,6 @@ def run_stress_tests(model_path=None, json_path=None, plots_dir=None, n_samples=
     link_loads_dqn = {e: 0.05 for e in sm.graph.edges()}
     link_loads_spf = {e: 0.05 for e in sm.graph.edges()}
 
-    n_burst = 500
     t0 = time.time()
     s2_reroutes = 0
     for _ in range(n_burst):
@@ -299,7 +295,6 @@ def run_stress_tests(model_path=None, json_path=None, plots_dir=None, n_samples=
     print("\n" + "=" * 80)
     print(" Generating Stress Test Publication Plot: logs/plots/stress_test_load_balancing.png ...")
 
-    plots_dir = os.path.join(BASE_DIR, 'logs', 'plots')
     os.makedirs(plots_dir, exist_ok=True)
 
     fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(14, 10))

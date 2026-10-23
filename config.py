@@ -98,9 +98,20 @@ for _d in (MODELS_DIR, LOGS_DIR, PLOTS_DIR):
 CONTROLLER_IP = str(get_config_val("controller_ip", "SDN_CONTROLLER_IP", "127.0.0.1"))
 CONTROLLER_PORT = get_config_val("controller_port", "SDN_CONTROLLER_PORT", 6633, cast_type=int)
 
+# High Availability (HA) Multi-Controller Clustering (1 Primary + 2 Standby Backups)
+HA_CONTROLLER_ENABLED = get_config_val("ha_controller_enabled", "SDN_HA_ENABLED", True, cast_type=bool)
+CONTROLLER_PORT_BACKUP1 = get_config_val("controller_port_backup1", "SDN_CONTROLLER_PORT_BACKUP1", 6634, cast_type=int)
+CONTROLLER_PORT_BACKUP2 = get_config_val("controller_port_backup2", "SDN_CONTROLLER_PORT_BACKUP2", 6635, cast_type=int)
+REST_PORT_BACKUP1 = get_config_val("rest_port_backup1", "SDN_REST_PORT_BACKUP1", 8081, cast_type=int)
+REST_PORT_BACKUP2 = get_config_val("rest_port_backup2", "SDN_REST_PORT_BACKUP2", 8082, cast_type=int)
+
 # Web Dashboard & REST Telemetry API
-REST_HOST = str(get_config_val("rest_host", "SDN_REST_HOST", "0.0.0.0"))
+REST_HOST = str(get_config_val("rest_host", "SDN_REST_HOST", "127.0.0.1"))
 REST_PORT = get_config_val("rest_port", "SDN_REST_PORT", 8080, cast_type=int)
+API_TOKEN = str(get_config_val("api_token", "SDN_API_TOKEN", ""))
+CORS_ORIGIN = str(get_config_val("cors_origin", "SDN_CORS_ORIGIN", f"http://127.0.0.1:{REST_PORT}"))
+MAX_REQUEST_BODY = get_config_val("max_request_body", "SDN_MAX_REQUEST_BODY", 1_048_576, cast_type=int)
+RUNTIME_MODE = str(get_config_val("runtime_mode", "SDN_RUNTIME_MODE", "simulation")).lower()
 
 # Default REST URL for clients and simulation drivers
 CONTROLLER_URL = str(get_config_val(
@@ -113,6 +124,9 @@ STATS_POLL_INTERVAL = get_config_val("poll_interval", "SDN_POLL_INTERVAL", 3.0, 
 # OpenFlow Flow Rule Timeouts
 FLOW_IDLE_TIMEOUT = get_config_val("flow_idle_timeout", "SDN_FLOW_IDLE_TIMEOUT", 60, cast_type=int)
 FLOW_HARD_TIMEOUT = get_config_val("flow_hard_timeout", "SDN_FLOW_HARD_TIMEOUT", 120, cast_type=int)
+FLOW_IDLE_TIMEOUT_MICE = get_config_val("flow_idle_timeout_mice", "SDN_FLOW_IDLE_TIMEOUT_MICE", FLOW_IDLE_TIMEOUT, cast_type=int)
+FLOW_IDLE_TIMEOUT_ELEPHANT = get_config_val("flow_idle_timeout_elephant", "SDN_FLOW_IDLE_TIMEOUT_ELEPHANT", max(FLOW_IDLE_TIMEOUT, 180), cast_type=int)
+ENABLE_FAST_FAILOVER = get_config_val("enable_fast_failover", "SDN_ENABLE_FAST_FAILOVER", True, cast_type=bool)
 
 # ==============================================================================
 # 3. DEEP REINFORCEMENT LEARNING HYPERPARAMETERS (D3QN)
@@ -140,6 +154,7 @@ GRADIENT_CLIP_NORM = get_config_val("grad_clip_norm", "RL_GRAD_CLIP_NORM", 1.0, 
 
 # Device selection: auto, cpu, cuda
 TORCH_DEVICE = get_config_val("device", "TORCH_DEVICE", None)
+POLICY_MODE = str(get_config_val("policy_mode", "RL_POLICY_MODE", "pure")).lower()
 
 # ==============================================================================
 # 4. TRAFFIC ENGINEERING & NETWORK SIMULATION CONSTANTS
@@ -148,6 +163,12 @@ DEFAULT_LINK_CAPACITY = get_config_val("default_link_capacity", "SDN_DEFAULT_CAP
 DEFAULT_LINK_DELAY = get_config_val("default_link_delay", "SDN_DEFAULT_DELAY", 2.0, cast_type=float)         # ms
 DEFAULT_LINK_JITTER = get_config_val("default_link_jitter", "SDN_DEFAULT_JITTER", 0.25, cast_type=float)       # ms
 CONGESTION_BARRIER_THRESHOLD = get_config_val("congestion_threshold", "SDN_CONGESTION_THRESHOLD", 0.70, cast_type=float) # 70%
+MAX_QUEUE_DELAY_MS = get_config_val("max_queue_delay_ms", "SDN_MAX_QUEUE_DELAY_MS", 1000.0, cast_type=float)
+SHADOW_DECAY_HALF_LIFE = get_config_val("shadow_decay_half_life", "SDN_SHADOW_DECAY_HALF_LIFE", 1.5, cast_type=float)
+DEFAULT_TRAFFIC_PATTERN = str(get_config_val("default_traffic_pattern", "SDN_DEFAULT_TRAFFIC_PATTERN", "uniform"))
+DEFAULT_FLOW_RATE_MBPS = get_config_val("default_flow_rate_mbps", "SDN_DEFAULT_FLOW_RATE_MBPS", 15.0, cast_type=float)
+DEFAULT_DSCP = str(get_config_val("default_dscp", "SDN_DEFAULT_DSCP", "BE"))
+DEFAULT_FLOW_DURATION_MODEL = str(get_config_val("default_flow_duration_model", "SDN_DEFAULT_FLOW_DURATION_MODEL", "closed_loop"))
 
 # Weighted Cost Multi-Path (WCMP)
 WCMP_BETA = get_config_val("wcmp_beta", "SDN_WCMP_BETA", 4.0, cast_type=float)
@@ -201,7 +222,18 @@ def to_dict() -> Dict[str, Any]:
             "controller_url": CONTROLLER_URL,
             "poll_interval": STATS_POLL_INTERVAL,
             "flow_idle_timeout": FLOW_IDLE_TIMEOUT,
-            "flow_hard_timeout": FLOW_HARD_TIMEOUT
+            "flow_hard_timeout": FLOW_HARD_TIMEOUT,
+            "flow_idle_timeout_mice": FLOW_IDLE_TIMEOUT_MICE,
+            "flow_idle_timeout_elephant": FLOW_IDLE_TIMEOUT_ELEPHANT,
+            "api_token_configured": bool(API_TOKEN),
+            "cors_origin": CORS_ORIGIN,
+            "max_request_body": MAX_REQUEST_BODY,
+            "runtime_mode": RUNTIME_MODE,
+            "ha_enabled": HA_CONTROLLER_ENABLED,
+            "backup_controllers": [
+                {"name": "backup1", "ofp_port": CONTROLLER_PORT_BACKUP1, "rest_port": REST_PORT_BACKUP1},
+                {"name": "backup2", "ofp_port": CONTROLLER_PORT_BACKUP2, "rest_port": REST_PORT_BACKUP2}
+            ]
         },
         "rl": {
             "state_size": STATE_SIZE,
@@ -220,13 +252,17 @@ def to_dict() -> Dict[str, Any]:
             "tau": TAU,
             "target_update_freq": TARGET_UPDATE_FREQ,
             "grad_clip_norm": GRADIENT_CLIP_NORM,
-            "device": TORCH_DEVICE
+            "device": TORCH_DEVICE,
+            "policy_mode": POLICY_MODE
         },
         "traffic_engineering": {
             "default_link_capacity": DEFAULT_LINK_CAPACITY,
             "default_link_delay": DEFAULT_LINK_DELAY,
             "default_link_jitter": DEFAULT_LINK_JITTER,
             "congestion_barrier_threshold": CONGESTION_BARRIER_THRESHOLD,
+            "max_queue_delay_ms": MAX_QUEUE_DELAY_MS,
+            "shadow_decay_half_life": SHADOW_DECAY_HALF_LIFE,
+            "k_candidate_paths": K_CANDIDATE_PATHS,
             "w_hops": W_HOPS,
             "w_delay": W_DELAY,
             "w_congestion": W_CONGESTION,

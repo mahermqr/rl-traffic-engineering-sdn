@@ -34,11 +34,13 @@ env.bak/
 venv.bak/
 ec499_env/
 .venv/
+.venv
 
 # Logs & Runtime Process State
 logs/*.log
 *.log
-logs/mininet_matrix/
+**/*.log
+!logs/mininet_matrix/*.csv
 
 # Operating System Files
 .DS_Store
