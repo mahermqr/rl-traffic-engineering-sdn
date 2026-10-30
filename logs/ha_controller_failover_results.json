@@ -1,6 +1,6 @@
 {
   "test_name": "SDN 3-Controller HA Failover Suite",
-  "timestamp": "2026-10-22 19:04:45",
+  "timestamp": "2026-10-29 01:00:34",
   "cluster_nodes": [
     "primary",
     "backup1",
@@ -14,7 +14,7 @@
     },
     "phase2_nominal": {
       "status": "passed",
-      "decision_latency_ms": 99.75,
+      "decision_latency_ms": 6.37,
       "chosen_path": [
         4,
         2,
@@ -25,13 +25,13 @@
     "phase3_failover_1": {
       "status": "passed",
       "new_leader": "backup1",
-      "failover_latency_ms": 37.96,
+      "failover_latency_ms": 41.62,
       "served_after_crash": true
     },
     "phase4_failover_2": {
       "status": "passed",
       "new_leader": "backup2",
-      "failover_latency_ms": 37.74,
+      "failover_latency_ms": 45.28,
       "served_after_double_fault": true
     },
     "phase5_recovery": {

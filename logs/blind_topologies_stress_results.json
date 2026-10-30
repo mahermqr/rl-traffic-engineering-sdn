@@ -12,7 +12,7 @@
       "spf_latency_ms": 11.22
     },
     "scenario_2_concurrency_burst": {
-      "decisions_per_sec": 2413.2,
+      "decisions_per_sec": 1042.9,
       "jains_fairness_dqn": 0.7472,
       "jains_fairness_spf": 0.7457
     },
@@ -46,7 +46,7 @@
       "spf_latency_ms": 20.6
     },
     "scenario_2_concurrency_burst": {
-      "decisions_per_sec": 1937.1,
+      "decisions_per_sec": 822.8,
       "jains_fairness_dqn": 0.8696,
       "jains_fairness_spf": 0.3459
     },
@@ -80,7 +80,7 @@
       "spf_latency_ms": 27.95
     },
     "scenario_2_concurrency_burst": {
-      "decisions_per_sec": 2411.1,
+      "decisions_per_sec": 1083.9,
       "jains_fairness_dqn": 0.6082,
       "jains_fairness_spf": 0.4553
     },
@@ -114,7 +114,7 @@
       "spf_latency_ms": 47.96
     },
     "scenario_2_concurrency_burst": {
-      "decisions_per_sec": 2114.6,
+      "decisions_per_sec": 1012.2,
       "jains_fairness_dqn": 0.8466,
       "jains_fairness_spf": 0.7738
     },
@@ -148,7 +148,7 @@
       "spf_latency_ms": 20.0
     },
     "scenario_2_concurrency_burst": {
-      "decisions_per_sec": 2139.8,
+      "decisions_per_sec": 885.9,
       "jains_fairness_dqn": 0.7001,
       "jains_fairness_spf": 0.2479
     },

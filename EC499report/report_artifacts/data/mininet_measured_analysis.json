@@ -1,0 +1,1095 @@
+{
+  "bootstrap_iterations": 10000,
+  "bootstrap_seed": 2026,
+  "paired_comparisons": [
+    {
+      "comparison": "d3qn_vs_llr",
+      "controller_decision_mean_ms": {
+        "bootstrap_95_ci": [
+          -0.9029313085920557,
+          -0.6266674110925218
+        ],
+        "mean_improvement": -0.7415530601681746,
+        "n_pairs": 10
+      },
+      "jitter_ms": {
+        "bootstrap_95_ci": null,
+        "mean_improvement": null,
+        "n_pairs": 0
+      },
+      "loss_pct": {
+        "bootstrap_95_ci": null,
+        "mean_improvement": null,
+        "n_pairs": 0
+      },
+      "packet_loss_pct": {
+        "bootstrap_95_ci": [
+          -20.0,
+          42.0
+        ],
+        "mean_improvement": 11.0,
+        "n_pairs": 10
+      },
+      "protocol": "tcp",
+      "rtt_avg_ms": {
+        "bootstrap_95_ci": [
+          -0.18460000000000037,
+          0.0971999999999987
+        ],
+        "mean_improvement": -0.03760000000000048,
+        "n_pairs": 5
+      },
+      "throughput_mbps": {
+        "bootstrap_95_ci": [
+          -0.18032281499999914,
+          0.41142996000000076
+        ],
+        "mean_improvement": 0.08200190000000092,
+        "n_pairs": 10
+      },
+      "topology": "fattree"
+    },
+    {
+      "comparison": "d3qn_vs_spf",
+      "controller_decision_mean_ms": {
+        "bootstrap_95_ci": [
+          -0.8904200688459027,
+          -0.6175075825265026
+        ],
+        "mean_improvement": -0.7301059912440582,
+        "n_pairs": 10
+      },
+      "jitter_ms": {
+        "bootstrap_95_ci": null,
+        "mean_improvement": null,
+        "n_pairs": 0
+      },
+      "loss_pct": {
+        "bootstrap_95_ci": null,
+        "mean_improvement": null,
+        "n_pairs": 0
+      },
+      "packet_loss_pct": {
+        "bootstrap_95_ci": [
+          -52.0,
+          18.0
+        ],
+        "mean_improvement": -18.0,
+        "n_pairs": 10
+      },
+      "protocol": "tcp",
+      "rtt_avg_ms": {
+        "bootstrap_95_ci": [
+          -0.10716666666666796,
+          0.28049999999999936
+        ],
+        "mean_improvement": 0.06966666666666595,
+        "n_pairs": 6
+      },
+      "throughput_mbps": {
+        "bootstrap_95_ci": [
+          0.08070880250000143,
+          0.5066481174999997
+        ],
+        "mean_improvement": 0.27177020000000096,
+        "n_pairs": 10
+      },
+      "topology": "fattree"
+    },
+    {
+      "comparison": "d3qn_vs_llr",
+      "controller_decision_mean_ms": {
+        "bootstrap_95_ci": [
+          -0.6895084444503776,
+          -0.6038368715430305
+        ],
+        "mean_improvement": -0.6452089046697723,
+        "n_pairs": 10
+      },
+      "jitter_ms": {
+        "bootstrap_95_ci": [
+          -0.002399999999999988,
+          0.011999999999999993
+        ],
+        "mean_improvement": 0.005099999999999999,
+        "n_pairs": 10
+      },
+      "loss_pct": {
+        "bootstrap_95_ci": [
+          -0.6793075000000003,
+          -0.03960000000000079
+        ],
+        "mean_improvement": -0.3456000000000003,
+        "n_pairs": 10
+      },
+      "packet_loss_pct": {
+        "bootstrap_95_ci": [
+          -25.0,
+          31.0
+        ],
+        "mean_improvement": 3.0,
+        "n_pairs": 10
+      },
+      "protocol": "udp",
+      "rtt_avg_ms": {
+        "bootstrap_95_ci": [
+          -0.08934166666666689,
+          0.5789027777777777
+        ],
+        "mean_improvement": 0.18344444444444402,
+        "n_pairs": 9
+      },
+      "throughput_mbps": {
+        "bootstrap_95_ci": [
+          -0.43665443499999873,
+          0.03563918750000048
+        ],
+        "mean_improvement": -0.1862885999999989,
+        "n_pairs": 10
+      },
+      "topology": "fattree"
+    },
+    {
+      "comparison": "d3qn_vs_spf",
+      "controller_decision_mean_ms": {
+        "bootstrap_95_ci": [
+          -0.6788323084027706,
+          -0.5925568620014972
+        ],
+        "mean_improvement": -0.6340610092057838,
+        "n_pairs": 10
+      },
+      "jitter_ms": {
+        "bootstrap_95_ci": [
+          -0.005099999999999991,
+          0.0059000000000000025
+        ],
+        "mean_improvement": 0.0006000000000000033,
+        "n_pairs": 10
+      },
+      "loss_pct": {
+        "bootstrap_95_ci": [
+          0.004699999999999349,
+          2.6693000000000007
+        ],
+        "mean_improvement": 0.9696000000000001,
+        "n_pairs": 10
+      },
+      "packet_loss_pct": {
+        "bootstrap_95_ci": [
+          -23.0,
+          45.0
+        ],
+        "mean_improvement": 11.0,
+        "n_pairs": 10
+      },
+      "protocol": "udp",
+      "rtt_avg_ms": {
+        "bootstrap_95_ci": [
+          -0.07311111111111204,
+          0.5583333333333323
+        ],
+        "mean_improvement": 0.19211111111111062,
+        "n_pairs": 9
+      },
+      "throughput_mbps": {
+        "bootstrap_95_ci": [
+          0.0026882499999995525,
+          0.7152181674999942
+        ],
+        "mean_improvement": 0.2913513999999999,
+        "n_pairs": 10
+      },
+      "topology": "fattree"
+    },
+    {
+      "comparison": "d3qn_vs_llr",
+      "controller_decision_mean_ms": {
+        "bootstrap_95_ci": [
+          -0.579933577318749,
+          -0.5059137239318583
+        ],
+        "mean_improvement": -0.5413918868292806,
+        "n_pairs": 10
+      },
+      "jitter_ms": {
+        "bootstrap_95_ci": null,
+        "mean_improvement": null,
+        "n_pairs": 0
+      },
+      "loss_pct": {
+        "bootstrap_95_ci": null,
+        "mean_improvement": null,
+        "n_pairs": 0
+      },
+      "packet_loss_pct": {
+        "bootstrap_95_ci": [
+          -30.0,
+          0.0
+        ],
+        "mean_improvement": -10.0,
+        "n_pairs": 10
+      },
+      "protocol": "tcp",
+      "rtt_avg_ms": {
+        "bootstrap_95_ci": [
+          -2.964333333333334,
+          4.603444444444443
+        ],
+        "mean_improvement": 0.15977777777777685,
+        "n_pairs": 9
+      },
+      "throughput_mbps": {
+        "bootstrap_95_ci": [
+          -11.635385922500001,
+          5.123135195
+        ],
+        "mean_improvement": -4.013906800000001,
+        "n_pairs": 10
+      },
+      "topology": "tree"
+    },
+    {
+      "comparison": "d3qn_vs_spf",
+      "controller_decision_mean_ms": {
+        "bootstrap_95_ci": [
+          -0.5711570148710676,
+          -0.49660157953492606
+        ],
+        "mean_improvement": -0.5332562584511864,
+        "n_pairs": 10
+      },
+      "jitter_ms": {
+        "bootstrap_95_ci": null,
+        "mean_improvement": null,
+        "n_pairs": 0
+      },
+      "loss_pct": {
+        "bootstrap_95_ci": null,
+        "mean_improvement": null,
+        "n_pairs": 0
+      },
+      "packet_loss_pct": {
+        "bootstrap_95_ci": [
+          -30.0,
+          30.0
+        ],
+        "mean_improvement": 0.0,
+        "n_pairs": 10
+      },
+      "protocol": "tcp",
+      "rtt_avg_ms": {
+        "bootstrap_95_ci": [
+          -3.429375000000001,
+          2.8141249999999998
+        ],
+        "mean_improvement": 0.26987499999999853,
+        "n_pairs": 8
+      },
+      "throughput_mbps": {
+        "bootstrap_95_ci": [
+          -0.0002623274999999007,
+          11.0498081
+        ],
+        "mean_improvement": 5.5158997,
+        "n_pairs": 10
+      },
+      "topology": "tree"
+    },
+    {
+      "comparison": "d3qn_vs_llr",
+      "controller_decision_mean_ms": {
+        "bootstrap_95_ci": [
+          -0.5403338169117319,
+          -0.4868577040985031
+        ],
+        "mean_improvement": -0.5096776585841947,
+        "n_pairs": 10
+      },
+      "jitter_ms": {
+        "bootstrap_95_ci": [
+          -0.025099999999999994,
+          0.011700000000000002
+        ],
+        "mean_improvement": -0.0035999999999999947,
+        "n_pairs": 10
+      },
+      "loss_pct": {
+        "bootstrap_95_ci": [
+          -8.905812500000001,
+          -0.1426975000000007
+        ],
+        "mean_improvement": -3.190100000000001,
+        "n_pairs": 10
+      },
+      "packet_loss_pct": {
+        "bootstrap_95_ci": [
+          -30.0,
+          9.0
+        ],
+        "mean_improvement": -7.0,
+        "n_pairs": 10
+      },
+      "protocol": "udp",
+      "rtt_avg_ms": {
+        "bootstrap_95_ci": [
+          -1.6745583333333331,
+          9.864330555555552
+        ],
+        "mean_improvement": 3.2325555555555563,
+        "n_pairs": 9
+      },
+      "throughput_mbps": {
+        "bootstrap_95_ci": [
+          -5.841785,
+          0.38353239499999975
+        ],
+        "mean_improvement": -1.8214389000000004,
+        "n_pairs": 10
+      },
+      "topology": "tree"
+    },
+    {
+      "comparison": "d3qn_vs_spf",
+      "controller_decision_mean_ms": {
+        "bootstrap_95_ci": [
+          -0.5337194752052611,
+          -0.4778862671038249
+        ],
+        "mean_improvement": -0.5015963256966831,
+        "n_pairs": 10
+      },
+      "jitter_ms": {
+        "bootstrap_95_ci": [
+          -0.037,
+          0.008600000000000002
+        ],
+        "mean_improvement": -0.010599999999999995,
+        "n_pairs": 10
+      },
+      "loss_pct": {
+        "bootstrap_95_ci": [
+          -0.329999999999999,
+          0.21769999999999853
+        ],
+        "mean_improvement": -0.056700000000000014,
+        "n_pairs": 10
+      },
+      "packet_loss_pct": {
+        "bootstrap_95_ci": [
+          -30.0,
+          6.0
+        ],
+        "mean_improvement": -8.0,
+        "n_pairs": 10
+      },
+      "protocol": "udp",
+      "rtt_avg_ms": {
+        "bootstrap_95_ci": [
+          -0.024225000000000402,
+          1.4892249999999991
+        ],
+        "mean_improvement": 0.5894444444444437,
+        "n_pairs": 9
+      },
+      "throughput_mbps": {
+        "bootstrap_95_ci": [
+          -0.003863607500000281,
+          0.39093083499999914
+        ],
+        "mean_improvement": 0.12893829999999973,
+        "n_pairs": 10
+      },
+      "topology": "tree"
+    }
+  ],
+  "schema_version": 1,
+  "source_run_id": "mininet_20261026T173329Z_seed2026",
+  "successful_trials": 120,
+  "summaries": [
+    {
+      "controller_decision_mean_ms": {
+        "bootstrap_95_ci": [
+          0.6442883176055655,
+          0.9185456854979822
+        ],
+        "mean": 0.757732101512137,
+        "n": 10,
+        "sd": 0.24591757690946142
+      },
+      "jitter_ms": {
+        "bootstrap_95_ci": null,
+        "mean": null,
+        "n": 0,
+        "sd": null
+      },
+      "loss_pct": {
+        "bootstrap_95_ci": null,
+        "mean": null,
+        "n": 0,
+        "sd": null
+      },
+      "n": 10,
+      "packet_loss_pct": {
+        "bootstrap_95_ci": [
+          10.0,
+          66.0
+        ],
+        "mean": 36.0,
+        "n": 10,
+        "sd": 47.88875998951459
+      },
+      "policy": "d3qn",
+      "protocol": "tcp",
+      "rtt_avg_ms": {
+        "bootstrap_95_ci": [
+          20.584857142857143,
+          20.83957142857143
+        ],
+        "mean": 20.718857142857143,
+        "n": 7,
+        "sd": 0.18597439659930648
+      },
+      "throughput_mbps": {
+        "bootstrap_95_ci": [
+          47.7139574025,
+          48.152328
+        ],
+        "mean": 47.908407100000005,
+        "n": 10,
+        "sd": 0.3871483899817142
+      },
+      "topology": "fattree"
+    },
+    {
+      "controller_decision_mean_ms": {
+        "bootstrap_95_ci": [
+          0.014029633735838262,
+          0.018978253648189357
+        ],
+        "mean": 0.0161790413439623,
+        "n": 10,
+        "sd": 0.004246597315626194
+      },
+      "jitter_ms": {
+        "bootstrap_95_ci": null,
+        "mean": null,
+        "n": 0,
+        "sd": null
+      },
+      "loss_pct": {
+        "bootstrap_95_ci": null,
+        "mean": null,
+        "n": 0,
+        "sd": null
+      },
+      "n": 10,
+      "packet_loss_pct": {
+        "bootstrap_95_ci": [
+          17.0,
+          77.0
+        ],
+        "mean": 47.0,
+        "n": 10,
+        "sd": 50.343266128097454
+      },
+      "policy": "llr",
+      "protocol": "tcp",
+      "rtt_avg_ms": {
+        "bootstrap_95_ci": [
+          20.508,
+          20.6985
+        ],
+        "mean": 20.593833333333333,
+        "n": 6,
+        "sd": 0.13375263237285026
+      },
+      "throughput_mbps": {
+        "bootstrap_95_ci": [
+          47.671688259999996,
+          48.002679300000004
+        ],
+        "mean": 47.826405199999996,
+        "n": 10,
+        "sd": 0.2806130042253921
+      },
+      "topology": "fattree"
+    },
+    {
+      "controller_decision_mean_ms": {
+        "bootstrap_95_ci": [
+          0.025704684898345594,
+          0.02985656637018436
+        ],
+        "mean": 0.02762611026807856,
+        "n": 10,
+        "sd": 0.003610348998872848
+      },
+      "jitter_ms": {
+        "bootstrap_95_ci": null,
+        "mean": null,
+        "n": 0,
+        "sd": null
+      },
+      "loss_pct": {
+        "bootstrap_95_ci": null,
+        "mean": null,
+        "n": 0,
+        "sd": null
+      },
+      "n": 10,
+      "packet_loss_pct": {
+        "bootstrap_95_ci": [
+          0.0,
+          44.0
+        ],
+        "mean": 18.0,
+        "n": 10,
+        "sd": 38.23901439919997
+      },
+      "policy": "spf",
+      "protocol": "tcp",
+      "rtt_avg_ms": {
+        "bootstrap_95_ci": [
+          20.629333333333335,
+          20.899233333333335
+        ],
+        "mean": 20.756777777777774,
+        "n": 9,
+        "sd": 0.2219396189156962
+      },
+      "throughput_mbps": {
+        "bootstrap_95_ci": [
+          47.59737387,
+          47.661129627499996
+        ],
+        "mean": 47.6366369,
+        "n": 10,
+        "sd": 0.05935580601657947
+      },
+      "topology": "fattree"
+    },
+    {
+      "controller_decision_mean_ms": {
+        "bootstrap_95_ci": [
+          0.6209620896041514,
+          0.704134649291456
+        ],
+        "mean": 0.6606405519024223,
+        "n": 10,
+        "sd": 0.07210753252855051
+      },
+      "jitter_ms": {
+        "bootstrap_95_ci": [
+          0.1338,
+          0.1439
+        ],
+        "mean": 0.13849999999999998,
+        "n": 10,
+        "sd": 0.008592632503100156
+      },
+      "loss_pct": {
+        "bootstrap_95_ci": [
+          27.1941,
+          27.541900000000005
+        ],
+        "mean": 27.4249,
+        "n": 10,
+        "sd": 0.3633068644792969
+      },
+      "n": 10,
+      "packet_loss_pct": {
+        "bootstrap_95_ci": [
+          0.0,
+          33.0
+        ],
+        "mean": 14.0,
+        "n": 10,
+        "sd": 30.983866769659336
+      },
+      "policy": "d3qn",
+      "protocol": "udp",
+      "rtt_avg_ms": {
+        "bootstrap_95_ci": [
+          20.478100000000005,
+          20.6391025
+        ],
+        "mean": 20.5484,
+        "n": 10,
+        "sd": 0.13671803912513616
+      },
+      "throughput_mbps": {
+        "bootstrap_95_ci": [
+          48.607569752500005,
+          48.84100113750001
+        ],
+        "mean": 48.686195500000004,
+        "n": 10,
+        "sd": 0.24381569583795049
+      },
+      "topology": "fattree"
+    },
+    {
+      "controller_decision_mean_ms": {
+        "bootstrap_95_ci": [
+          0.013703174521767987,
+          0.017342075321626318
+        ],
+        "mean": 0.015431647232650045,
+        "n": 10,
+        "sd": 0.0031895453190280464
+      },
+      "jitter_ms": {
+        "bootstrap_95_ci": [
+          0.1386,
+          0.14899999999999997
+        ],
+        "mean": 0.1436,
+        "n": 10,
+        "sd": 0.008771164878927614
+      },
+      "loss_pct": {
+        "bootstrap_95_ci": [
+          26.561194999999994,
+          27.496
+        ],
+        "mean": 27.079299999999996,
+        "n": 10,
+        "sd": 0.8024663440502242
+      },
+      "n": 10,
+      "packet_loss_pct": {
+        "bootstrap_95_ci": [
+          0.9750000000000227,
+          39.0
+        ],
+        "mean": 17.0,
+        "n": 10,
+        "sd": 34.657049948186746
+      },
+      "policy": "llr",
+      "protocol": "udp",
+      "rtt_avg_ms": {
+        "bootstrap_95_ci": [
+          20.505552777777776,
+          21.112555555555556
+        ],
+        "mean": 20.74,
+        "n": 9,
+        "sd": 0.5180859002134689
+      },
+      "throughput_mbps": {
+        "bootstrap_95_ci": [
+          48.5733337775,
+          49.218511819999996
+        ],
+        "mean": 48.8724841,
+        "n": 10,
+        "sd": 0.5587393812209855
+      },
+      "topology": "fattree"
+    },
+    {
+      "controller_decision_mean_ms": {
+        "bootstrap_95_ci": [
+          0.024402611848665778,
+          0.029218694439261374
+        ],
+        "mean": 0.026579542696638526,
+        "n": 10,
+        "sd": 0.004082461219116611
+      },
+      "jitter_ms": {
+        "bootstrap_95_ci": [
+          0.13530000000000003,
+          0.14340000000000003
+        ],
+        "mean": 0.1391,
+        "n": 10,
+        "sd": 0.006806043066438983
+      },
+      "loss_pct": {
+        "bootstrap_95_ci": [
+          27.543,
+          30.0945
+        ],
+        "mean": 28.3945,
+        "n": 10,
+        "sd": 2.6860074149810784
+      },
+      "n": 10,
+      "packet_loss_pct": {
+        "bootstrap_95_ci": [
+          0.0,
+          50.0
+        ],
+        "mean": 25.0,
+        "n": 10,
+        "sd": 40.89281382128432
+      },
+      "policy": "spf",
+      "protocol": "udp",
+      "rtt_avg_ms": {
+        "bootstrap_95_ci": [
+          20.517333333333333,
+          21.08922777777778
+        ],
+        "mean": 20.747,
+        "n": 9,
+        "sd": 0.48786601644304
+      },
+      "throughput_mbps": {
+        "bootstrap_95_ci": [
+          47.97161835,
+          48.60752605
+        ],
+        "mean": 48.3948441,
+        "n": 10,
+        "sd": 0.6682426871832409
+      },
+      "topology": "fattree"
+    },
+    {
+      "controller_decision_mean_ms": {
+        "bootstrap_95_ci": [
+          0.518551473346456,
+          0.592574309351105
+        ],
+        "mean": 0.5544480210711046,
+        "n": 10,
+        "sd": 0.06367981585696325
+      },
+      "jitter_ms": {
+        "bootstrap_95_ci": null,
+        "mean": null,
+        "n": 0,
+        "sd": null
+      },
+      "loss_pct": {
+        "bootstrap_95_ci": null,
+        "mean": null,
+        "n": 0,
+        "sd": null
+      },
+      "n": 10,
+      "packet_loss_pct": {
+        "bootstrap_95_ci": [
+          0.0,
+          30.0
+        ],
+        "mean": 10.0,
+        "n": 10,
+        "sd": 31.622776601683793
+      },
+      "policy": "d3qn",
+      "protocol": "tcp",
+      "rtt_avg_ms": {
+        "bootstrap_95_ci": [
+          29.939333333333334,
+          35.675
+        ],
+        "mean": 32.413333333333334,
+        "n": 9,
+        "sd": 4.549540278973249
+      },
+      "throughput_mbps": {
+        "bootstrap_95_ci": [
+          28.562221682500002,
+          39.6150326175
+        ],
+        "mean": 34.0794581,
+        "n": 10,
+        "sd": 8.914549438729754
+      },
+      "topology": "tree"
+    },
+    {
+      "controller_decision_mean_ms": {
+        "bootstrap_95_ci": [
+          0.011961920177592896,
+          0.014352704010641636
+        ],
+        "mean": 0.013056134241824096,
+        "n": 10,
+        "sd": 0.00202802895883382
+      },
+      "jitter_ms": {
+        "bootstrap_95_ci": null,
+        "mean": null,
+        "n": 0,
+        "sd": null
+      },
+      "loss_pct": {
+        "bootstrap_95_ci": null,
+        "mean": null,
+        "n": 0,
+        "sd": null
+      },
+      "n": 10,
+      "packet_loss_pct": {
+        "bootstrap_95_ci": [
+          0.0,
+          0.0
+        ],
+        "mean": 0.0,
+        "n": 10,
+        "sd": 0.0
+      },
+      "policy": "llr",
+      "protocol": "tcp",
+      "rtt_avg_ms": {
+        "bootstrap_95_ci": [
+          28.584394999999997,
+          36.6282375
+        ],
+        "mean": 32.20739999999999,
+        "n": 10,
+        "sd": 6.908531443882347
+      },
+      "throughput_mbps": {
+        "bootstrap_95_ci": [
+          32.3870013775,
+          43.8000843575
+        ],
+        "mean": 38.0933649,
+        "n": 10,
+        "sd": 10.02013821814518
+      },
+      "topology": "tree"
+    },
+    {
+      "controller_decision_mean_ms": {
+        "bootstrap_95_ci": [
+          0.01954544085015434,
+          0.0226470456957516
+        ],
+        "mean": 0.021191762619918147,
+        "n": 10,
+        "sd": 0.0026738305987901766
+      },
+      "jitter_ms": {
+        "bootstrap_95_ci": null,
+        "mean": null,
+        "n": 0,
+        "sd": null
+      },
+      "loss_pct": {
+        "bootstrap_95_ci": null,
+        "mean": null,
+        "n": 0,
+        "sd": null
+      },
+      "n": 10,
+      "packet_loss_pct": {
+        "bootstrap_95_ci": [
+          0.0,
+          30.0
+        ],
+        "mean": 10.0,
+        "n": 10,
+        "sd": 31.622776601683793
+      },
+      "policy": "spf",
+      "protocol": "tcp",
+      "rtt_avg_ms": {
+        "bootstrap_95_ci": [
+          32.50365277777778,
+          32.742666666666665
+        ],
+        "mean": 32.61944444444444,
+        "n": 9,
+        "sd": 0.19156337796608738
+      },
+      "throughput_mbps": {
+        "bootstrap_95_ci": [
+          28.556670685,
+          28.56965529
+        ],
+        "mean": 28.563558400000005,
+        "n": 10,
+        "sd": 0.011051006954622354
+      },
+      "topology": "tree"
+    },
+    {
+      "controller_decision_mean_ms": {
+        "bootstrap_95_ci": [
+          0.5002761851517756,
+          0.552314181711146
+        ],
+        "mean": 0.52272328903774,
+        "n": 10,
+        "sd": 0.04595609744632643
+      },
+      "jitter_ms": {
+        "bootstrap_95_ci": [
+          0.14309999999999998,
+          0.1827
+        ],
+        "mean": 0.15919999999999995,
+        "n": 10,
+        "sd": 0.03503585465078755
+      },
+      "loss_pct": {
+        "bootstrap_95_ci": [
+          55.7783,
+          56.1819
+        ],
+        "mean": 55.9847,
+        "n": 10,
+        "sd": 0.36998109561315595
+      },
+      "n": 10,
+      "packet_loss_pct": {
+        "bootstrap_95_ci": [
+          0.0,
+          30.0
+        ],
+        "mean": 10.0,
+        "n": 10,
+        "sd": 31.622776601683793
+      },
+      "policy": "d3qn",
+      "protocol": "udp",
+      "rtt_avg_ms": {
+        "bootstrap_95_ci": [
+          31.83277777777778,
+          32.565333333333335
+        ],
+        "mean": 32.29555555555556,
+        "n": 9,
+        "sd": 0.6698522432430741
+      },
+      "throughput_mbps": {
+        "bootstrap_95_ci": [
+          29.173173385000002,
+          29.568307840000003
+        ],
+        "mean": 29.306106600000003,
+        "n": 10,
+        "sd": 0.4127290516216282
+      },
+      "topology": "tree"
+    },
+    {
+      "controller_decision_mean_ms": {
+        "bootstrap_95_ci": [
+          0.0123323775866141,
+          0.013810133734407364
+        ],
+        "mean": 0.013045630453545332,
+        "n": 10,
+        "sd": 0.0012572509883855669
+      },
+      "jitter_ms": {
+        "bootstrap_95_ci": [
+          0.1481,
+          0.1629
+        ],
+        "mean": 0.15560000000000002,
+        "n": 10,
+        "sd": 0.012712198865656566
+      },
+      "loss_pct": {
+        "bootstrap_95_ci": [
+          47.0891,
+          55.7158
+        ],
+        "mean": 52.7946,
+        "n": 10,
+        "sd": 8.883580686987777
+      },
+      "n": 10,
+      "packet_loss_pct": {
+        "bootstrap_95_ci": [
+          0.0,
+          9.0
+        ],
+        "mean": 3.0,
+        "n": 10,
+        "sd": 9.486832980505138
+      },
+      "policy": "llr",
+      "protocol": "udp",
+      "rtt_avg_ms": {
+        "bootstrap_95_ci": [
+          30.9473925,
+          40.9637025
+        ],
+        "mean": 35.2539,
+        "n": 10,
+        "sd": 8.741238717837547
+      },
+      "throughput_mbps": {
+        "bootstrap_95_ci": [
+          29.182267200000002,
+          35.017769352500004
+        ],
+        "mean": 31.127545500000004,
+        "n": 10,
+        "sd": 6.150809090582244
+      },
+      "topology": "tree"
+    },
+    {
+      "controller_decision_mean_ms": {
+        "bootstrap_95_ci": [
+          0.019416169213309565,
+          0.022726892509197967
+        ],
+        "mean": 0.021126963341056813,
+        "n": 10,
+        "sd": 0.002801008702172391
+      },
+      "jitter_ms": {
+        "bootstrap_95_ci": [
+          0.1438,
+          0.1538
+        ],
+        "mean": 0.1486,
+        "n": 10,
+        "sd": 0.008591985930052623
+      },
+      "loss_pct": {
+        "bootstrap_95_ci": [
+          55.72430000000001,
+          56.064499999999995
+        ],
+        "mean": 55.928,
+        "n": 10,
+        "sd": 0.2867209250977138
+      },
+      "n": 10,
+      "packet_loss_pct": {
+        "bootstrap_95_ci": [
+          0.0,
+          6.0
+        ],
+        "mean": 2.0,
+        "n": 10,
+        "sd": 6.324555320336759
+      },
+      "policy": "spf",
+      "protocol": "udp",
+      "rtt_avg_ms": {
+        "bootstrap_95_ci": [
+          32.4957975,
+          33.294407500000005
+        ],
+        "mean": 32.842699999999994,
+        "n": 10,
+        "sd": 0.6976282120314679
+      },
+      "throughput_mbps": {
+        "bootstrap_95_ci": [
+          29.176329980000002,
+          29.178040372500003
+        ],
+        "mean": 29.177168299999998,
+        "n": 10,
+        "sd": 0.0014535510578499806
+      },
+      "topology": "tree"
+    }
+  ]
+}

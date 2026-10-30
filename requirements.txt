@@ -1,12 +1,14 @@
-# Ryu 4.34 still declares Eventlet 0.31.1 and is not compatible with Python 3.12+.
+# Ryu 4.34 is not compatible with Python 3.12+.
 # Use Python 3.9-3.11 for the live OpenFlow controller.
 torch>=2.0,<3
 numpy>=1.22,<3
 networkx>=2.8,<4
 matplotlib>=3.5,<4
-pandas>=1.4,<3
 scipy>=1.8,<2
+# Compatibility requirements used by the legacy Ryu/Eventlet controller stack.
 attrs>=23.2
 packaging>=24
+python-pptx>=0.6.21,<2
 ryu==4.34; python_version < "3.12"
-eventlet==0.31.1; python_version < "3.12"
+eventlet==0.33.3; python_version < "3.12"
+dnspython==2.2.1; python_version < "3.12"

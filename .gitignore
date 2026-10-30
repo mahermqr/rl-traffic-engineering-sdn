@@ -35,9 +35,11 @@ venv.bak/
 ec499_env/
 .venv/
 .venv
+.venv-controller/
 
 # Logs & Runtime Process State
 logs/*.log
+logs/mininet_trials/
 *.log
 **/*.log
 !logs/mininet_matrix/*.csv
@@ -58,3 +60,20 @@ Thumbs.db
 # Archive & Test Artifacts
 archive/
 .fx_profile/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.ipynb_checkpoints/
+*.bak
+*.tmp
+
+# Reproducible build outputs (authoritative source artifacts remain tracked)
+dist/
+/Maher_Alqadhi_2210249576_EC499_Final_Graduation_Submission.zip
+report_artifacts/*.aux
+report_artifacts/*.bbl
+report_artifacts/*.blg
+report_artifacts/*.out
+report_artifacts/*.toc

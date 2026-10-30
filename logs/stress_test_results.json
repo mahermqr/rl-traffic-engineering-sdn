@@ -10,8 +10,8 @@
   },
   "scenario_2_concurrency_burst": {
     "burst_flows": 500,
-    "duration_ms": 187.9,
-    "throughput_decisions_per_sec": 2661.2,
+    "duration_ms": 408.9,
+    "throughput_decisions_per_sec": 1222.8,
     "jains_fairness_dqn": 1.0,
     "jains_fairness_spf": 0.7746,
     "core_saturation_dqn_pct": 100.0,

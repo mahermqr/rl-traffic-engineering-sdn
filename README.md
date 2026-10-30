@@ -103,7 +103,7 @@ Evaluated under **closed-loop dynamic flow accumulation and lifecycle stepping**
 │       └── pareto_weight_sensitivity.png           # Figure 14: Pareto sensitivity ablation
 │
 ├── docs/
-│   ├── Project_Report_EC499_Final.pdf  # 143-Page Official Graduation Project Master Thesis
+│   ├── Project_Report_EC499_Final.pdf  # Official Graduation Project Master Thesis
 │   ├── Project_Report_EC499_Monolithic.tex # Monolithic LaTeX document (11 chapters + 5 appendices)
 │   ├── EC499_Graduation_Defense_Presentation.pptx # 30-Slide Defense PowerPoint Presentation
 │   ├── EC499_Graduation_Defense_Slides.html       # 30-Slide Interactive Standalone HTML5 Deck
@@ -152,7 +152,16 @@ To satisfy the highest standards of IEEE transaction reviewers and academic exam
 
 ## Quick Start & Verification
 
-Use Python 3.9–3.11 for the live Ryu controller (Ryu 4.34 is not compatible with Python 3.12+), create a virtual environment, and install `requirements.txt`.
+Use Python 3.9–3.11 for the live Ryu controller (Ryu 4.34 is not compatible with Python 3.12+). The simulation, training, and analysis code can use newer Python versions when compatible wheels are available.
+
+```bash
+python3.11 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
+
+For an editable package install, use `python -m pip install -e '.[controller,docs]'`. Mininet, Open vSwitch, `iperf`, and LaTeX are system dependencies and are not installed by pip.
 
 ### 1. Run Unit & Integration Tests
 ```bash
@@ -201,6 +210,27 @@ Open your browser at:
 http://localhost:8080
 ```
 (Configurable via `SDN_REST_PORT` or `--port`)
+
+### 9. Reproduce Thesis Artifacts
+```bash
+./reproduce_all.sh              # Validate cached data and rebuild figures/report/package
+./reproduce_all.sh --rerun      # Rerun training, ablations, oracle, and queue simulations
+./reproduce_all.sh --test-only  # Fast regression verification
+```
+
+The checkpoint, official Mininet CSVs, and `report_artifacts/data/` and `report_artifacts/figures/` are intentionally versioned research artifacts. Runtime logs, bytecode, caches, and `dist/` packages are ignored.
+
+### 10. Run Auditable Packet-Level Mininet Trials
+
+This is separate from the queue-model benchmarks. It records raw `iperf`, `ping`, OVS, and controller artifacts and does not manufacture absent observations.
+
+```bash
+cd EC499tests
+sudo ./run_mininet_experiment.sh --matrix --replicates 10
+./run_mininet_analysis.sh
+```
+
+The 120-trial matrix compares D3QN, least-loaded routing, and SPF on Tree/Fat-Tree with TCP and UDP. Preserve the generated raw run directory and JSON summaries when reporting packet-level conclusions.
 
 ---
 

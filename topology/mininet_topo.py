@@ -134,7 +134,9 @@ class FatTreeTopology(Topo):
 
                 for h in range(num_hosts_per_edge):
                     edge_index = pod * num_edge_per_pod + e_idx + 1
-                    host_ip = f"10.0.{edge_index}.{h+1}/24"
+                    # All hosts share one emulated L2 IP domain. A /24 prefix made
+                    # cross-edge Fat-Tree traffic depend on an absent IP router.
+                    host_ip = f"10.0.{edge_index}.{h+1}/8"
                     host_mac = f"00:00:00:00:00:{host_id:02x}"
                     host = self.addHost(f'h{host_id}', ip=host_ip, mac=host_mac)
                     self.addLink(host, e_sw, bw=core_bw, delay='1ms')

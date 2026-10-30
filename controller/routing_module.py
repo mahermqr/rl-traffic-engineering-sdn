@@ -17,6 +17,7 @@ except ImportError:
 
 from dqn_router import DQNRoutingAgent
 from policy_selector import select_dqn_path
+from traditional_routing import dijkstra_spf, least_loaded_routing
 from ryu.lib.packet import ethernet, ipv4, ether_types
 
 class RoutingModule:
@@ -36,26 +37,41 @@ class RoutingModule:
         lr = getattr(config, 'LEARNING_RATE', 0.001)
         self.k_candidate_paths = min(action_size, getattr(config, 'K_CANDIDATE_PATHS', action_size))
         self.policy_mode = getattr(config, 'POLICY_MODE', 'pure')
+        self.routing_policy = os.environ.get('SDN_ROUTING_POLICY', 'd3qn').strip().lower()
+        if self.routing_policy not in {'d3qn', 'llr', 'spf'}:
+            raise ValueError(
+                "SDN_ROUTING_POLICY must be one of: d3qn, llr, spf "
+                f"(received {self.routing_policy!r})"
+            )
 
-        self.agent = DQNRoutingAgent(state_size=state_size, action_size=action_size, lr=lr)
+        self.agent = None
         self.prev_experience = {} # (src_dpid, dst_dpid) -> (state, action, candidate_paths)
-
-        # Auto-load trained checkpoint if available (supports SDN_MODEL_PATH env var)
-        default_ckpt = getattr(config, 'DEFAULT_MODEL_PATH', os.path.join(os.path.dirname(__file__), '..', 'models', 'dqn_router.pth'))
-        ckpt_path = os.environ.get("SDN_MODEL_PATH", default_ckpt)
-        if os.path.exists(ckpt_path):
-            if self.agent.load(ckpt_path):
-                self.logger.info("[RoutingModule] Loaded pre-trained Double DQN checkpoint from %s", ckpt_path)
-            else:
-                self.logger.warning("[RoutingModule] Checkpoint is incompatible; using fresh weights: %s", ckpt_path)
 
         # Asynchronous background training worker to prevent blocking OpenFlow PacketIn processing
         self.model_lock = threading.Lock()
         self._training_active = False
         self._training_thread = None
-        self.start_training_worker()
 
-        self.logger.info("[RoutingModule] Initialized with Double DQN Agent on device: %s", self.agent.device)
+        if self.routing_policy == 'd3qn':
+            self.agent = DQNRoutingAgent(state_size=state_size, action_size=action_size, lr=lr)
+            # Auto-load trained checkpoint if available (supports SDN_MODEL_PATH env var)
+            default_ckpt = getattr(
+                config, 'DEFAULT_MODEL_PATH',
+                os.path.join(os.path.dirname(__file__), '..', 'models', 'dqn_router.pth'),
+            )
+            ckpt_path = os.environ.get("SDN_MODEL_PATH", default_ckpt)
+            if os.path.exists(ckpt_path):
+                if self.agent.load(ckpt_path):
+                    self.logger.info("[RoutingModule] Loaded pre-trained Double DQN checkpoint from %s", ckpt_path)
+                else:
+                    self.logger.warning("[RoutingModule] Checkpoint is incompatible; using fresh weights: %s", ckpt_path)
+            self.start_training_worker()
+
+        self.logger.info(
+            "[RoutingModule] Initialized policy=%s, D3QN mode=%s, device=%s",
+            self.routing_policy, self.policy_mode,
+            self.agent.device if self.agent is not None else "not-applicable",
+        )
 
     def start_training_worker(self):
         """Starts decoupled background worker thread for PyTorch policy optimization."""
@@ -76,7 +92,7 @@ class RoutingModule:
         while self._training_active:
             try:
                 time.sleep(2.0)
-                if hasattr(self.agent, 'memory') and len(self.agent.memory) >= 32:
+                if self.agent is not None and hasattr(self.agent, 'memory') and len(self.agent.memory) >= 32:
                     with self.model_lock:
                         loss = self.agent.train(batch_size=32)
                     if loss is not None:
@@ -127,13 +143,34 @@ class RoutingModule:
             self.logger.warning("[RoutingModule] No path found between switch %s and %s; dropping known-destination packet.", dpid, dst_dpid)
             return
         t0 = time.perf_counter()
-        with self.model_lock:
-            decision = select_dqn_path(
-                self.agent, self.state_manager, dpid, dst_dpid,
+        if self.routing_policy == 'd3qn':
+            with self.model_lock:
+                decision = select_dqn_path(
+                    self.agent, self.state_manager, dpid, dst_dpid,
+                    candidate_paths=candidate_paths,
+                    demand_mbps=self.state_manager.traffic_flow_rate_mbps,
+                    mode=self.policy_mode,
+                )
+        elif self.routing_policy == 'llr':
+            selected = least_loaded_routing(
+                self.state_manager.graph, dpid, dst_dpid,
+                self.state_manager.link_utilization,
                 candidate_paths=candidate_paths,
-                demand_mbps=self.state_manager.traffic_flow_rate_mbps,
-                mode=self.policy_mode,
             )
+            decision = {
+                'status': 'success' if selected else 'no_path',
+                'path': selected,
+                'action': candidate_paths.index(selected) if selected in candidate_paths else -1,
+                'state': None,
+            }
+        else:
+            selected = dijkstra_spf(self.state_manager.graph, dpid, dst_dpid)
+            decision = {
+                'status': 'success' if selected else 'no_path',
+                'path': selected,
+                'action': candidate_paths.index(selected) if selected in candidate_paths else -1,
+                'state': None,
+            }
         decision_time_ms = (time.perf_counter() - t0) * 1000.0
         self.state_manager.record_decision_latency(decision_time_ms)
         if decision['status'] != 'success':
@@ -144,19 +181,23 @@ class RoutingModule:
         selected_path = decision['path']
 
         # Experience Replay Training: record transition with rigorous temporal credit assignment
-        exp_key = (dpid, dst_dpid)
-        if exp_key in self.prev_experience:
-            prev_s, prev_a, prev_paths = self.prev_experience[exp_key]
-            # Reward is calculated for previous action prev_a observed in current network state
-            if 0 <= prev_a < len(prev_paths):
-                reward = self._calculate_reward(prev_paths[prev_a])
-                with self.model_lock:
-                    self.agent.remember(prev_s, prev_a, reward, state, done=False)
+        if self.routing_policy == 'd3qn':
+            exp_key = (dpid, dst_dpid)
+            if exp_key in self.prev_experience:
+                prev_s, prev_a, prev_paths = self.prev_experience[exp_key]
+                # Reward is calculated for previous action prev_a observed in current network state
+                if 0 <= prev_a < len(prev_paths):
+                    reward = self._calculate_reward(prev_paths[prev_a])
+                    with self.model_lock:
+                        self.agent.remember(prev_s, prev_a, reward, state, done=False)
 
-        self.prev_experience[exp_key] = (state, action, candidate_paths)
+            self.prev_experience[exp_key] = (state, action, candidate_paths)
 
-        self.logger.info("[RoutingModule] Routing %s -> %s via path: %s | Action: %d | Decision: %.2f ms",
-                         src_ip or src_mac, dst_ip or dst_mac, selected_path, action, decision_time_ms)
+        self.logger.info(
+            "[RoutingModule] Policy=%s routing %s -> %s via path: %s | Action: %d | Decision: %.2f ms",
+            self.routing_policy, src_ip or src_mac, dst_ip or dst_mac,
+            selected_path, action, decision_time_ms,
+        )
 
         # Install OpenFlow 1.3 flow rules along the entire path
         is_elephant = False
