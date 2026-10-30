@@ -309,13 +309,14 @@ Dueling Aggregation\\
 \label{fig:d3qn_network}
 \end{figure}
 
-The network specifications are:
+The exact network specifications implemented in \code{agent/dqn_router.py} are:
 \begin{itemize}
-    \item \textbf{Input Layer:} 10 continuous neurons accepting $\mathbf{s} \in \mathbb{R}^{10}$.
-    \item \textbf{Shared Layers:} Two fully connected dense layers with 128 units each, augmented with Layer Normalization (\code{LayerNorm}) \cite{ba2016layer} and LeakyReLU activations ($\alpha = 0.01$).
-    \item \textbf{Value Stream:} Dense layer (64 units) $\rightarrow$ LeakyReLU $\rightarrow$ Linear scalar output $V(s) \in \mathbb{R}$.
-    \item \textbf{Advantage Stream:} Dense layer (64 units) $\rightarrow$ LeakyReLU $\rightarrow$ Linear vector output $A(s, a) \in \mathbb{R}^4$.
-    \item \textbf{Aggregation Layer:} Mean-centered aggregation yielding $Q(s, a)$ via (\ref{eq:dueling_aggregation}).
+    \item \textbf{Input Layer:} 10 continuous neurons accepting the state vector $\mathbf{s} \in \mathbb{R}^{10}$.
+    \item \textbf{Shared Feature Representation Network ($9,408$ parameters):} Dense layer ($10 \to 64$ units, $704$ weights) with Layer Normalization (\code{LayerNorm}, $128$ weights) and ReLU activation, followed by a second dense layer ($64 \to 128$ units, $8,320$ weights) with \code{LayerNorm} ($256$ weights) and ReLU activation.
+    \item \textbf{Value Stream $V(s)$ ($8,449$ parameters):} Dense layer ($128 \to 64$ units, $8,256$ weights) with \code{LayerNorm} ($128$ weights), ReLU activation, and final linear scalar projection ($64 \to 1$, $65$ weights) outputting $V(s) \in \mathbb{R}$.
+    \item \textbf{Advantage Stream $A(s, a)$ ($8,644$ parameters):} Dense layer ($128 \to 64$ units, $8,256$ weights) with \code{LayerNorm} ($128$ weights), ReLU activation, and final linear vector projection ($64 \to 4$, $260$ weights) outputting $A(s, a) \in \mathbb{R}^4$.
+    \item \textbf{Aggregation Layer ($0$ trainable parameters):} Mean-centered advantage aggregation yielding $Q(s, a)$ via (\ref{eq:dueling_aggregation}).
+    \item \textbf{Total Model Parameters:} $9,408 + 8,449 + 8,644 = \mathbf{26,501}$ trainable parameters, perfectly matching the inspected PyTorch runtime weights and Appendix~\ref{app:manual}.
 \end{itemize}
 
 \subsection{Implemented Multi-Objective Reward Function}
@@ -463,6 +464,7 @@ The multi-controller pool operates as follows:
     \item \textbf{Health Probing and Failure Detection:} Node vitality is probed via HTTP GET \code{/api/health} with a configurable timeout ($\le 1.0$~s).
     \item \textbf{Local Promotion Bookkeeping ($0.001$~ms):} When failover is triggered, the pool updates its internal active index pointer and appends an event to the failover history log. In Python, this memory pointer reassignment and dictionary bookkeeping executes in \textbf{0.001~ms} (1.0~$\mu$s).
     \item \textbf{End-to-End Client HTTP Recovery ($37.96$~ms):} Client REST requests dispatched via \code{execute_request()} catch socket connection errors (\code{ConnectionRefusedError}, \code{URLError}) and automatically retry against the next healthy standby node, completing full end-to-end client HTTP recovery in \textbf{37.96~ms}.
+    \item \textbf{Process-Level Virtual Address Space Isolation:} To guarantee strict fault containment, the Primary, Standby 1, and Standby 2 controller instances run as completely separated operating system processes with independent virtual memory spaces (isolated heaps, stacks, and private NetworkX topology graphs). A memory leak, segmentation fault, or unhandled thread crash in the Primary controller cannot corrupt or cascade into the surviving standby instances.
     \item \textbf{Data-Plane Continuity Limitation:} Existing Open vSwitch flow entries can continue forwarding while the controller process is unavailable. This behavior was not measured as an end-to-end, loss-free failover guarantee; flows requiring new rules or state recovery may be affected.
 \end{itemize}
 
@@ -519,7 +521,7 @@ The illustrated timing is a component-level estimate from the prototype. It excl
 \label{sec:experiments}
 
 \subsection{Evaluation Environment and Testbed Provisioning}
-The evaluation testbed is provisioned on dedicated x86-64 server hardware running Ubuntu 22.04 LTS (Kernel 5.15). The software substrate integrates Ryu 4.34, Open vSwitch 2.17.0, Mininet 2.3.0, and PyTorch 2.0.1 with CUDA acceleration. Table~\ref{tab:hyperparameters} documents all neural network and training hyperparameters.
+The experimental platform spans a dual-tier environment designed for reproducible software evaluation: offline model training and hyperparameter sweeps were executed on an x86-64 host workstation running Ubuntu 22.04 LTS (Kernel 5.15) with PyTorch 2.0.1 and CUDA GPU acceleration; for reproducible SDN control and emulation testing, network namespace experiments were executed in a standardized VMware virtual machine provisioned with 4 dedicated vCPUs, 8~GB DDR4 RAM (7.2~GiB kernel available, 3.3~GB swap space, 60~GB virtual disk), Ryu 4.34, Open vSwitch 2.17.0, and Mininet 2.3.0, as specified in Appendix~\ref{app:manual}. Table~\ref{tab:hyperparameters} documents all neural network and training hyperparameters.
 
 \begin{table}[htbp]
 \centering
@@ -637,17 +639,17 @@ To evaluate scalability, the platform is benchmarked across five standard topolo
 \end{scope}
 
 \end{tikzpicture}
-\caption{Architectural Layout of Benchmark Evaluation Topologies.}
+\caption{Conceptual Architectural Layout of Benchmark Datacenter Fabrics: (a) Fat-Tree Clos (schematic representation illustrating 4 core, 4 aggregation, and 4 edge switches for visual clarity; the full evaluated $k=4$ fabric deploys 20 switches and 16 hosts); (b) Spine-Leaf Fabric (schematic showing 3 spines and 4 leaves; the full evaluated tournament fabric models 4 spines, 8 leaves, and 32 hosts).}
 \label{fig:benchmark_topos}
 \end{figure}
 
 The five benchmark topologies are:
 \begin{enumerate}
-    \item \textbf{Hierarchical Tree (7 Switches, 8 Hosts):} A 3-tier enterprise tree with core, distribution, and access switches.
-    \item \textbf{Fat-Tree Clos (20 Switches, 16 Hosts):} A 4-ary multi-rooted datacenter fabric with 4 core, 8 aggregation, and 8 edge switches \cite{al2008scalable}.
+    \item \textbf{Hierarchical Tree (7 Switches, 8 Hosts):} A 3-tier enterprise tree with 1 root core switch, 2 distribution switches, and 4 access switches.
+    \item \textbf{Fat-Tree Clos (20 Switches, 16 Hosts):} A full 4-ary multi-rooted datacenter fabric with 4 core switches, 8 aggregation switches, 8 edge switches, and 16 compute hosts (36 network nodes total) \cite{al2008scalable}.
     \item \textbf{Abilene Internet2 US Backbone (12 Switches, 15 Inter-City Links):} Real-world nationwide telecommunication backbone.
     \item \textbf{NSFNet Mesh (14 Switches, 21 Bi-Directional Links):} Classic irregular research WAN mesh.
-    \item \textbf{Spine-Leaf Fabric (12 Switches, 32 Hosts):} High-density cloud datacenter fabric with full bipartite cross-connections.
+    \item \textbf{Spine-Leaf Fabric (12 Switches, 32 Hosts):} High-density cloud datacenter fabric with 4 spine switches, 8 leaf switches, and 32 dual-homed hosts with full bipartite cross-connections.
 \end{enumerate}
 
 \subsection{Synthetic, Bursty, and Adversarial Traffic Generation}
@@ -655,7 +657,7 @@ Traffic workloads are generated using a multi-profile synthetic traffic engine (
 \begin{itemize}
     \item \textbf{Poisson Background Workload:} Packet inter-arrival times follow an exponential distribution with rate $\lambda_{\text{bg}}$, emulating web traffic and DNS queries.
     \item \textbf{Bursty Pareto Elephant Flows:} Heavy-tailed bursty transfers with shape parameter $\alpha = 1.2$, generating massive burst transfers that induce sudden buffer bloat.
-    \item \textbf{Asymmetric Core Link Jamming:} Adversarial workload concentrating $90\%$ of traffic across a single core transit path to rigorously test proactive bypass rerouting.
+    \item \textbf{Asymmetric Core Link Jamming:} Adversarial workload concentrating $95\%$--$96\%$ of traffic across a single core transit path (invoked via \code{inject_core_congestion(utilization=0.96)}) to rigorously test proactive bypass rerouting.
 \end{itemize}
 
 \subsection{Baseline Routing Protocols for Comparative Tournament}

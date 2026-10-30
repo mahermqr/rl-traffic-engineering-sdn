@@ -31,7 +31,9 @@ In recent years, deep reinforcement learning has been explored for network routi
     \item \textbf{Valadarsky et al. (2017):} \cite{valadarsky2017learning} proposed DRL-TE, applying policy gradient methods to optimize split ratios. However, their action space scaled combinatorially with network size, preventing convergence on larger topologies.
     \item \textbf{Aurochs (Chen et al., 2018):} \cite{chen2018aurochs} designed a data-driven TE framework for enterprise networks, but relied on slow offline training pipelines without closed-loop real-time failover.
     \item \textbf{RL-Routing (Chen et al., 2020):} \cite{chen2020rlrouting} proposed an SDN routing algorithm based on standard Deep Q-Networks evaluated against OSPF and Least-Loaded Routing on topologies such as NSFNet. While RL-Routing demonstrated the potential of model-free reinforcement learning in OpenFlow environments, it relied on a single-stream Q-network (susceptible to maximization bias), uniform random experience replay (which fails to prioritize critical tail-congestion events), unconstrained next-hop decisions (which can create transient routing loops or dead ends without topological action masking), and an idealized single-controller architecture without high-availability failover.
-    \item \textbf{RouteNet (Rusek et al., 2020):} \cite{rusek2019routenet} leveraged Graph Neural Networks (GNNs) to model the non-linear relationship between topology, traffic matrix, and end-to-end delay. While RouteNet achieves topological generalizability, it functions primarily as a performance predictor rather than an active closed-loop routing controller, requiring an external optimization wrapper.
+    \item \textbf{RouteNet and RouteNet-Fermi (Rusek et al., 2020; Almasan et al., 2022):} \cite{rusek2019routenet, almasan2022routenet} leveraged Graph Neural Networks (GNNs) to model the non-linear relationship between topology, traffic matrix, and packet-level delay/jitter distributions. While RouteNet-Fermi achieves structural scale-invariance across arbitrary topologies, it operates primarily as an offline digital-twin forward performance evaluator rather than an autonomous closed-loop routing actuator, relying on external meta-heuristic search to select forwarding paths.
+    \item \textbf{Multi-Path DRL Routing (Sun et al., 2021):} \cite{sun2021multi} developed multi-path DRL traffic engineering with dynamic split-ratio tuning over OpenFlow. However, per-packet multi-path splitting introduces significant TCP out-of-order delivery penalties, underscoring the necessity of unsplittable flow allocation for real-time transport streams.
+    \item \textbf{Multi-Agent SDN TE (Xu et al., 2022):} \cite{xu2022multiagent} explored multi-agent reinforcement learning for large-scale multi-domain SDN, decomposing wide-area routing into regional sub-controllers. While reducing state dimension per agent, inter-controller communication overhead and non-stationarity during joint exploration remain significant deployment challenges.
 \end{itemize}
 
 \section{High Availability and Resilience in SDN Control Planes}
@@ -45,18 +47,18 @@ Table~\ref{tab:related_work} provides a rigorous, multi-dimensional comparison b
 \caption{Systematic Comparison of Related Work vs. Proposed D3QN Platform}
 \label{tab:related_work}
 \scriptsize
-\begin{tabularx}{\textwidth}{l X c c c c c}
+\begin{tabularx}{\textwidth}{l >{\raggedright\arraybackslash}p{2.2cm} >{\centering\arraybackslash}p{1.6cm} >{\raggedright\arraybackslash}X c >{\centering\arraybackslash}p{2.2cm} c}
 \toprule
 \textbf{Framework} & \textbf{Core Algorithm} & \textbf{Telemetry} & \textbf{Reward Formulation} & \textbf{Replay} & \textbf{HA Cluster} & \textbf{Zero-Shot} \\
 \midrule
-OSPF (RFC 2328) \cite{moy1998ospf} & Dijkstra Shortest Path & Static & None (Administrative) & None & None & N/A \\
-ECMP \cite{moy1998ospf} & 5-Tuple Hash Split & Static & None (Equal Cost) & None & None & N/A \\
+OSPF (RFC 2328) \cite{moy1998ospf} & Dijkstra SPF & Static & None (Admin) & None & None & N/A \\
+ECMP \cite{moy1998ospf} & Hash Multipath & Static & None (Equal Cost) & None & None & N/A \\
 Fortz \& Thorup \cite{fortz2000internet} & Local Search Heuristic & Periodic & Convex Congestion & None & None & No \\
 Hedera \cite{al2010hedera} & Greedy Flow-Fit & 5-sec deltas & Bisection Bandwidth & None & None & No \\
-Google B4 \cite{jain2013b4} & Centralized LP Solver & Centralized & Priority Max-Min & None & Master-Slave & No \\
+Google B4 \cite{jain2013b4} & Centralized LP & OpenFlow TM & Priority Max-Min & None & Master-Slave & No \\
 Stampa et al. \cite{stampa2017deep} & Flat Standard DQN & 1D Delay & Delay Reduction Only & Uniform & None & No \\
 RL-Routing \cite{chen2020rlrouting} & Vanilla DQN & Multi-Hop & Hop / Delay & Uniform & None & No \\
-RouteNet \cite{rusek2019routenet} & Graph Neural Network & Full Matrix & Supervised Delay & N/A & None & Yes \\
+RouteNet \cite{rusek2019routenet} & Graph Neural Net & Full Matrix & Supervised Delay & N/A & None & Yes \\
 \textbf{Proposed (Ours)} & \textbf{D3QN + Yen's KSP} & \textbf{10D Norm} & \textbf{Delay, Jitter, Loss, $\Phi(u)$} & \textbf{SumTree} & \textbf{3-Node Pool (Fail-Secure)} & \textbf{Yes} \\
 \bottomrule
 \end{tabularx}

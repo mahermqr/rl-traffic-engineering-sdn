@@ -51,7 +51,7 @@ In accordance with the Faculty of Engineering graduation project guidelines, thi
 
 \section{Programmable Data Planes (P4) and In-Band Network Telemetry (INT)}
 \label{sec:p4_int_background}
-To understand the architectural evolution of software-defined forwarding, it is essential to contextualize OpenFlow against modern **Programmable Data Planes** driven by the **P4 (Programming Protocol-Independent Packet Processors)** language:
+To understand the architectural evolution of software-defined forwarding, it is essential to contextualize OpenFlow against modern \textbf{Programmable Data Planes} driven by the \textbf{P4 (Programming Protocol-Independent Packet Processors)} language:
 
 \begin{enumerate}
     \item \textbf{Limitations of OpenFlow's Fixed Pipeline:}
@@ -125,10 +125,10 @@ The general Traffic Engineering objective is to find a binary path assignment ma
 where $\Phi(u_e)$ is a convex link congestion penalty function.
 
 \begin{theorem}[NP-Hardness of UMCF]
-The Unsplittable Multi-Commodity Flow problem with binary decision variables $x_{k, p} \in \{0, 1\}$ is strongly NP-hard \cite{garey1979computers}.
+The Unsplittable Multi-Commodity Flow problem with binary decision variables $x_{k, p} \in \{0, 1\}$ is NP-hard (weakly NP-hard in basic two-node graphs and strongly NP-hard in general directed topologies) \cite{garey1979computers, even1976complexity}.
 \end{theorem}
 \begin{proof}
-The proof proceeds by reduction from the classical \textsc{Partition} problem. Given a set of integers $\mathcal{S} = \{w_1, w_2, \dots, w_n\}$ summing to $2W$, the partition problem asks whether there exists a subset $\mathcal{S}' \subset \mathcal{S}$ such that $\sum_{i \in \mathcal{S}'} w_i = W$. We construct a 2-node graph $G=(V, E)$ with source $s$ and destination $t$ connected by two parallel directed links $e_1, e_2$, each with capacity $C_{e_1} = C_{e_2} = W$. For each integer $w_i$, define a commodity $k_i = (s, t, w_i)$. Any valid unsplittable routing assignment satisfying $u_{e_1} \le 1.0$ and $u_{e_2} \le 1.0$ corresponds directly to a valid partition of $\mathcal{S}$. Because \textsc{Partition} is NP-complete, finding an optimal unsplittable flow assignment is strongly NP-hard.
+The proof proceeds by reduction from the classical \textsc{Partition} problem. Given a finite set of positive integers $\mathcal{S} = \{w_1, w_2, \dots, w_n\}$ summing to $2W$, the partition problem asks whether there exists a subset $\mathcal{S}' \subset \mathcal{S}$ such that $\sum_{i \in \mathcal{S}'} w_i = W$. We construct a 2-node graph $G=(V, E)$ with source $s$ and destination $t$ connected by two parallel directed links $e_1, e_2$, each with capacity $C_{e_1} = C_{e_2} = W$. For each integer $w_i$, define a commodity $k_i = (s, t, w_i)$. Any valid unsplittable routing assignment satisfying $u_{e_1} \le 1.0$ and $u_{e_2} \le 1.0$ corresponds directly to a valid partition of $\mathcal{S}$. Because \textsc{Partition} is NP-complete, finding an optimal unsplittable flow assignment is NP-hard. In general directed multigraphs with multiple commodities ($K \ge 2$), UMCF is strongly NP-hard via reduction from the directed two-commodity integral flow problem \cite{even1976complexity}, establishing that exact polynomial-time optimization is computationally intractable for dynamic real-time traffic engineering.
 \end{proof}
 
 \section{Queueing Delay, Bufferbloat, and RFC 3393 Jitter Modeling}
@@ -156,10 +156,15 @@ To evaluate link latency realistically without arbitrary heuristics, we model sw
     \end{equation}
 
     \item \textbf{Packet Delay Variation (Jitter, RFC 3393):}
-    The Internet Engineering Task Force (IETF) RFC 3393 specifies the IP Packet Delay Variation (IPDV) metric \cite{deroo2002ip}. For a sequence of consecutive packets $\{1, 2, \dots, M\}$ traversing path $p$ with measured one-way delays $\{D_1, D_2, \dots, D_M\}$, the sample variance jitter $J(p)$ is formalized as:
+    The Internet Engineering Task Force (IETF) RFC 3393 specifies the IP Packet Delay Variation (IPDV) metric \cite{rfc3393}. For a sequence of consecutive packets $\{1, 2, \dots, M\}$ traversing path $p$ with measured one-way transit delays $\{D_1, D_2, \dots, D_M\}$, the RFC 3393 IPDV between adjacent packets $i$ and $i+1$ is defined as the signed delay differential:
     \begin{equation}
-    J(p) = \sqrt{\frac{1}{M - 1} \sum_{i=1}^M \left( D_i - \bar{D} \right)^2} \quad [\text{ms}]
+    \text{IPDV}_i = D_{i+1} - D_i \quad [\text{ms}]
     \end{equation}
+    The path-level average absolute jitter metric $J_{\text{IPDV}}(p)$ is computed as:
+    \begin{equation}
+    J_{\text{IPDV}}(p) = \frac{1}{M - 1} \sum_{i=1}^{M-1} \left| D_{i+1} - D_i \right| \quad [\text{ms}]
+    \end{equation}
+    In our telemetry simulation and routing reward formulation, the continuous queue-state proxy for delay jitter across path hops is modelled via the root-sum-square of queue delay standard deviations, $J(p) = \sqrt{\sum_{e \in p} \text{Var}(W_q(e))}$, providing a differentiable penalty that tracks delay dispersion.
 \end{enumerate}
 
 \section{Deep Reinforcement Learning Foundations}
@@ -227,7 +232,7 @@ The priority $p_i$ of transition $i$ is formalized as:
 \begin{equation}
 p_i = \left( |\delta_i| + \epsilon_{\text{per}} \right)^\alpha
 \end{equation}
-where $\epsilon_{\text{per}} = 10^{-5}$ guarantees non-zero priority, and $\alpha \in [0, 1]$ controls prioritization aggressiveness ($\alpha = 0$ corresponds to uniform sampling, $\alpha = 0.6$ is optimal). The sampling probability $P(i)$ is:
+where $\epsilon_{\text{per}} = 10^{-5}$ guarantees non-zero priority, and $\alpha \in [0, 1]$ controls prioritization aggressiveness ($\alpha = 0$ corresponds to uniform sampling, while $\alpha = 0.6$ is the canonical default empirically recommended by Schaul et al.~\cite{schaul2016prioritized} to balance priority sampling against diversity). The sampling probability $P(i)$ is:
 \begin{equation}
 P(i) = \frac{p_i}{\sum_{k=1}^N p_k}
 \end{equation}
