@@ -200,15 +200,12 @@ def build_dissertation_docx():
     r_s1 = p_meta.add_run("Project Supervisor:\n")
     r_s1.font.bold = True
     r_s1.font.size = Pt(11)
-    r_s2 = p_meta.add_run("Dr. Suad El-Geder\n")
+    r_s2 = p_meta.add_run("Dr. Suad El-Geder\n\n")
     r_s2.font.bold = True
     r_s2.font.size = Pt(13)
     r_s2.font.color.rgb = C_NAVY
-    r_s3 = p_meta.add_run("Associate Professor of Computer Engineering\n\n")
-    r_s3.font.size = Pt(11)
-    r_s3.font.color.rgb = C_SLATE
 
-    r_date = p_meta.add_run("October 2026")
+    r_date = p_meta.add_run("Spring 2026")
     r_date.font.bold = True
     r_date.font.size = Pt(12)
     r_date.font.color.rgb = C_CHARCOAL

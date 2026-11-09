@@ -326,9 +326,13 @@ In model-free tabular Q-learning \cite{sutton2018reinforcement}, transitions $(s
 where $\alpha \in (0, 1]$ is the learning rate.
 
 \subsection{Deep Q-Networks (DQN)}
-When state space $\mathcal{S}$ is continuous and high-dimensional, tabular representation becomes intractable. Mnih et al. \cite{mnih2015human} introduced Deep Q-Networks (DQN), approximating $Q^*(s, a) \approx Q(s, a; \theta)$ using a deep neural network parameterized by weights $\theta$. The network parameters are optimized by minimizing the mean squared Bellman error:
+When state space $\mathcal{S}$ is continuous and high-dimensional, tabular representation becomes intractable. Mnih et al. \cite{mnih2015human} introduced Deep Q-Networks (DQN), approximating $Q^*(s, a) \approx Q(s, a; \theta)$ using a deep neural network parameterized by weights $\theta$. The standard single-DQN optimizes parameter vector $\theta$ against a slowly varying target network parameterized by $\theta^-$ using the Bellman target:
 \begin{equation}
-    \mathcal{L}(\theta) = \mathbb{E}_{(s, a, r, s') \sim \mathcal{D}} \left[ \left( r + \gamma \max_{a'} Q(s', a'; \theta^-) - Q(s, a; \theta) \right)^2 \right]
+    Y_t^{\text{DQN}} = R_{t+1} + \gamma \max_{a' \in \mathcal{A}} Q(S_{t+1}, a'; \theta^-)
+    \label{eq:standard_dqn_target}
+\end{equation}
+\begin{equation}
+    \mathcal{L}(\theta) = \mathbb{E}_{(S_t, A_t, R_{t+1}, S_{t+1}) \sim \mathcal{D}} \left[ \left( Y_t^{\text{DQN}} - Q(S_t, A_t; \theta) \right)^2 \right]
 \end{equation}
 where:
 \begin{itemize}
@@ -345,7 +349,7 @@ In noisy network environments where link utilizations fluctuate, this maximizati
 
 Van Hasselt et al. \cite{vanhasselt2016deep} resolved this bias with Double DQN (DDQN). DDQN completely decouples action selection from action evaluation: the online network ($\theta$) selects the greedy action, while the target network ($\theta^-$) evaluates the Q-value of that selected action:
 \begin{equation}
-    Y_t^{\text{DoubleQ}} = r_t + \gamma \, Q\left(s_{t+1}, \, \arg\max_{a'} Q(s_{t+1}, a'; \theta_t); \, \theta_t^-\right)
+    Y_t^{\text{DDQN}} = R_{t+1} + \gamma Q\left(S_{t+1}, \arg\max_{a' \in \mathcal{A}} Q(S_{t+1}, a'; \theta); \theta^-\right)
     \label{eq:double_dqn_target}
 \end{equation}
 This mathematical decoupling provably eliminates overestimation bias, ensuring stable, monotonic value convergence.
@@ -389,7 +393,8 @@ Non-uniform sampling alters the underlying state visitation frequency, introduci
 \end{equation}
 where $\beta \in [0, 1]$ controls the degree of correction. To compensate for increasing gradient stability, $\beta$ is annealed linearly from $\beta_0 = 0.4$ up to $1.0$ at the conclusion of training. The weighted loss function minimized by the optimizer is:
 \begin{equation}
-    \mathcal{L}_{\text{PER}}(\theta) = \frac{1}{B} \sum_{i=1}^B w_i \cdot \mathcal{L}_{\text{Huber}}(\delta_i)
+    \mathcal{L}_{\text{PER}}(\theta) = \frac{1}{B} \sum_{i=1}^B \tilde{w}_i \cdot \ell_{\delta_0}(\delta_i), \quad \text{where } \ell_{\delta_0}(\delta_i) = \begin{cases} \frac{1}{2}\delta_i^2 & \text{if } |\delta_i| \le \delta_0 \\ \delta_0 \left( |\delta_i| - \frac{1}{2}\delta_0 \right) & \text{otherwise} \end{cases}
+    \label{eq:weighted_huber_loss}
 \end{equation}
 
 \section{Taxonomy and Comparative Literature Review}

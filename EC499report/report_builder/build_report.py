@@ -29,7 +29,9 @@ targets = [
     '/home/maher/Downloads/EC499t/GRADUATION_PROJECT_REPORT.tex',
     '/home/maher/Downloads/EC499t/Project_Report_EC499_Final.tex',
     '/home/maher/Downloads/EC499t/main.tex',
-    '/home/maher/Downloads/EC499t/Reinforcement_Learning_for_Adaptive_Traffic_Engineering_in_an_SDN_Network/EC499report/docs/Project_Report_EC499_Monolithic.tex'
+    '/home/maher/Downloads/EC499t/Reinforcement_Learning_for_Adaptive_Traffic_Engineering_in_an_SDN_Network/EC499report/docs/Project_Report_EC499_Monolithic.tex',
+    '/home/maher/Downloads/EC499t/Reinforcement_Learning_for_Adaptive_Traffic_Engineering_in_an_SDN_Network/EC499report/Project_Report_EC499_Final.tex',
+    '/home/maher/Downloads/EC499t/Reinforcement_Learning_for_Adaptive_Traffic_Engineering_in_an_SDN_Network/EC499report/GRADUATION_PROJECT_REPORT.tex'
 ]
 
 for t in targets:
@@ -52,8 +54,14 @@ if res.returncode == 0:
     print("SUCCESS: Tectonic compiled Project_Report_EC499_Final.pdf cleanly!")
     pdf_src = '/home/maher/Downloads/EC499t/Project_Report_EC499_Final.pdf'
     shutil.copyfile(pdf_src, '/home/maher/Downloads/EC499t/GRADUATION_PROJECT_REPORT.pdf')
+    shutil.copyfile(pdf_src, '/home/maher/Downloads/EC499t/Reinforcement_Learning_for_Adaptive_Traffic_Engineering_in_an_SDN_Network/EC499report/Project_Report_EC499_Final.pdf')
+    shutil.copyfile(pdf_src, '/home/maher/Downloads/EC499t/Reinforcement_Learning_for_Adaptive_Traffic_Engineering_in_an_SDN_Network/EC499report/GRADUATION_PROJECT_REPORT.pdf')
     shutil.copyfile(pdf_src, '/home/maher/Downloads/EC499t/Reinforcement_Learning_for_Adaptive_Traffic_Engineering_in_an_SDN_Network/EC499report/docs/Project_Report_EC499_Final.pdf')
-    print("Copied PDF to GRADUATION_PROJECT_REPORT.pdf and EC499report/docs/Project_Report_EC499_Final.pdf")
+    shutil.copyfile(pdf_src, '/home/maher/Downloads/EC499t/Reinforcement_Learning_for_Adaptive_Traffic_Engineering_in_an_SDN_Network/EC499report/report_artifacts/Project_Report_EC499_Final.pdf')
+    shutil.copyfile(pdf_src, '/home/maher/Downloads/EC499t/Reinforcement_Learning_for_Adaptive_Traffic_Engineering_in_an_SDN_Network/EC499report/report_artifacts/main.pdf')
+    shutil.copyfile(pdf_src, '/home/maher/Downloads/Project_Report_EC499_Final.pdf')
+    shutil.copyfile('/home/maher/Downloads/EC499t/Project_Report_EC499_Final.tex', '/home/maher/Downloads/EC499t/Reinforcement_Learning_for_Adaptive_Traffic_Engineering_in_an_SDN_Network/EC499report/report_artifacts/main.tex')
+    print("Synchronized PDF and TeX to all report destinations and Downloads directory.")
 else:
     print("COMPILE ERROR:")
     print("STDOUT:", res.stdout[-1500:])

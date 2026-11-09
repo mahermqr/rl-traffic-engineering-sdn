@@ -207,7 +207,7 @@ A uniform random value $v_k \sim \mathcal{U}(I_k)$ is drawn from each interval, 
 \subsection{Importance Sampling Weight Annealing}
 Prioritized sampling introduces bias because transitions with high TD error are sampled more frequently than their true empirical distribution. We correct this bias using Importance Sampling (IS) weights:
 \begin{equation}
-    w_i = \left( \frac{1}{N} \cdot \frac{1}{P(i)} \right)^\beta = \left( \frac{\text{tree}[0]}{N \cdot p_i^\alpha} \right)^\beta
+    w_i = \left( \frac{1}{N} \cdot \frac{1}{P(i)} \right)^\beta = \left( \frac{\text{tree}[0]}{N \cdot p_i} \right)^\beta.
 \end{equation}
 Weights are normalized by the maximum weight in the mini-batch:
 \begin{equation}

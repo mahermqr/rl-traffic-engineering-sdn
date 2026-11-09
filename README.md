@@ -1,4 +1,4 @@
-# Reinforcement Learning for Adaptive Traffic Engineering in an SDN Network (EC499)
+# Reinforcement Learning for Adaptive Traffic Engineering in Software-Defined Network (EC499)
 
 **Course**: EC499 — Graduation Project in Computer Engineering
 **Institution**: Department of Computer Engineering, Faculty of Engineering, University of Tripoli
@@ -10,7 +10,7 @@
 
 ## Project Overview
 
-This repository contains the complete implementation and benchmark suite for the graduation project: **Reinforcement Learning for Adaptive Traffic Engineering in an SDN Network**.
+This repository contains the complete implementation and benchmark suite for the graduation project: **Reinforcement Learning for Adaptive Traffic Engineering in Software-Defined Network**.
 
 Traditional IP routing protocols (such as OSPF, Dijkstra SPF, or ECMP) route traffic using static hop counts or fixed administrative weights. Under dynamic traffic surges, this causes severe core switch bottlenecks, high queuing delays, packet jitter, and buffer overflow loss.
 
@@ -272,7 +272,7 @@ If you use this work in your research or project, please cite:
 ```bibtex
 @misc{alqadhi2026sdnrl,
   author = {Maher Abdulnasir Alqadhi and Dr. Suad El-Geder},
-  title = {Reinforcement Learning for Adaptive Traffic Engineering in an SDN Network},
+  title = {Reinforcement Learning for Adaptive Traffic Engineering in Software-Defined Network},
   year = {2026},
   publisher = {Department of Computer Engineering, Faculty of Engineering, University of Tripoli},
   howpublished = {\url{https://github.com/maheralqadhi/EC499-SDN-Adaptive-TE-RL}}

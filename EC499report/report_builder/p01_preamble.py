@@ -5,8 +5,8 @@ PREAMBLE_AND_FRONTMATTER = r'''\documentclass[12pt,a4paper,oneside]{report}
 % ============================================================================
 % GLOBAL TYPOGRAPHY & UNIVERSITY OF TRIPOLI GUIDELINES
 % ============================================================================
-\usepackage[a4paper,top=25mm,bottom=25mm,left=30mm,right=25mm]{geometry}
-\usepackage{mathptmx} % Times New Roman typography matching university guidelines
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{mathptmx} % Times-family typography
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
 \usepackage{setspace}
@@ -14,6 +14,9 @@ PREAMBLE_AND_FRONTMATTER = r'''\documentclass[12pt,a4paper,oneside]{report}
 
 % Essential Mathematics and Symbols
 \usepackage{amsmath,amssymb,amsfonts,amsthm}
+% Canonical Calligraphic Alphabet (fixes mathptmx rsfs glyph corruption for \mathcal)
+\DeclareMathAlphabet{\mathcal}{OMS}{cmsy}{m}{n}
+\SetMathAlphabet{\mathcal}{bold}{OMS}{cmsy}{b}{n}
 \usepackage{microtype}
 \newtheorem{theorem}{Theorem}[chapter]
 \newtheorem{definition}{Definition}[chapter]
@@ -47,37 +50,31 @@ PREAMBLE_AND_FRONTMATTER = r'''\documentclass[12pt,a4paper,oneside]{report}
 
 % Section and Chapter Title Formatting (Professional Academic Style)
 \usepackage{titlesec}
-\titleformat{\chapter}[display]
-  {\normalfont\Large\bfseries\color{uotblue}}{\chaptertitlename\ \thechapter}{12pt}{\Huge\bfseries\color{black}}
-\titlespacing*{\chapter}{0pt}{15pt}{22pt}
-
+\titleformat{\chapter}[hang]
+  {\normalfont\fontsize{14}{17}\selectfont\bfseries}
+  {\MakeUppercase{\chaptertitlename}\ \thechapter}{1em}{\MakeUppercase}
+\titlespacing*{\chapter}{0pt}{0pt}{18pt}
 \titleformat{\section}
-  {\normalfont\Large\bfseries\color{uotblue}}{\thesection}{1em}{}
+  {\normalfont\fontsize{12}{15}\selectfont\bfseries}{\thesection}{1em}{}
 \titleformat{\subsection}
-  {\normalfont\large\bfseries\color{black!90}}{\thesubsection}{1em}{}
+  {\normalfont\fontsize{12}{15}\selectfont\itshape}{\thesubsection}{1em}{}
 \titleformat{\subsubsection}
-  {\normalfont\normalsize\bfseries\itshape\color{black!80}}{\thesubsubsection}{1em}{}
+  {\normalfont\fontsize{12}{15}\selectfont\itshape}{\thesubsubsection}{1em}{}
 
-% Running Page Headers and Footers
+% Department guidance: centred page numbers at the foot of the page.
 \usepackage{fancyhdr}
 \pagestyle{fancy}
 \fancyhf{}
-\fancyhead[L]{\small\itshape\nouppercase{\leftmark}}
-\fancyhead[R]{\small\bfseries\thepage}
-\renewcommand{\headrulewidth}{0.4pt}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0pt}
 \renewcommand{\footrulewidth}{0pt}
-\setlength{\headheight}{15pt}
-
-\fancypagestyle{plain}{%
-  \fancyhf{}%
-  \fancyfoot[C]{\small\thepage}%
-  \renewcommand{\headrulewidth}{0pt}%
-}
+\fancypagestyle{plain}{\fancyhf{}\fancyfoot[C]{\thepage}\renewcommand{\headrulewidth}{0pt}}
 
 % Helper Macros with automatic hyphenation and robust path breaking
-\usepackage{url}
+\usepackage{xurl}
 \urlstyle{tt}
-\newcommand{\code}[1]{\relax\ifmmode\text{\small\ttfamily\nolinkurl{#1}}\else{\small\ttfamily\nolinkurl{#1}}\fi}
+\newcommand{\code}[1]{\relax\ifmmode\text{\ttfamily\nolinkurl{#1}}\else{\ttfamily\nolinkurl{#1}}\fi}
+\renewcommand{\contentsname}{Table of Contents}
 \newcommand{\lowerbetter}{\ensuremath{\downarrow}}
 \newcommand{\higherbetter}{\ensuremath{\uparrow}}
 \emergencystretch=3em
@@ -96,6 +93,9 @@ PREAMBLE_AND_FRONTMATTER = r'''\documentclass[12pt,a4paper,oneside]{report}
 }
 
 % Hyperref Setup
+\usepackage[authoryear,round]{natbib}
+\renewcommand{\bibname}{References}
+\let\cite\citep
 \usepackage{hyperref}
 \hypersetup{
     colorlinks=true,
@@ -103,13 +103,14 @@ PREAMBLE_AND_FRONTMATTER = r'''\documentclass[12pt,a4paper,oneside]{report}
     citecolor=uotblue,
     filecolor=black,
     urlcolor=uotblue,
-    pdftitle={Deep Reinforcement Learning for Adaptive Traffic Engineering in Software-Defined Networks with High-Availability Control},
+    pdftitle={Reinforcement Learning for Adaptive Traffic Engineering in Software-Defined Network},
     pdfauthor={Maher Abdulnasir Alqadhi},
     pdfsubject={Bachelor of Science Graduation Project Report, Department of Computer Engineering, University of Tripoli},
-    pdfkeywords={Deep Reinforcement Learning, SDN, Traffic Engineering, D3QN, High Availability, OpenFlow 1.3}
+    pdfkeywords={Reinforcement Learning, SDN, Traffic Engineering, D3QN, High Availability, OpenFlow 1.3}
 }
 
 \begin{document}
+\hypersetup{pageanchor=false}
 
 % ============================================================================
 % 1. OFFICIAL UNIVERSITY TITLE PAGE
@@ -123,7 +124,7 @@ PREAMBLE_AND_FRONTMATTER = r'''\documentclass[12pt,a4paper,oneside]{report}
     {\large\bfseries Department of Computer Engineering}\\[14mm]
 
     {\color{uotblue}\rule{\linewidth}{1.8pt}}\\[5mm]
-    {\LARGE\bfseries Deep Reinforcement Learning for Adaptive Traffic Engineering in Software-Defined Networks with High-Availability Control}\\[3mm]
+    {\LARGE\bfseries Reinforcement Learning for Adaptive Traffic Engineering in Software-Defined Network}\\[3mm]
     {\color{uotblue}\rule{\linewidth}{1.8pt}}\\[14mm]
 
     {\large A Graduation Project Report Submitted in Partial Fulfillment of the Requirements for the Degree of Bachelor of Science in Computer Engineering}\\[18mm]
@@ -138,28 +139,26 @@ PREAMBLE_AND_FRONTMATTER = r'''\documentclass[12pt,a4paper,oneside]{report}
     \begin{minipage}[t]{0.46\textwidth}
         \flushright
         \textbf{Supervised by:}\\[2mm]
-        {\large\bfseries Dr. Suad El-Geder}\\[1mm]
-        \textit{Associate Professor}
+        {\large\bfseries Dr. Suad El-Geder}
     \end{minipage}\\[20mm]
 
     \vfill
-    {\large\bfseries Academic Year 2025--2026}
+    {\large\bfseries Spring 2026}
 \end{center}
 \end{titlepage}
 
-\pagenumbering{roman}
-\setcounter{page}{2}
+\pagenumbering{gobble}
 
 % ============================================================================
 % 2. CERTIFICATE OF APPROVAL
 % ============================================================================
 \chapter*{Certificate of Approval}
-\addcontentsline{toc}{chapter}{Certificate of Approval}
+% Administrative page precedes the numbered report.
 
 This is to certify that the graduation project entitled:
 \begin{center}
     \vspace{2mm}
-    \textbf{\large ``Deep Reinforcement Learning for Adaptive Traffic Engineering in Software-Defined Networks with High-Availability Control''}
+    \textbf{\large ``Reinforcement Learning for Adaptive Traffic Engineering in Software-Defined Network''}
     \vspace{2mm}
 \end{center}
 submitted by \textbf{Maher Abdulnasir Alqadhi} (Student ID: \textbf{2210249576}) in partial fulfillment of the requirements for the degree of \textbf{Bachelor of Science in Computer Engineering} has been approved by the examining committee after public defense and examination.
@@ -168,7 +167,7 @@ submitted by \textbf{Maher Abdulnasir Alqadhi} (Student ID: \textbf{2210249576})
 
 \noindent
 \textbf{Supervisor:}\\
-Dr. Suad El-Geder, Associate Professor \hfill Signature: \dotfill \\[0.8cm]
+Dr. Suad El-Geder \hfill Signature: \dotfill \\[0.8cm]
 \textbf{Internal Examiner:}\\
 Prof./Dr. \dotfill \hfill Signature: \dotfill \\[0.8cm]
 \textbf{External Examiner:}\\
@@ -177,8 +176,6 @@ Prof./Dr. \dotfill \hfill Signature: \dotfill \\[0.8cm]
 Department of Computer Engineering, University of Tripoli \hfill Signature: \dotfill
 
 \vfill
-\noindent
-Date of Defense: June 15, 2026
 
 \clearpage
 
@@ -186,9 +183,9 @@ Date of Defense: June 15, 2026
 % 3. DECLARATION OF ACADEMIC INTEGRITY
 % ============================================================================
 \chapter*{Declaration of Academic Integrity}
-\addcontentsline{toc}{chapter}{Declaration of Academic Integrity}
+% Administrative page precedes the numbered report.
 
-I, the undersigned \textbf{Maher Abdulnasir Alqadhi}, hereby declare that this graduation project report entitled \textbf{``Deep Reinforcement Learning for Adaptive Traffic Engineering in Software-Defined Networks with High-Availability Control''} is the outcome of my own original research and engineering work conducted under the academic supervision of \textbf{Dr. Suad El-Geder} at the Department of Computer Engineering, Faculty of Engineering, University of Tripoli.
+I, the undersigned \textbf{Maher Abdulnasir Alqadhi}, hereby declare that this graduation project report entitled \textbf{``Reinforcement Learning for Adaptive Traffic Engineering in Software-Defined Network''} is the outcome of my own original research and engineering work conducted under the academic supervision of \textbf{Dr. Suad El-Geder} at the Department of Computer Engineering, Faculty of Engineering, University of Tripoli.
 
 I affirm that:
 \begin{enumerate}
@@ -204,7 +201,7 @@ I affirm that:
     \begin{flushleft}
         \textbf{Maher Abdulnasir Alqadhi}\\
         Tripoli, Libya\\
-        June 2026
+        Spring 2026
     \end{flushleft}
 \end{minipage}
 \hfill
@@ -221,7 +218,7 @@ I affirm that:
 % 4. DEDICATION
 % ============================================================================
 \chapter*{Dedication}
-\addcontentsline{toc}{chapter}{Dedication}
+% Optional dedication precedes the numbered report.
 
 \vspace*{2.0cm}
 \begin{center}
@@ -236,10 +233,21 @@ I affirm that:
 % ============================================================================
 % 5. ACKNOWLEDGEMENT
 % ============================================================================
+\clearpage
+\pagenumbering{roman}
+\setcounter{page}{1}
+\hypersetup{pageanchor=true}
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+
+Uneven traffic loads can congest some network links while other routes remain available. This graduation project develops a software-defined networking prototype that selects routes using current link information and a trained reinforcement-learning agent. The work includes a routing controller, a network-state manager, a web dashboard, automated test scripts, and an active/standby controller pool. Python, Ryu, OpenFlow 1.3, Open vSwitch, Mininet, and PyTorch are used to implement and test the system. The routing agent uses a dueling double deep Q-network to choose from up to four candidate paths, with a reward that considers utilisation, delay, jitter, loss, and hop count. Evaluation consists of a software-model comparison across five network topologies, 120 packet-emulation trials on Tree and Fat-Tree networks, and separate controller-recovery tests. In the final software-model run, mean sampled path-bottleneck utilisation decreases from 66.80\% for the OSPF-style baseline to 30.80\% for the learned policy, while modelled delay decreases from 158.34 to 44.50~ms. Packet-emulation results are less uniform: on Tree TCP traffic, mean throughput is 34.08~Mbps for the learned policy, compared with 28.56~Mbps for shortest-path routing and 38.09~Mbps for least-loaded routing. The project therefore provides a working platform for studying adaptive routing and shows that its usefulness depends on the topology and workload. Its main limitations are software-only evaluation, a small candidate-path set, and a packet-test schedule that does not maintain background traffic throughout every measurement.
+
+\clearpage
+
 \chapter*{Acknowledgement}
 \addcontentsline{toc}{chapter}{Acknowledgement}
 
-First and foremost, all praise, gratitude, and adoration are due to Allah Almighty, the Most Merciful and Most Gracious, for granting me the perseverance, health, intellectual clarity, and strength to complete this graduation dissertation and reach this major academic milestone.
+First and foremost, all praise, gratitude, and adoration are due to Allah Almighty, the Most Merciful and Most Gracious, for granting me the perseverance, health, intellectual clarity, and strength to complete this graduation project report and reach this major academic milestone.
 
 I wish to express my deepest, most sincere gratitude and utmost respect to my academic supervisor, \textbf{Dr. Suad El-Geder}, for her exceptional mentorship, invaluable guidance, continuous encouragement, and rigorous academic critique throughout the conception, development, and evaluation of this research. Her technical expertise in telecommunications and computer networking, along with her unyielding insistence on scientific precision, provided the cornerstone for overcoming critical engineering obstacles and improving the rigor of this work.
 
@@ -258,16 +266,7 @@ Finally, I warmly thank my fellow colleagues, classmates, and friends at the Uni
 % ============================================================================
 % 6. ABSTRACT
 % ============================================================================
-\chapter*{Abstract}
-\addcontentsline{toc}{chapter}{Abstract}
 
-Modern telecommunication infrastructures and cloud datacenter fabrics are constrained by non-stationary traffic dynamics, localized microbursts, and rigid routing heuristics. Traditional interior gateway protocols---predominantly Open Shortest Path First (OSPF, RFC 2328) and Equal-Cost Multi-Path (ECMP)---rely on static administrative metrics decoupled from instantaneous buffer occupancy. Under asymmetric traffic loads, these protocols persistently direct traffic along identical shortest paths, inducing core link saturation, bufferbloat, tail-drop packet loss, and packet delay variation (jitter), while viable edge-disjoint bypass paths remain underutilized.
-
-This graduation dissertation presents the design, implementation, and evaluation of a closed-loop Adaptive Traffic Engineering (TE) prototype powered by Deep Reinforcement Learning (DRL) over an OpenFlow 1.3 Software-Defined Networking (SDN) substrate. The control plane integrates a Dueling Double Deep Q-Network (D3QN), a binary SumTree Prioritized Experience Replay (PER) engine, and a thresholded multi-objective reward. The agent consumes normalized 10-dimensional link and candidate-path features and selects among loopless candidate paths synthesized with Yen's $K$-shortest-paths algorithm, with invalid actions masked. A health-checked active/standby controller pool provides automated failover resilience, delivering an internal local role promotion bookkeeping time of $0.001$~ms and an end-to-end client HTTP recovery of $37.96$~ms under simulated primary process failure.
-
-The evaluation benchmarks D3QN across five network topologies against both static baselines (OSPF, Dijkstra SPF, ECMP) and dynamic heuristics (Least-Loaded Routing, LLR, and Widest-Shortest Path, WSP). In the multi-topology tournament under heavy load, D3QN achieves substantial congestion relief across multipath fabrics, lowering arithmetic-mean bottleneck utilization from $66.80\%$ (OSPF) to $30.80\%$ and reducing modelled latency from $158.34$~ms to $44.50$~ms. However, the evaluation also demarcates clear operational boundaries: on rigid tree topologies with single root bottlenecks, greedy dynamic heuristics like LLR deliver comparable or superior throughput ($38.09$~Mbps vs. $34.08$~Mbps for D3QN) without neural inference overhead. Furthermore, empirical 120-trial Mininet namespace emulations reveal that dynamic multi-path switching interacts with TCP window congestion control, resulting in higher packet loss under TCP than static SPF ($36.0\%$ vs. $18.0\%$). Consequently, this work establishes that DRL-based traffic engineering is most advantageous on rich multipath fabrics with diverse edge-disjoint routing options, while deterministic heuristics remain competitive in single-bottleneck architectures.
-
-\clearpage
 
 % ============================================================================
 % 7. PRELIMINARY LISTS

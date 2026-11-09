@@ -3,8 +3,8 @@
 > **File:** `scripts/resolve_python.sh`  
 > **Subsystem / Category:** 8. Operational Automation & Shell Scripts  
 > **Language:** `bash`  
-> **Lines of Code:** 37  
-> **File Size:** 0.98 KB  
+> **Lines of Code:** 39  
+> **File Size:** 1.06 KB  
 
 ---
 
@@ -35,6 +35,8 @@ fi
 python_candidates+=(
     "$SCRIPT_DIR/.venv/bin/python"
     "$SCRIPT_DIR/venv/bin/python"
+    "$SCRIPT_DIR/../.venv/bin/python"
+    "$SCRIPT_DIR/../venv/bin/python"
     "$HOME/ec499_env/bin/python"
     "$HOME/.venv/bin/python"
 )

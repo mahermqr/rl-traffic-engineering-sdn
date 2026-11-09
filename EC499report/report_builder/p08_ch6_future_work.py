@@ -1,28 +1,27 @@
 # Chapter 6: Future Work
 
-CHAPTER_6_FUTURE_WORK = r'''% ============================================================================
-% CHAPTER 6: FUTURE WORK
-% ============================================================================
+CHAPTER_6_FUTURE_WORK = r'''
 \chapter{Future Work}
 \label{chap:future}
 
-Building upon the successful empirical validation of this graduation project, six concrete research directions are identified to advance the platform toward multi-domain commercial carrier deployment:
+Further work should first improve measurement and reproducibility, then extend the routing and recovery functions. The following steps follow directly from the limitations of the completed project.
 
-\section{P4 Programmable Data Planes and In-Band Network Telemetry}
-The current software architecture polls switch port counters every $\Delta t = 1.0$~s via OpenFlow \code{OFPPortStatsRequest}. Future work will transition the data plane from OpenFlow to \textbf{P4 (Programming Protocol-Independent Packet Processors)} running on Intel Barefoot Tofino ASICs. Implementing \textbf{In-Band Network Telemetry (INT)} will enable switches to insert hardware timestamps and queue occupancy directly into packet headers, providing sub-microsecond telemetry without control plane polling overhead.
+\section{Improve the Packet-Test Procedure}
+The background traffic should be kept active throughout the measured transfer and stopped only after the measurement completes. A new run should record overlap times, the active TCP congestion-control algorithm, TCP retransmissions, and packet traces where appropriate. The existing results should remain archived so that changes to the procedure can be compared openly rather than overwriting the original evidence.
 
-\section{Multi-Agent RL for Inter-Domain Carrier Transit}
-Modern global networks span multiple Autonomous Systems (ASes) managed by independent carriers. Future research will extend the single D3QN agent into a \textbf{Multi-Agent Reinforcement Learning (MARL)} framework, using centralized training with decentralized execution (CTDE) to coordinate inter-domain traffic engineering across peer networks while preserving administrative data privacy.
+More traffic pairs, offered-load levels, queue settings, and trial durations would help establish where each policy performs well. Repeating the experiment on another host would also show how much the virtual machine and its processor scheduling affect the observations.
 
-\section{Graph Neural Networks for Topological Invariance}
-While the 10D normalized state representation demonstrated strong zero-shot generalization on small-world graphs, future iterations will integrate \textbf{Graph Neural Networks (GNNs)} (such as Graph Attention Networks, GAT) directly into the DRL encoder. This will enable the policy network to ingest arbitrary topological graphs as native edge-node embeddings, achieving complete topological scale invariance.
+\section{Make Installation and Reproduction Easier}
+The controller and scientific environments should have separately pinned dependencies and a documented clean-install procedure. An automated check should confirm interpreters, package imports, switch connectivity, and checkpoint compatibility before starting the full trial matrix. Tables and figures should be generated directly from the selected run manifest to reduce transcription errors.
 
-\section{Constrained MDPs and Formal Safety Verification}
-To completely eliminate exploratory packet drops during online continuous learning, future research will formulate routing as a \textbf{Constrained Markov Decision Process (C-MDP)}. Leveraging Control Barrier Functions (CBFs) and Lyapunov-based safety layers will provide mathematical guarantees that exploratory routing actions never violate physical link capacity constraints.
+\section{Improve Route Selection and Comparison}
+The current four-candidate representation can miss useful alternatives or map different network states to similar feature vectors. Further work could compare other candidate-generation methods, reward settings, and graph-based representations. Each change should be tested against the same SPF and least-loaded baselines, with matched workloads and clearly identified training and test sets.
 
-\section{Optical Transport Network and Reconfigurable Wavelength Routing}
-Extending the platform beyond layer-3 packet switching into optical transport networks (OTN) will enable the DRL agent to dynamically adjust Reconfigurable Optical Add-Drop Multiplexers (ROADMs), switching lightpaths and reallocating optical spectrum in response to long-term macro traffic shifts.
+Capacity-aware admission checks are another practical extension. They should report explicitly when no candidate can accommodate a demand rather than treating the reward penalty as a safety guarantee.
 
-\section{Zero-Trust Control-Plane Cryptographic Attestation}
-To defend against Byzantine adversaries and compromised switches, future work will integrate zero-trust cryptographic mutual TLS attestation and lightweight consensus verification across all inter-controller heartbeat channels.
+\section{Extend Controller-Recovery Testing}
+The next recovery test should measure packet behaviour during controller failure, expiry of installed rules, setup of new flows, and restoration of telemetry. A design for consistent controller state and switch-role ownership would be needed before extending the endpoint pool into a replicated control service. These functions should be implemented and tested separately from client HTTP retry.
+
+\section{Evaluate Additional Forwarding Platforms}
+After the software procedure is stable, the controller could be tested with a hardware switch. A later P4/telemetry implementation could provide additional queue information, but would require a new interface, suitable equipment, and its own validation. Results from the present Open vSwitch testbed should not be assumed to transfer directly to those platforms.
 '''

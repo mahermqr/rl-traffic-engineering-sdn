@@ -520,7 +520,6 @@ def main():
           <div class="card-title" style="color: #38bdf8;">Project Supervisor</div>
           <div style="font-size: 1.15rem; font-weight: 800; color: #ffffff; margin-bottom: 0.3rem;">Dr. Suad El-Geder</div>
           <p style="font-size: 0.84rem; color: #94a3b8; line-height: 1.4;">
-            Associate Professor<br>
             Department of Computer Engineering<br>
             Faculty of Engineering, University of Tripoli
           </p>

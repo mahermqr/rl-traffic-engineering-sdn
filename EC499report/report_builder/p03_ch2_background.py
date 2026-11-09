@@ -1,253 +1,150 @@
 # Chapter 2: Background
 
-CHAPTER_2_BACKGROUND = r'''% ============================================================================
-% CHAPTER 2: BACKGROUND
-% ============================================================================
+CHAPTER_2_BACKGROUND = r'''
 \chapter{Background}
 \label{chap:background}
 
-\section{Hardware, Software Tools, and Key Equipment: Why Each Was Chosen}
-In accordance with the Faculty of Engineering graduation project guidelines, this section presents the core equipment, software tools, and frameworks chosen to realize this project, providing a rigorous technical justification for why each tool was selected:
+This chapter introduces the equipment, software, and routing concepts needed to understand the project. It explains their role in the implementation; detailed program behaviour and test results are presented in Chapter~\ref{chap:project}.
 
-\begin{enumerate}
-    \item \textbf{Software-Defined Networking (SDN) and OpenFlow 1.3 Protocol:}
-    Traditional distributed routing architectures couple the control logic and packet forwarding hardware within individual closed vendor routers. This architectural coupling prevents global optimization and dynamic policy reconfiguration. SDN was chosen because it cleanly decouples the control plane from the data plane, providing logically centralized network visibility and dynamic software programmability. OpenFlow version 1.3 (ONF TS-006) \cite{onf2012openflow} was specifically selected because:
-    \begin{itemize}
-        \item It supports multi-stage pipelined Flow Tables and Group Tables.
-        \item It provides standardized, high-precision per-port and per-flow byte/packet counters via \code{OFPPortStatsRequest} and \code{OFPFlowStatsRequest}.
-        \item It is natively supported by modern kernel-space virtual switches (Open vSwitch) and hardware merchant silicon ASICs.
-    \end{itemize}
+\section{Development and Test Environment}
+The project uses a Linux virtual machine for development and network emulation. A virtual machine makes the setup accessible without a physical switch laboratory, although processor scheduling and shared host resources can influence timings. The supplied VMware configuration is shown in Appendix~\ref{app:manual}. Software versions for the packet experiment are taken from its saved environment manifest rather than inferred from the current machine.
 
-    \item \textbf{Ryu SDN Controller Framework:}
-    The control plane requires an extensible, robust, and event-driven software framework. While monolithic Java-based controllers (such as ONOS or OpenDaylight) provide carrier features, they impose massive memory footprints ($>4$~GB RAM) and high JVM warmup latency. Ryu was selected because:
-    \begin{itemize}
-        \item It is fully implemented in Python, allowing direct, zero-overhead in-memory integration with scientific computing and machine learning libraries (PyTorch, NumPy, NetworkX).
-        \item It utilizes an asynchronous event-driven architecture based on Eventlet green threads, ensuring responsive coroutine handling of OpenFlow messages.
-        \item It provides native, robust packet-parsing libraries for LLDP, IPv4, TCP, UDP, and ARP protocols.
-    \end{itemize}
+\section{Software Tools and Reasons for Selection}
+Table~\ref{tab:tools} summarizes the software packages, libraries, and protocols employed across the control, data, and experimental planes, detailing their specific architectural roles and selection rationales.
 
-    \item \textbf{Mininet Network Emulation Platform:}
-    To evaluate the platform under realistic conditions without requiring million-dollar physical switch hardware, an emulation environment is required. Mininet (version 2.3.0) was chosen because:
-    \begin{itemize}
-        \item Unlike discrete-event software simulators (e.g., NS-3 or OMNeT++), Mininet runs \textbf{real production software}: real Linux kernel network stacks, real Open vSwitch (OVS) kernel datapath modules, and real application binaries (iperf, ping, curl).
-        \item It employs lightweight OS-level Linux network namespaces (\code{netns}) and virtual Ethernet (\code{veth}) pairs, enabling high-fidelity emulation of complex 20-switch, 32-host topologies on commodity x86 hardware.
-        \item It supports exact, reproducible topological creation via programmatic Python scripts.
-    \end{itemize}
+\begin{table}[htbp]
+\centering
+\caption{Main Software Tools and Their Roles in the Project}
+\label{tab:tools}
+\small
+\begin{tabularx}{\textwidth}{p{2.8cm} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+Tool & Project role & Reason for selection \\
+\midrule
+Python & Controller logic, experiments, and analysis & Allows the controller and learning components to share data structures. \\
+Ryu & OpenFlow controller application & Provides packet parsing, switch events, and access to OpenFlow messages. \\
+OpenFlow 1.3 & Communication with switches & Supports forwarding-rule installation and port/flow counter requests \cite{mckeown2008openflow,onf2012openflow}. \\
+Open vSwitch & Software forwarding plane & Runs with Mininet and exposes flow tables and port counters. \\
+Mininet & Packet-emulation testbed & Runs Linux network stacks and application traffic in network namespaces. \\
+PyTorch & Neural-network implementation & Supports training, model saving/loading, and CPU inference. \\
+NetworkX & Topology and path processing & Provides graph structures and shortest-path routines. \\
+NumPy and Matplotlib & Data analysis and figures & Support numerical summaries and reproducible plots. \\
+iperf and ping & Packet-test measurements & Supply transport throughput/UDP statistics and separate ICMP diagnostics. \\
+\bottomrule
+\end{tabularx}
+\end{table}
 
-    \item \textbf{PyTorch Deep Learning Library:}
-    The reinforcement learning intelligence engine requires a high-performance deep learning framework. PyTorch 2.0+ was selected because:
-    \begin{itemize}
-        \item It provides dynamic computational graphs (eager execution), facilitating rapid forward-inference and transparent backpropagation.
-        \item It features highly optimized C++/CUDA tensor kernels with sub-millisecond execution overhead ($0.24$~ms inference for the D3QN agent).
-        \item It supports modular neural layers, custom activation functions (LeakyReLU), Layer Normalization, and advanced optimizers (Adam with gradient clipping).
-    \end{itemize}
+Two Python environments are used because the legacy Ryu/Eventlet stack and the scientific tools have different compatibility requirements. The packet runner uses the scientific environment with access to the system Mininet bindings; the controller is started using its separate Python 3.10 environment. This separation is important when reproducing the project.
 
-    \item \textbf{Health-Checked Active/Standby High-Availability Architecture:}
-    A single centralized SDN controller represents a vulnerable single point of failure (SPOF). To provide fault tolerance and continuous control plane operation, a health-checked active/standby multi-controller pool was implemented. The pool architecture utilizes HTTP health probes to monitor node vitality, initiates sub-millisecond local failover bookkeeping ($0.001$~ms) to designate an available standby, and provides transparent client retry with automated endpoint redirection, avoiding the operational complexity of external consensus daemons while ensuring rapid controller recovery.
+\section{Software-Defined Networking and Routing}
+In software-defined networking, the controller computes forwarding decisions and the switches apply installed rules. For this project, the controller obtains topology information through discovery events and derives link rates from differences between successive byte-counter readings. It then chooses an output path and sends OpenFlow rule updates.
 
-    \item \textbf{Programmable Data Planes (P4) and In-Band Network Telemetry (INT):}
-    While OpenFlow 1.3 provides standard southbound abstractions, emerging carrier networks are transitioning toward fully programmable data planes. P4 was evaluated as the architectural target for hardware deployment, offering line-rate packet parsing, stateful on-switch register processing, and nanosecond-resolution telemetry without control-plane polling overhead.
-\end{enumerate}
+The comparison includes an OSPF-style inverse-capacity cost baseline, hop-count shortest-path routing, equal-cost multipath routing, widest-shortest-path routing, and least-loaded routing. These provide useful reference behaviours. The software-model OSPF-style baseline implements route costs rather than the full distributed OSPF protocol \cite{moy1998ospf}. The packet experiment uses the separate hop-count SPF and least-loaded policies.
 
-\section{Programmable Data Planes (P4) and In-Band Network Telemetry (INT)}
-\label{sec:p4_int_background}
-To understand the architectural evolution of software-defined forwarding, it is essential to contextualize OpenFlow against modern \textbf{Programmable Data Planes} driven by the \textbf{P4 (Programming Protocol-Independent Packet Processors)} language:
-
-\begin{enumerate}
-    \item \textbf{Limitations of OpenFlow's Fixed Pipeline:}
-    OpenFlow 1.3 relies on a standardized, fixed-function packet parser that recognizes a hardcoded set of packet headers (Ethernet, VLAN, IPv4, IPv6, TCP, UDP, MPLS). If a telecommunication carrier introduces a novel encapsulation protocol (e.g., Segment Routing over IPv6, SRv6) or custom telemetry tags, the OpenFlow switch firmware must be completely redesigned. Furthermore, OpenFlow telemetry is fundamentally reactive and asynchronous: port and flow statistics are retrieved via periodic pull requests (\code{OFPPortStatsRequest}), introducing a minimum polling lag of $\Delta t \approx 1.0$~second.
-
-    \item \textbf{The PISA Architecture and P4 Model:}
-    The Protocol-Independent Switch Architecture (\textbf{PISA}) introduces a fully programmable packet processing pipeline comprising:
-    \begin{itemize}
-        \item \textbf{Programmable Parser:} Expressed as a state machine that parses arbitrary, custom-defined header sequences from bitstreams.
-        \item \textbf{Ingress Match-Action Stages:} Reconfigurable lookup tables supported by Ternary Content-Addressable Memory (TCAM) and Static RAM (SRAM), accompanied by stateful Register arrays that maintain line-rate state across consecutive packets.
-        \item \textbf{Queuing and Traffic Manager:} Manages packet buffer queues, packet replication (multicast), and traffic shaping.
-        \item \textbf{Egress Match-Action Stages:} Applies egress modifications, encapsulations, and queuing telemetry insertions.
-        \item \textbf{Programmable Deparser:} Reassembles modified headers into outgoing Ethernet bitstreams.
-    \end{itemize}
-
-    \item \textbf{In-Band Network Telemetry (INT):}
-    Developed by the P4.org telemetry working group, In-Band Network Telemetry (\textbf{INT}) eliminates periodic polling overhead entirely. Instead of an external controller querying switches, transit switches embed real-time metadata directly into the payload or shim encapsulation of user data packets at hardware line rate (e.g., 400 Gbps per port on Intel Barefoot Tofino ASICs). As a packet traverses the network:
-    \begin{itemize}
-        \item Ingress switches insert an INT header.
-        \item Each intermediate hop pushes its unique \textbf{Switch ID}, \textbf{Egress Port}, \textbf{Hop Latency} (measured in nanoseconds), \textbf{Instantaneous Queue Depth}, and \textbf{Congestion Mark}.
-        \item Egress sink switches strip the INT telemetry headers and forward raw telemetry digests directly to the DRL inference engine via high-speed UDP streams or Kafka event buses.
-    \end{itemize}
-
-    \item \textbf{Design Justification for the Current Prototype:}
-    Although P4/INT represents the definitive future for hardware merchant silicon, this project deliberately deploys OpenFlow 1.3 on Open vSwitch (OVS) and Mininet for the primary software prototype. OpenFlow 1.3 is universally supported across commodity Linux network namespaces without requiring specialized P4 compiler toolchains (p4c) or proprietary FPGA/ASIC hardware emulators. Crucially, the 10-dimensional state vector $\mathbf{s} \in \mathbb{R}^{10}$ designed in this project is explicitly architected to map directly onto INT header fields, ensuring seamless future migration to P4-native hardware testbeds.
-\end{enumerate}
-
-\section{Mathematical Foundations of Traffic Engineering and UMCF}
-A communication network is formally modeled as a directed multigraph $G = (V, E)$, where $V$ represents the set of network nodes (OpenFlow switches) with $|V| = N$, and $E$ represents the set of directed transmission links with $|E| = M$. Each directed edge $e = (u, v) \in E$ is characterized by:
-\begin{itemize}
-    \item Transmission capacity $C_e > 0$ expressed in Megabits per second (Mbps).
-    \item Physical propagation delay $d_{\text{prop}}(e) > 0$ expressed in milliseconds (ms).
-    \item Finite buffer queue capacity $B_e$ expressed in packets.
-\end{itemize}
-
-Let $\mathcal{K} = \{1, 2, \dots, K\}$ denote the set of active traffic demands (commodities) traversing the network. Each commodity $k \in \mathcal{K}$ is defined by a tuple:
+For a directed link \(e\), utilisation is the offered load divided by capacity:
 \begin{equation}
-k = \left( s_k, t_k, D_k \right)
+u_e=\frac{\lambda_e}{C_e}.
 \end{equation}
-where $s_k \in V$ is the ingress source node, $t_k \in V$ is the egress destination node, and $D_k \ge 0$ is the traffic bandwidth demand (in Mbps).
-
-Let $\mathcal{P}_k$ denote the set of loopless directed paths connecting source $s_k$ to destination $t_k$ in $G$. In modern packet networks, per-packet multi-path routing across paths with asymmetric latencies causes severe TCP packet reordering, duplicate ACKs, and catastrophic throughput collapse. Consequently, this work operates strictly within the \textbf{Unsplittable Multi-Commodity Flow (UMCF)} regime. For each demand $k$, we define a binary routing decision variable:
-\begin{equation}
-x_{k, p} \in \{0, 1\} \quad \forall p \in \mathcal{P}_k
-\end{equation}
-such that exactly one candidate path is assigned to each demand:
+Here both \(\lambda_e\) and \(C_e\) are expressed in Mbps. Values above one represent overload in the software model. Each traffic demand is assigned a single candidate path:
 \begin{equation}
 \label{eq:path_assignment}
-\sum_{p \in \mathcal{P}_k} x_{k, p} = 1 \quad \forall k \in \mathcal{K}
+\sum_{p\in\mathcal{P}_k}x_{k,p}=1,\qquad x_{k,p}\in\{0,1\}.
 \end{equation}
-
-The aggregate traffic load $\lambda_e$ traversing link $e \in E$ is the sum of bandwidth demands of all commodities routed through link $e$:
-\begin{equation}
-\lambda_e = \sum_{k \in \mathcal{K}} \sum_{p \in \mathcal{P}_k : e \in p} D_k \cdot x_{k, p} \quad [\text{Mbps}]
-\end{equation}
-The instantaneous utilization $u_e$ of link $e$ is defined as the ratio of traffic load to physical capacity:
-\begin{equation}
-u_e = \frac{\lambda_e}{C_e}
-\end{equation}
-
-To prevent packet loss, physical link capacity constraints enforce:
+A capacity-feasible assignment would also require
 \begin{equation}
 \label{eq:capacity_constraint}
-u_e \le 1.0 \quad \forall e \in E \iff \lambda_e \le C_e
+\sum_{k}\sum_{p:e\in p}d_kx_{k,p}\le C_e.
 \end{equation}
+The learned reward encourages lower congestion but does not enforce these inequalities as hard admission constraints. The implemented candidate paths and reward are described in the design section.
 
-The general Traffic Engineering objective is to find a binary path assignment matrix $\mathbf{X} = \{x_{k, p}\}$ that minimizes a composite network cost function $\Psi(\mathbf{X})$ while satisfying (\ref{eq:path_assignment}) and (\ref{eq:capacity_constraint}):
+\section{Learning-Based Route Selection}
+Reinforcement learning formalizes optimal sequential decision-making within the framework of a Markov Decision Process (MDP) defined by the 5-tuple $\mathcal{M} = \langle \mathcal{S}, \mathcal{A}, \mathcal{P}, \mathcal{R}, \gamma \rangle$, where $\mathcal{S}$ represents the state space, $\mathcal{A}$ is the action space, $\mathcal{P}(s' \mid s, a) = \mathbb{P}(S_{t+1}=s' \mid S_t=s, A_t=a)$ defines the environmental transition dynamics, $\mathcal{R}(s, a) = \mathbb{E}[R_{t+1} \mid S_t=s, A_t=a]$ is the immediate scalar reward function, and $\gamma \in [0, 1)$ is the temporal discount factor \cite{sutton2018reinforcement}. Under policy $\pi(a \mid s)$, the expected return from state-action pair $(s, a)$ is denoted by the action-value function $Q^\pi(s, a) = \mathbb{E}_\pi \left[ \sum_{k=0}^\infty \gamma^k R_{t+k+1} \;\middle|\; S_t=s, A_t=a \right]$. The optimal policy $\pi^*$ satisfies the fundamental Bellman Optimality Equation:
 \begin{equation}
-\min_{\mathbf{X}} \quad \Psi(\mathbf{X}) = \sum_{e \in E} \Phi(u_e) + \alpha \sum_{k \in \mathcal{K}} \text{Delay}(k, \mathbf{X}) + \beta \sum_{k \in \mathcal{K}} \text{Jitter}(k, \mathbf{X})
+\label{eq:bellman_optimality}
+Q^*(s, a) = \mathcal{R}(s, a) + \gamma \sum_{s' \in \mathcal{S}} \mathcal{P}(s' \mid s, a) \max_{a' \in \mathcal{A}} Q^*(s', a').
 \end{equation}
-where $\Phi(u_e)$ is a convex link congestion penalty function.
 
-\begin{theorem}[NP-Hardness of UMCF]
-The Unsplittable Multi-Commodity Flow problem with binary decision variables $x_{k, p} \in \{0, 1\}$ is NP-hard (weakly NP-hard in basic two-node graphs and strongly NP-hard in general directed topologies) \cite{garey1979computers, even1976complexity}.
-\end{theorem}
-\begin{proof}
-The proof proceeds by reduction from the classical \textsc{Partition} problem. Given a finite set of positive integers $\mathcal{S} = \{w_1, w_2, \dots, w_n\}$ summing to $2W$, the partition problem asks whether there exists a subset $\mathcal{S}' \subset \mathcal{S}$ such that $\sum_{i \in \mathcal{S}'} w_i = W$. We construct a 2-node graph $G=(V, E)$ with source $s$ and destination $t$ connected by two parallel directed links $e_1, e_2$, each with capacity $C_{e_1} = C_{e_2} = W$. For each integer $w_i$, define a commodity $k_i = (s, t, w_i)$. Any valid unsplittable routing assignment satisfying $u_{e_1} \le 1.0$ and $u_{e_2} \le 1.0$ corresponds directly to a valid partition of $\mathcal{S}$. Because \textsc{Partition} is NP-complete, finding an optimal unsplittable flow assignment is NP-hard. In general directed multigraphs with multiple commodities ($K \ge 2$), UMCF is strongly NP-hard via reduction from the directed two-commodity integral flow problem \cite{even1976complexity}, establishing that exact polynomial-time optimization is computationally intractable for dynamic real-time traffic engineering.
-\end{proof}
-
-\section{Queueing Delay, Bufferbloat, and RFC 3393 Jitter Modeling}
-To evaluate link latency realistically without arbitrary heuristics, we model switch egress port buffers using stochastic queueing theory. Assuming Poisson packet arrivals with aggregate rate $\lambda_e$ and exponentially distributed packet transmission service times with service rate $\mu_e = C_e / \bar{L}$ (where $\bar{L}$ is the mean packet size), each switch port buffer behaves as an $M/M/1/K$ queue with finite buffer capacity $K_B$:
-
-\begin{enumerate}
-    \item \textbf{Kleinrock Mean Queueing Delay:}
-    Under stable traffic regimes ($\rho_e = \lambda_e / \mu_e < 1.0$), the mean queueing delay $W_{q}(e)$ experienced by packets in the buffer is derived via Kleinrock's formula \cite{kleinrock1964communication}:
-    \begin{equation}
-    W_{q}(e) = \frac{\rho_e}{\mu_e(1 - \rho_e)} = \frac{\lambda_e}{\mu_e(\mu_e - \lambda_e)} \quad [\text{seconds}]
-    \end{equation}
-    The total end-to-end latency $D(p)$ along path $p$ is the sum of physical propagation delays and queueing delays across all constituent hops:
-    \begin{equation}
-    D(p) = \sum_{e \in p} \left( d_{\text{prop}}(e) + W_{q}(e) \right) \quad [\text{ms}]
-    \end{equation}
-
-    \item \textbf{Finite Buffer Packet Drop Probability:}
-    When traffic approaches or exceeds capacity, the finite switch buffer overflows. The stationary probability $P_{\text{loss}}(e)$ of a packet arriving to find a full buffer (inducing tail-drop) in an $M/M/1/K_B$ queue is given by:
-    \begin{equation}
-    P_{\text{loss}}(e) = \frac{(1 - \rho_e)\rho_e^{K_B}}{1 - \rho_e^{K_B + 1}}
-    \end{equation}
-    For a path $p$, the overall packet delivery success rate is $\prod_{e \in p} (1 - P_{\text{loss}}(e))$, yielding path drop probability:
-    \begin{equation}
-    P_{\text{loss}}(p) = 1 - \prod_{e \in p} \left(1 - P_{\text{loss}}(e)\right)
-    \end{equation}
-
-    \item \textbf{Packet Delay Variation (Jitter, RFC 3393):}
-    The Internet Engineering Task Force (IETF) RFC 3393 specifies the IP Packet Delay Variation (IPDV) metric \cite{rfc3393}. For a sequence of consecutive packets $\{1, 2, \dots, M\}$ traversing path $p$ with measured one-way transit delays $\{D_1, D_2, \dots, D_M\}$, the RFC 3393 IPDV between adjacent packets $i$ and $i+1$ is defined as the signed delay differential:
-    \begin{equation}
-    \text{IPDV}_i = D_{i+1} - D_i \quad [\text{ms}]
-    \end{equation}
-    The path-level average absolute jitter metric $J_{\text{IPDV}}(p)$ is computed as:
-    \begin{equation}
-    J_{\text{IPDV}}(p) = \frac{1}{M - 1} \sum_{i=1}^{M-1} \left| D_{i+1} - D_i \right| \quad [\text{ms}]
-    \end{equation}
-    In our telemetry simulation and routing reward formulation, the continuous queue-state proxy for delay jitter across path hops is modelled via the root-sum-square of queue delay standard deviations, $J(p) = \sqrt{\sum_{e \in p} \text{Var}(W_q(e))}$, providing a differentiable penalty that tracks delay dispersion.
-\end{enumerate}
-
-\section{Deep Reinforcement Learning Foundations}
-Reinforcement learning addresses the problem of an autonomous agent learning optimal control policies through trial-and-error interactions with a dynamic environment. The underlying decision process is formulated as an infinite-horizon discounted Markov Decision Process (\textbf{MDP}), defined by the 5-tuple:
+In high-dimensional state spaces where tabular dynamic programming is intractable, Deep Q-Networks (DQN) approximate $Q^*(s, a)$ with a parameterized neural network $Q(s, a; \theta)$ \cite{mnih2015human}. The standard single-DQN optimizes the parameter vector $\theta$ by minimizing the mean squared Bellman error against a slowly varying target network parameterized by $\theta^-$:
 \begin{equation}
-\mathcal{M} = \left( \mathcal{S}, \mathcal{A}, \mathcal{P}, \mathcal{R}, \gamma \right)
+\label{eq:standard_dqn_target}
+Y_t^{\text{DQN}} = R_{t+1} + \gamma \max_{a' \in \mathcal{A}} Q(S_{t+1}, a'; \theta^-).
 \end{equation}
-where $\mathcal{S}$ is the state space, $\mathcal{A}$ is the discrete action space, $\mathcal{P}(s' | s, a) = \mathbb{P}(S_{t+1} = s' | S_t = s, A_t = a)$ represents transition probability dynamics, $\mathcal{R}(s, a)$ is the scalar reward function, and $\gamma \in [0, 1)$ is the temporal discount factor.
-
-The agent's goal is to learn a policy $\pi(a | s)$ that maximizes the expected cumulative discounted return $G_t$:
+However, single-DQN incurs an upward maximization bias due to the Jensen-type inequality $\mathbb{E}[\max_a (Q(s, a) + \epsilon_a)] \ge \max_a \mathbb{E}[Q(s, a)]$ when evaluation noise $\epsilon_a$ is present. To prevent systematic overestimation of candidate path values, Double DQN decouples greedy action selection from action evaluation \cite{vanhasselt2016deep}:
 \begin{equation}
-G_t = \sum_{k=0}^{\infty} \gamma^k R_{t+k+1}
+\label{eq:double_q_target}
+Y_t^{\text{DDQN}} = R_{t+1} + \gamma Q\left(S_{t+1}, \arg\max_{a' \in \mathcal{A}} Q(S_{t+1}, a'; \theta); \, \theta^-\right).
 \end{equation}
-Under policy $\pi$, the state-action value function $Q^\pi(s, a)$ satisfies the fundamental Bellman equation \cite{sutton2018reinforcement}:
+Terminal transitions omit the discounted next-state term. Rather than performing abrupt periodic hard updates, the target parameters $\theta^-$ track the online parameters $\theta$ continuously via a Polyak soft-update rule (Polyak-Rupert tracking) with soft-update parameter $\tau \ll 1$ ($\tau = 0.005$):
 \begin{equation}
-Q^\pi(s, a) = \mathbb{E}\left[ R_{t+1} + \gamma \sum_{a' \in \mathcal{A}} \pi(a' | S_{t+1}) Q^\pi(S_{t+1}, a') \;\middle|\; S_t = s, A_t = a \right]
+\label{eq:polyak_target_update}
+\theta^- \leftarrow \tau \theta + (1 - \tau) \theta^-.
 \end{equation}
-The optimal action-value function $Q^*(s, a) = \max_\pi Q^\pi(s, a)$ satisfies the non-linear Bellman optimality equation:
+
+The dueling network architecture further improves policy evaluation by factoring the scalar state-action value into separate state-value $V(s)$ and state-dependent action-advantage $A(s, a)$ streams \cite{wang2016dueling}. To guarantee identifiability---ensuring that $V(s)$ accurately reflects the state value without shifting arbitrary constants between streams---the advantage outputs are centralized by subtracting their discrete mean:
 \begin{equation}
-Q^*(s, a) = \mathbb{E}\left[ R_{t+1} + \gamma \max_{a' \in \mathcal{A}} Q^*(S_{t+1}, a') \;\middle|\; S_t = s, A_t = a \right]
+\label{eq:dueling_aggregation}
+Q(s, a; \theta, \alpha, \beta) = V(s; \theta, \beta) + \left( A(s, a; \theta, \alpha) - \frac{1}{|\mathcal{A}|} \sum_{a' \in \mathcal{A}} A(s, a'; \theta, \alpha) \right).
 \end{equation}
+A complete mathematical proof of this identifiability condition and gradient uniqueness is provided in Appendix~\ref{app:math_proofs}.
 
-\section{Dueling Double Deep Q-Networks (D3QN)}
-In high-dimensional state spaces, tabular Q-learning fails due to the curse of dimensionality. Deep Q-Networks (DQN) \cite{mnih2015human} approximate $Q^*(s, a)$ using a deep neural network parameterized by weights $\theta$. However, standard DQN suffers from two critical flaws in network routing:
-\begin{enumerate}
-    \item \textbf{Severe Q-Value Overestimation Bias:} The maximization operator $\max_{a'} Q(s', a'; \theta)$ systematically overestimates action values in noisy networking environments.
-    \item \textbf{Representational Inefficiency:} In many routing states, the underlying state value $V(s)$ (overall network health) is critical, regardless of which candidate path is chosen.
-\end{enumerate}
+\section{Experience Replay and Prioritized Sampling}
+Replay stores previous transitions so they can be reused during training, breaking temporal autocorrelation across consecutive state transitions. Uniform experience replay selects transitions uniformly at random ($P(i) = 1/N$), which dilutes rare high-error transitions---such as transient link-saturation and buffer-overflow events---amid abundant nominal samples. Prioritized Experience Replay (PER) addresses this limitation by sampling transitions proportionally to their Temporal Difference (TD) error magnitude \cite{schaul2016prioritized}.
 
-To overcome these deficiencies, this work implements a \textbf{Dueling Double Deep Q-Network (D3QN)} combining two architectural breakthroughs:
-
-\begin{enumerate}
-    \item \textbf{Double Q-Learning Target Decoupling:}
-    Van Hasselt et al. \cite{vanhasselt2016deep} showed that decoupling action selection from action evaluation can reduce maximization bias. Action selection is governed by the online network parameters $\theta$, while target evaluation is governed by a delayed target network $\theta^-$:
-    \begin{equation}
-    \label{eq:double_q_target}
-    Y_t^{\text{DDQN}} = R_{t+1} + \gamma Q\left(S_{t+1}, \arg\max_{a' \in \mathcal{A}} Q(S_{t+1}, a'; \theta); \theta^-\right)
-    \end{equation}
-    The target network parameters $\theta^-$ are smoothly tracked via Polyak soft updates with coefficient $\tau = 0.005$:
-    \begin{equation}
-    \theta^- \leftarrow \tau \theta + (1 - \tau)\theta^-
-    \end{equation}
-
-    \item \textbf{Dueling Neural Network Stream Factorization:}
-    Wang et al. \cite{wang2016dueling} introduced the Dueling architecture, which factorizes the representation into two separate streams following shared feature extraction:
-    \begin{itemize}
-        \item A scalar State-Value stream $V(s; \theta, \beta) \in \mathbb{R}$.
-        \item A vector Action-Advantage stream $A(s, a; \theta, \alpha) \in \mathbb{R}^{|\mathcal{A}|}$.
-    \end{itemize}
-    To guarantee identifiability (preventing arbitrary scalar offsets between $V$ and $A$), the aggregation layer enforces mean-centering:
-    \begin{equation}
-    \label{eq:dueling_aggregation}
-    Q(s, a; \theta, \alpha, \beta) = V(s; \theta, \beta) + \left( A(s, a; \theta, \alpha) - \frac{1}{|\mathcal{A}|} \sum_{a' \in \mathcal{A}} A(s, a'; \theta, \alpha) \right)
-    \end{equation}
-\end{enumerate}
-
-\section{Prioritized Experience Replay (PER) with Binary SumTree}
-Standard DQN samples past transitions uniformly from a memory buffer. However, in network routing, catastrophic congestion events (such as buffer drops and link failures) are rare but critical. Uniform sampling drowns these rare events in seas of normal traffic. 
-
-Prioritized Experience Replay (PER) \cite{schaul2016prioritized} samples transitions with probability proportional to their Temporal Difference (TD) error magnitude $\delta_i$:
+For transition $i = (S_i, A_i, R_i, S'_{i})$, the double-DQN TD error is formulated as:
 \begin{equation}
-\delta_i = Y_i^{\text{DDQN}} - Q(s_i, a_i; \theta)
+\label{eq:td_error}
+\delta_i = R_i + \gamma Q\left(S'_{i}, \arg\max_{a'} Q(S'_{i}, a'; \theta); \, \theta^-\right) - Q(S_i, A_i; \theta).
 \end{equation}
-The priority $p_i$ of transition $i$ is formalized as:
+The transition priority $p_i$ is computed with a small positive constant $\epsilon_{\text{per}} = 0.01$ to ensure non-zero sampling probability, and an exponent $\alpha \in [0, 1]$ determining the degree of prioritization:
 \begin{equation}
-p_i = \left( |\delta_i| + \epsilon_{\text{per}} \right)^\alpha
+\label{eq:per_priority}
+p_i = \left( |\delta_i| + \epsilon_{\text{per}} \right)^\alpha.
 \end{equation}
-where $\epsilon_{\text{per}} = 10^{-5}$ guarantees non-zero priority, and $\alpha \in [0, 1]$ controls prioritization aggressiveness ($\alpha = 0$ corresponds to uniform sampling, while $\alpha = 0.6$ is the canonical default empirically recommended by Schaul et al.~\cite{schaul2016prioritized} to balance priority sampling against diversity). The sampling probability $P(i)$ is:
+When $\alpha = 0$, sampling collapses to the uniform baseline; $\alpha = 0.6$ is deployed in the prototype. The discrete sampling probability distribution across buffer capacity $N$ is defined as:
 \begin{equation}
-P(i) = \frac{p_i}{\sum_{k=1}^N p_k}
+\label{eq:per_probability}
+P(i) = \frac{p_i}{\sum_{k=1}^N p_k} = \frac{(|\delta_i| + \epsilon_{\text{per}})^\alpha}{\sum_{k=1}^N (|\delta_k| + \epsilon_{\text{per}})^\alpha}.
 \end{equation}
+Because prioritized sampling alters the empirical data distribution, it introduces estimation bias. This bias is corrected via Importance Sampling (IS) weights $w_i$, scaled by the buffer capacity $N$ and normalized by the maximum weight in the mini-batch to preserve gradient scale:
+\begin{equation}
+\label{eq:is_weights}
+w_i = \left( \frac{1}{N} \cdot \frac{1}{P(i)} \right)^\beta, \qquad \tilde{w}_i = \frac{w_i}{\max_{j} w_j},
+\end{equation}
+where $\beta \in [0, 1]$ is annealed linearly from initial value $\beta_0 = 0.4$ toward $1.0$ at the conclusion of training:
+\begin{equation}
+\label{eq:beta_anneal}
+\beta_t = \min\left(1.0, \, \beta_0 + t \cdot \Delta\beta \right).
+\end{equation}
+The network is trained by minimizing the weighted Smooth L1 (Huber) loss over mini-batch size $B = 32$:
+\begin{equation}
+\label{eq:weighted_huber_loss}
+\mathcal{L}(\theta) = \frac{1}{B} \sum_{i=1}^B \tilde{w}_i \cdot \ell_{\delta_0}(\delta_i), \quad \text{where } \ell_{\delta_0}(\delta_i) = \begin{cases} \frac{1}{2}\delta_i^2 & \text{if } |\delta_i| \le \delta_0, \\[1mm] \delta_0 \left( |\delta_i| - \frac{1}{2}\delta_0 \right) & \text{otherwise}, \end{cases}
+\end{equation}
+with transition threshold $\delta_0 = 1.0$. The project implements the priority prefix sums using a binary SumTree data structure, enabling $O(\log N)$ priority updates and sampling operations.
 
-Non-uniform sampling introduces distribution bias. To ensure unbiased stochastic gradient descent, importance-sampling (IS) weights $w_i$ are computed:
+\section{Understanding the Evaluation Metrics}
+The software model estimates queueing effects with an analytical finite-buffer $M/M/1/K$ queueing model applied across each directed link $e \in E$. Let $\lambda_e$ denote the Poisson arrival rate and $\mu_e$ denote the exponential service capacity, yielding link traffic intensity $\rho = \lambda_e / \mu_e = u_e$. Under finite buffer capacity $K = 100$ packets, the steady-state buffer-overflow loss probability $P_K$ is formulated as:
 \begin{equation}
-w_i = \left( \frac{1}{N \cdot P(i)} \right)^\beta \Big/ \max_{j} w_j
+\label{eq:mm1k_loss}
+P_K = \begin{cases} \dfrac{(1 - \rho)\rho^K}{1 - \rho^{K+1}} & \text{if } \rho \neq 1, \\[2mm] \dfrac{1}{K+1} & \text{if } \rho = 1. \end{cases}
 \end{equation}
-where $\beta$ is annealed linearly from $\beta_0 = 0.4$ to $1.0$ during training.
+The expected number of packets residing in the queueing subsystem $L$ is given by:
+\begin{equation}
+\label{eq:mm1k_length}
+L = \frac{\rho}{1 - \rho} - \frac{(K+1)\rho^{K+1}}{1 - \rho^{K+1}},
+\end{equation}
+and applying Little's Law with effective arrival rate $\lambda_{\text{eff}} = \lambda_e(1 - P_K)$ yields the mean queue waiting time $W_q$ and total link traversal delay $D(e) = d_{\text{prop}}(e) + W$, where total time in the queueing system is $W = W_q + \frac{1}{\mu_e} = \frac{L}{\lambda_{\text{eff}}}$:
+\begin{equation}
+\label{eq:mm1k_waiting}
+W_q = \frac{L}{\lambda_e(1 - P_K)} - \frac{1}{\mu_e}, \qquad D(e) = d_{\text{prop}}(e) + \frac{L}{\lambda_e(1 - P_K)},
+\end{equation}
+where $d_{\text{prop}}(e)$ represents physical link propagation latency. Because real packet networks exhibit heavy-tailed burst distributions, these analytical formulas serve as controlled simulation estimates rather than direct ASIC measurements.
 
-To avoid costly $O(N)$ linear scans when sampling and updating priorities over buffers with $N = 50,000$ transitions, we implement a \textbf{Binary SumTree}. A SumTree is a complete binary tree where:
-\begin{itemize}
-    \item The root node stores the total cumulative priority sum $p_{\text{total}} = \sum_{k=1}^N p_k$.
-    \item Each parent node equals the exact sum of its two children: $P_{\text{parent}} = P_{\text{left}} + P_{\text{right}}$.
-    \item Leaf nodes store the individual transition priorities $p_i$.
-\end{itemize}
-Both sample retrieval and priority updates execute in strictly $O(\log N)$ time, enabling real-time training steps without control plane stalling.
+The Mininet experiment records a different set of observations. Iperf reports transport throughput and, for UDP, datagram loss and jitter. Ping reports round-trip time and ICMP echo loss. TCP retransmission loss is not recorded. In particular, ICMP echo loss must not be interpreted as TCP packet loss, and RTT must not be labelled one-way delay. RFC 3393 provides background on packet delay variation \cite{rfc3393}; the model's bounded jitter proxy is not a direct implementation of that measured statistic.
+
+\section{Controller Recovery}
+The project also includes a pool that probes controller endpoints and retries client requests through an available standby. Its purpose is to examine client HTTP recovery after endpoint failure. Local selection bookkeeping, HTTP recovery, and OpenFlow reconnection are different operations and require different measurements. The pool does not implement a distributed replicated log or establish a production availability target.
+
+\section{Chapter Summary}
+The tools provide the components needed for a working software prototype: graph processing, a trained route selector, controller integration, a software forwarding plane, and repeatable tests. The main evaluation requirement is to keep model estimates, packet observations, and controller-recovery timings clearly identified. The next chapter explains how related systems influenced these design choices.
 '''

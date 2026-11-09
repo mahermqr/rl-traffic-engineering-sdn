@@ -47,32 +47,29 @@ pip install -r requirements.txt
 
 \section{Automated Execution Runbook}
 
-\subsection{1. Execute Unit \& Integration Tests (32 Tests)}
-To assert software integrity across all 32 automated unit tests:
+\subsection{1. Execute Unit \& Integration Tests (42 Tests)}
+To assert software integrity across all 42 automated unit and integration tests:
 \begin{lstlisting}[language=bash]
-chmod +x run_tests.sh
-./run_tests.sh
+./EC499tests/run_tests.sh
 \end{lstlisting}
 
 \subsection{2. Execute the Head-to-Head Tournament Benchmark}
 To run the automated routing tournament across all 5 topologies:
 \begin{lstlisting}[language=bash]
-chmod +x run_benchmarks.sh
-./run_benchmarks.sh
+./EC499tests/run_benchmarks.sh
 \end{lstlisting}
 Benchmark results are written to \texttt{logs/routing\_tournament\_results.json}.
 
 \subsection{3. Execute Multi-Topology Stress Testing}
 To evaluate severe core link saturation, flow avalanches, and link failures:
 \begin{lstlisting}[language=bash]
-python3 stress_test_blind_topologies.py
+./.venv/bin/python EC499tests/stress_test_blind_topologies.py
 \end{lstlisting}
 
 \subsection{4. Evaluate Zero-Shot Random Graph Generalization}
 To test the pre-trained model on arbitrary unseen random graphs:
 \begin{lstlisting}[language=bash]
-chmod +x run_random_blind_test.sh
-./run_random_blind_test.sh --nodes 25 --flows 200
+./EC499tests/run_random_blind_test.sh --nodes 25 --flows 200
 \end{lstlisting}
 
 \subsection{5. Launch Live Production System (Controller + Web Dashboard)}
@@ -175,7 +172,7 @@ The embedded HTTP server exposes a complete RESTful API for external monitoring,
 \addlinespace
 \texttt{GET} & \texttt{/api/model\_predict} & \texttt{src}, \texttt{dst}, \texttt{demand} & Real-time forward inference returning chosen path, candidate path alternatives, action indices, and softmax probabilities. \\
 \addlinespace
-\texttt{GET/POST} & \texttt{/api/verse} & \texttt{topo}, \texttt{protocols}, \texttt{pattern}, \texttt{flows} & Head-to-head algorithm tournament simulation returning comparative metrics, trajectories, and Pareto efficiency verdicts. \\
+\texttt{GET/POST} & \texttt{/api/versus} & \texttt{topo}, \texttt{protocols}, \texttt{pattern}, \texttt{flows} & Head-to-head algorithm tournament simulation returning comparative metrics, trajectories, and Pareto efficiency verdicts. \\
 \addlinespace
 \texttt{GET} & \texttt{/api/flows} & None & Returns active flow table entries (flow ID, DPID, match criteria, actions, byte counters, duration). \\
 \addlinespace

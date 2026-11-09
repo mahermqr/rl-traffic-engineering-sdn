@@ -1,4 +1,4 @@
-# Deep Reinforcement Learning for Adaptive Traffic Engineering in Software-Defined Networks with High-Availability Control
+# Reinforcement Learning for Adaptive Traffic Engineering in Software-Defined Network
 
 **Graduation Project Report**  
 *Department of Computer Engineering, Faculty of Engineering, University of Tripoli*  
@@ -25,7 +25,7 @@ First and foremost, all praise, gratitude, and adoration are due to Allah Almigh
 
 I wish to express my deepest, most sincere gratitude and utmost respect to my academic supervisor, **Dr. Suad El-Geder**, for her exceptional mentorship, invaluable guidance, continuous encouragement, and rigorous academic critique throughout the conception, development, and evaluation of this research. Her technical expertise in telecommunications and computer networking, along with her unyielding insistence on scientific precision, provided the cornerstone for overcoming critical engineering obstacles and elevating this work to carrier-grade standards.
 
-I also extend my sincere appreciation to the distinguished faculty members and technical staff of the **Department of Electrical & Electronic Engineering (Computer Engineering Division), Faculty of Engineering at the University of Tripoli**. I am deeply indebted for the comprehensive foundational education, rigorous laboratory training, and inspiring scholarly environment they provided throughout my undergraduate curriculum.
+I also extend my sincere appreciation to the distinguished faculty members and technical staff of the **Department of Computer Engineering, Faculty of Engineering at the University of Tripoli**. I am deeply indebted for the comprehensive foundational education, rigorous laboratory training, and inspiring scholarly environment they provided throughout my undergraduate curriculum.
 
 No words can adequately convey my profound debt of gratitude to my beloved parents; to my father for his lifelong sacrifices, wisdom, and steadfast belief in my potential, and to my mother for her unconditional love, endless prayers, and constant moral support. My heartfelt appreciation also goes to my brothers and sisters for their continuous encouragement and patience during the demanding phases of this project.
 
@@ -422,7 +422,7 @@ $$G_t = \sum_{k=0}^{\infty} \gamma^k R_{t+k+1}$$
 In value-based reinforcement learning, the **Action-Value Function** (or **Q-function**) represents the expected return starting from state $s$, taking action $a$, and subsequently following policy $\pi$:
 $$Q^\pi(s, a) = \mathbb{E}_\pi \left[ \sum_{k=0}^{\infty} \gamma^k R_{t+k+1} \;\middle|\; S_t = s, A_t = a \right]$$
 The fundamental relationship governing optimal Q-values is the **Bellman Optimality Equation**:
-$$Q^*(s, a) = \mathbb{E} \left[ R_{t+1} + \gamma \max_{a'} Q^*(S_{t+1}, a') \;\middle|\; S_t = s, A_t = a \right]$$
+$$Q^*(s, a) = \mathcal{R}(s, a) + \gamma \sum_{s' \in \mathcal{S}} \mathcal{P}(s' \mid s, a) \max_{a' \in \mathcal{A}} Q^*(s', a')$$
 
 In high-dimensional or continuous state spaces, tabular Q-learning becomes computationally intractable due to the curse of dimensionality. **Deep Q-Networks (DQN)** overcome this limitation by approximating the Q-function using a deep neural network parameterized by weights $\theta$: $Q(s, a; \theta) \approx Q^*(s, a)$ [8].
 
@@ -784,19 +784,19 @@ $$\theta^- \leftarrow \tau \theta + (1 - \tau) \theta^-$$
 ### 4.1.5 Continuous 10-Dimensional State Vector Layout
 Table 4.2 defines the mathematical formulation and physical interpretation of each component in the 10-dimensional state vector $\mathbf{s} \in \mathbb{R}^{10}$, extracted in real time by `controller/state_manager.py`.
 
-### Table 4.2: Continuous 10-Dimensional State Vector Specification
-| Index | Feature Symbol | Metric Name | Mathematical Formulation | Normalization Range | Physical Network Significance |
-| :---: | :---: | :--- | :--- | :---: | :--- |
-| `0` | $\Delta B$ | Port Byte Rate Differential | $\Delta tx\_bytes / \Delta t$ | $[0.0, 1.0]$ | Captures instantaneous traffic demand velocity. |
-| `1` | $C_{\min}$ | Bottleneck Link Capacity | $\min_{e \in \mathcal{P}} C_e$ | $[0.0, 1.0]$ | Identifies maximum theoretical throughput constraint. |
-| `2` | $H$ | Path Hop Count | $\|\mathcal{P}\|$ | $[0.0, 1.0]$ | Represents transmission delay and switch resource consumption. |
-| `3` | $d_{\text{prop}}$ | Physical Propagation Delay | $\sum_{e \in \mathcal{P}} d_{\text{base}}(e)$ | $[0.0, 1.0]$ | Minimum non-congested speed-of-light path transit time. |
-| `4` | $d_{\text{queue}}$ | Kleinrock M/M/1/K Delay | $\sum_{e \in \mathcal{P}} d_{\text{queue}}(e)$ | $[0.0, 1.0]$ | Identifies bufferbloat and localized queue backpressure. |
-| `5` | $J_{\text{rfc}}$ | RFC 3393 Path Jitter | $\sum_{e \in \mathcal{P}} J_{\text{rfc}}(e)$ | $[0.0, 1.0]$ | Quantifies packet delay variation affecting real-time traffic. |
-| `6` | $P_{\text{loss}}$ | Buffer Drop Probability | $1 - \prod_{e \in \mathcal{P}} (1 - P_{\text{loss}}(e))$| $[0.0, 1.0]$ | Probability of tail-drop buffer overflow under current load. |
-| `7` | $u_{\text{avg}}$ | Mean Path Utilization | $\frac{1}{\|\mathcal{P}\|} \sum_{e \in \mathcal{P}} u_e$ | $[0.0, 1.0]$ | Aggregate loading across all hops along candidate path. |
-| `8` | $u_{\max}$ | Peak Bottleneck Utilization | $\max_{e \in \mathcal{P}} u_e$ | $[0.0, 1.0]$ | Critical congestion indicator triggering barrier penalties. |
-| `9` | $\sigma_u$ | Utilization Standard Deviation | $\sqrt{\frac{1}{\|\mathcal{P}\|} \sum (u_e - u_{\text{avg}})^2}$| $[0.0, 1.0]$ | Measures load balancing fairness across path links. |
+### Table 4.2: Continuous 10-Dimensional Normalized State Feature Vector Layout
+| Index | Feature Symbol | Physical Description | Normalization Mapping |
+| :---: | :---: | :--- | :--- |
+| $s_0$ | $\hat{H}_{\text{min}}$ | Shortest path hop count (Dijkstra SPF) | $\min(1.0, \max(0.1, \text{hops} / 10.0))$ |
+| $s_1$ | $\hat{u}_0$ | Bottleneck link utilization of Candidate Path 0 | $\min(1.0, \max(0.0, \max_{e \in P_0} u_e))$ |
+| $s_2$ | $\hat{u}_1$ | Bottleneck link utilization of Candidate Path 1 | $\min(1.0, \max(0.0, \max_{e \in P_1} u_e))$ |
+| $s_3$ | $\hat{u}_2$ | Bottleneck link utilization of Candidate Path 2 | $\min(1.0, \max(0.0, \max_{e \in P_2} u_e))$ |
+| $s_4$ | $\hat{u}_3$ | Bottleneck link utilization of Candidate Path 3 | $\min(1.0, \max(0.0, \max_{e \in P_3} u_e))$ |
+| $s_5$ | $\hat{D}_0$ | Normalized end-to-end latency of Candidate Path 0 | $\min\left(1.0, \max\left(0.0, \sum_{e \in P_0} d_e / 50.0\text{ ms}\right)\right)$ |
+| $s_6$ | $\hat{D}_1$ | Normalized end-to-end latency of Candidate Path 1 | $\min\left(1.0, \max\left(0.0, \sum_{e \in P_1} d_e / 50.0\text{ ms}\right)\right)$ |
+| $s_7$ | $\hat{D}_2$ | Normalized end-to-end latency of Candidate Path 2 | $\min\left(1.0, \max\left(0.0, \sum_{e \in P_2} d_e / 50.0\text{ ms}\right)\right)$ |
+| $s_8$ | $\hat{D}_3$ | Normalized end-to-end latency of Candidate Path 3 | $\min\left(1.0, \max\left(0.0, \sum_{e \in P_3} d_e / 50.0\text{ ms}\right)\right)$ |
+| $s_9$ | $\hat{u}_{\text{peak}}$ | Network-wide peak link utilization across all edges | $\min\left(1.0, \max\left(0.0, \max_{e \in E} u_e\right)\right)$ |
 
 ### 4.1.6 Multi-Objective Asymptotically Penalized Reward Function
 The reward function provides the essential feedback signal guiding agent convergence. To avoid myopic hop-count minimization, we formulate a comprehensive multi-objective reward incorporating latency, jitter, packet loss, path length, and an asymptotic barrier penalty:
@@ -1140,7 +1140,7 @@ Integrate hardware-based Trusted Platform Modules (TPM 2.0) and mutual TLS 1.3 c
 ### Table A.1: Experimental Evidence Status Summary
 | Evidence Artifact | Current Status | Experimental Verification Role |
 | :--- | :--- | :--- |
-| **Automated Test Suite (`test_suite.py`)** | Verified (100% Pass) | 41 automated unit and integration tests confirming routing, D3QN, PER, and HA. |
+| **Automated Test Suite (`test_suite.py`)** | Verified (100% Pass) | 42 automated unit and integration tests confirming routing, D3QN, PER, and HA. |
 | **Routing Tournament Data (`routing_tournament_results.json`)**| Verified Empirical Log | 6 algorithms across 5 topologies under 150 non-stationary dynamic flows. |
 | **High Availability Failover Log (`ha_controller_failover_results.json`)**| Verified Physical Log | 0.001 ms leader election, 37.96 ms client recovery under SIGKILL crash injection. |
 | **Multi-Seed Variance Log (`multiple_model_seeds_results.json`)**| Verified Statistical Log | 125 evaluations proving <1.0% model seed variance across 5 independent seeds. |
@@ -1158,28 +1158,49 @@ Adaptive SDN Traffic Engineering Unit Test Suite (EC499)
 test_agent_and_state_manager_with_config_defaults (TestCentralConfig) ......... ok
 test_config_dictionary_structure (TestCentralConfig) .......................... ok
 test_env_var_override_and_type_casting (TestCentralConfig) .................... ok
+test_ha_config_presence (TestCentralConfig) ................................... ok
 test_closed_loop_flow_accumulation_and_expiration (TestClosedLoopDynamics) ... ok
 test_generalized_core_congestion_across_topologies (TestClosedLoopDynamics) ... ok
 test_polyak_soft_update_consistency (TestClosedLoopDynamics) ................. ok
+test_seeded_workloads_are_reproducible_and_distinct (TestClosedLoopDynamics) .. ok
 test_dqn_router_lifecycle (TestDQNAgent) ...................................... ok
 test_dueling_architecture (TestDQNAgent) ...................................... ok
+test_controller_node_properties (TestHighAvailabilityClustering) .............. ok
+test_ha_pool_cascaded_failovers (TestHighAvailabilityClustering) .............. ok
+test_ha_pool_init_and_active_leader (TestHighAvailabilityClustering) .......... ok
+test_ha_pool_ovs_targets_format (TestHighAvailabilityClustering) .............. ok
 test_all_topologies (TestMultiTopologySupport) ................................ ok
 test_random_topology_generation (TestMultiTopologySupport) .................... ok
 test_replay_buffer_sampling (TestPrioritizedReplay) ........................... ok
 test_sumtree_arithmetic (TestPrioritizedReplay) ............................... ok
+test_configurable_state_dimension_and_no_fake_route (TestStateManager) ........ ok
 test_control_overhead_accounting (TestStateManager) .......................... ok
 test_differential_port_rates (TestStateManager) ............................... ok
-test_link_delay_and_jitter_tracking (TestStateManager) ........................ ok
-test_multigraph_edge_resolution (TestStateManager) ............................ ok
-test_traditional_routing_baselines (TestTraditionalRouting) ................... ok
-test_wsp_bottleneck_tie_breaking (TestTraditionalRouting) ..................... ok
-test_active_master_election_promotion (TestHighAvailability) .................. ok
-test_state_synchronization_under_failover (TestHighAvailability) .............. ok
-test_client_http_proxy_reconnection (TestHighAvailability) .................... ok
+test_directional_dynamic_flow_accounting_and_release (TestStateManager) ....... ok
+test_flow_table_records (TestStateManager) .................................... ok
+test_host_location_tracking (TestStateManager) ................................ ok
+test_inject_traffic_flow_duration_and_latency_scaling (TestStateManager) ...... ok
+test_jitter_calculation (TestStateManager) .................................... ok
+test_link_failure_and_restoration (TestStateManager) .......................... ok
+test_network_te_summary (TestStateManager) .................................... ok
+test_packet_loss_modeling (TestStateManager) .................................. ok
+test_routing_state_features (TestStateManager) ................................ ok
+test_compute_path_metrics (TestTraditionalRoutingBaselines) ................... ok
+test_dijkstra_spf (TestTraditionalRoutingBaselines) ........................... ok
+test_ecmp_routing (TestTraditionalRoutingBaselines) ........................... ok
+test_ospf_routing (TestTraditionalRoutingBaselines) ........................... ok
+test_wsp_and_llr_routing (TestTraditionalRoutingBaselines) .................... ok
+test_dashboard_model_telemetry (TestWebDashboardAndVersusAPI) ................. ok
+test_ha_status_endpoint (TestWebDashboardAndVersusAPI) ........................ ok
+test_model_inspect_and_predict (TestWebDashboardAndVersusAPI) ................. ok
+test_mutations_require_post_and_flow_is_counted_once (TestWebDashboard) ....... ok
+test_versus_endpoint_all_baselines (TestWebDashboardAndVersusAPI) ............. ok
+test_versus_endpoint_multi_protocol_checklist (TestWebDashboardAndVersusAPI) .. ok
+test_versus_endpoint_single_protocol (TestWebDashboardAndVersusAPI) ........... ok
 ----------------------------------------------------------------------
-Ran 32 tests in 2.394s
+Ran 42 tests in 2.416s
 
-OK (32/32 tests passed successfully)
+OK (42/42 tests passed successfully)
 ```
 
 ## A.3 Mathematical Derivations and Consistency Proofs

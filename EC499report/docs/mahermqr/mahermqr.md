@@ -2,10 +2,10 @@
 
 **University of Tripoli | Faculty of Engineering | Department of Computer Engineering**  
 **Course:** EC499 Graduation Project  
-**Project Title:** *Reinforcement Learning for Adaptive Traffic Engineering in Software-Defined Networks*  
+**Project Title:** *Reinforcement Learning for Adaptive Traffic Engineering in Software-Defined Network*  
 **Candidate:** Maher Abdulnasir Alqadhi (Registration No. `2210249576`)  
 **Project Supervisor:** Dr. Suad El-Geder  
-**Academic Session:** 2026 / 2027  
+**Academic Session:** Spring 2026  
 **Official Project Mark:** **100 / 100 (Pass with Distinction / Excellent)**  
 
 ---
@@ -82,7 +82,7 @@ $$Q(s, a; \theta, \alpha, \beta) = V(s; \theta, \beta) + \left(A(s, a; \theta, \
 4. **Minute 4: Head-to-Head Tournament Execution**  
    Launch live tournament arena comparing D3QN, OSPF, and ECMP under identical traffic bursts. Demonstrate Pareto superiority across all KPIs.
 5. **Minute 5: Carrier-Grade Test Suite Verification**  
-   Execute `bash run_tests.sh`: 32 automated unit and integration tests pass with $100\%$ green status.
+   Execute `bash run_tests.sh`: 42 automated unit and integration tests pass with $100\%$ green status.
 
 ---
 
@@ -110,13 +110,26 @@ $$Q(s, a; \theta, \alpha, \beta) = V(s; \theta, \beta) + \left(A(s, a; \theta, \
   *Answer:* WSP greedily maximizes path bottleneck width without considering hop delay or flow churn, leading to long tromboning paths with $168.04\text{ ms}$ delay vs. D3QN's $76.57\text{ ms}$ on Tree ($54.4\%$ lower delay). D3QN optimizes composite Pareto reward, balancing bottleneck relief with latency minimization.
 
 * **Q8: How is carrier-grade High Availability (HA) achieved in the control plane?**  
-  *Answer:* The control plane implements a 3-node active-standby cluster coordinated via Raft consensus and a distributed Redis key-value store. Heartbeat health checks monitor controller responsiveness at $100\text{ ms}$ intervals. Standby node acquires mastership within $<0.55\text{ ms}$, preserving active flow entries without data-plane interruption.
+  *Answer:* The SDN control plane implements a 3-node active-standby cluster with health-checked heartbeats and isolated process address spaces. In the event of primary controller death, a standby node acquires mastership within $<0.001\text{ ms}$ (internal promotion) and HTTP recovery in $37.96\text{ ms}$, preserving active OpenFlow flow entries without data-plane interruption.
+
+---
+
+## 7. Production Software Architecture & Testbed Stack
+
+| Layer | Component & Technology |
+| :--- | :--- |
+| **SDN Controller** | Ryu 4.34 with OpenFlow 1.3 protocol handling and multi-threaded event loop |
+| **Neural Engine** | PyTorch 2.x D3QN inference pipeline with optimized TorchScript tensor graphs |
+| **Network Emulation** | Mininet 2.3.0 with Open vSwitch (OVS 2.13+) kernel datapath integration |
+| **Global MILP Oracle** | HiGHS branch-and-cut optimization solver via Python SciPy/PuLP bindings |
+| **Web Telemetry** | Real-time Flask/Socket.IO dashboard streaming 10 Hz OpenFlow link gradients |
+| **Verification Rigor** | 42 automated unit and integration tests passing with 100% code coverage |
 
 ---
 
 ### Project Deliverables & Submission References
-* **Handout PDF:** `mahermqr.pdf` (Printable Defense Handout)
+* **Handout PDF:** `mahermqr.pdf` (Printable Defense Handout, 4 Pages)
 * **Handout Word:** `mahermqr.docx` (Editable Handout Document)
 * **Handout Markdown:** `mahermqr.md`
-* **Complete Thesis Report:** `Project_Report_EC499_Final.pdf` (68 Pages)
+* **Complete Thesis Report:** `Project_Report_EC499_Final.pdf` (SHA-256: `ed3a884a...`)
 * **Master Submission Bundle:** `Maher_Alqadhi_2210249576_EC499_Final_Graduation_Submission.zip`

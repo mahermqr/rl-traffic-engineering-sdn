@@ -3,8 +3,8 @@
 > **File:** `controller/main_controller.py`  
 > **Subsystem / Category:** 2. SDN Controller Architecture & Modules  
 > **Language:** `python`  
-> **Lines of Code:** 313  
-> **File Size:** 13.84 KB  
+> **Lines of Code:** 320  
+> **File Size:** 14.00 KB  
 
 ---
 
@@ -24,6 +24,13 @@ Core OpenFlow 1.3 Ryu controller application handling switch registration, LLDP 
 try:
     import setuptools  # Ensures distutils compatibility for Ryu on Python 3.12+
 except ImportError:
+    pass
+
+try:
+    import eventlet.wsgi
+    if not hasattr(eventlet.wsgi, "ALREADY_HANDLED"):
+        eventlet.wsgi.ALREADY_HANDLED = object()
+except Exception:
     pass
 
 from ryu.base import app_manager

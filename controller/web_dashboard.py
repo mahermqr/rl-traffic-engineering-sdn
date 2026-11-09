@@ -243,6 +243,9 @@ class DashboardServer:
         self.ha_last_failover_latency_ms = 0.003
         self.ha_failover_history = []
         self.ha_cluster_mode = "NOMINAL_ACTIVE"
+        self.active_scenario = "🔄 Nominal Baseline Network Stabilization Active"
+        if hasattr(self.state_manager, 'active_scenario'):
+            self.state_manager.active_scenario = self.active_scenario
 
         # OpenFlow 1.3 socket listeners for real TCP port probing and switch attachments
         self._ofp_listeners = {}
@@ -259,13 +262,20 @@ class DashboardServer:
         When a controller is crashed, its port is closed to cause real socket ECONNREFUSED.
         When recovered, the port is rebound and listens again.
         """
+        is_ryu_running = (self.controller is not None) or ('ryu' in sys.modules) or bool(os.environ.get("RYU_ACTIVE"))
         for nid in ('primary', 'backup1', 'backup2'):
+            # Ryu natively binds and manages primary's OFP port (6633); never bind it when Ryu is running
+            if is_ryu_running and nid == 'primary':
+                continue
             info = self.ha_nodes.get(nid, {})
             port = info.get('ofp_port')
             alive = info.get('is_alive', False)
             if not port:
                 continue
+            if is_ryu_running and port == self.ha_nodes.get('primary', {}).get('ofp_port'):
+                continue
             if alive and port not in self._ofp_listeners:
+                srv = None
                 try:
                     srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                     srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -298,16 +308,20 @@ class DashboardServer:
                     t = threading.Thread(target=_ofp_conn_handler, args=(srv, port), daemon=True, name=f"OFP-Socket-{port}")
                     t.start()
                 except Exception as e:
+                    if srv is not None:
+                        try:
+                            srv.close()
+                        except Exception:
+                            pass
                     if self.logger:
                         self.logger.warning(f"[DashboardServer] Could not bind OFP port {port}: {e}")
             elif not alive and port in self._ofp_listeners:
                 try:
                     s = self._ofp_listeners.pop(port)
                     try:
-                        dummy = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                        dummy.settimeout(0.1)
-                        dummy.connect(("127.0.0.1", port))
-                        dummy.close()
+                        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as dummy:
+                            dummy.settimeout(0.1)
+                            dummy.connect(("127.0.0.1", port))
                     except Exception:
                         pass
                     try:
@@ -446,9 +460,13 @@ class DashboardServer:
 
     def _get_ha_telemetry_summary(self) -> dict:
         active_leader, cluster_mode = self._evaluate_ha_cluster()
+        ofp_port = self.ha_nodes[active_leader]['ofp_port'] if active_leader else None
         return {
+            "role": active_leader or "none",
             "active_leader": active_leader or "none",
             "cluster_mode": cluster_mode,
+            "cluster_status": "CRITICAL_ALL_DOWN" if active_leader is None else ("NOMINAL" if active_leader == "primary" else "FAILOVER"),
+            "ofp_port": ofp_port,
             "is_all_failed": (active_leader is None),
             "data_plane_mode": "FAIL_SECURE_AUTONOMOUS" if active_leader is None else "OPENFLOW_ACTIVE",
             "failovers_count": self.ha_failovers_count,
@@ -456,15 +474,8 @@ class DashboardServer:
         }
 
     def _start_server_thread(self):
-        try:
-            if 'ryu.lib.hub' in sys.modules or os.environ.get("RYU_ACTIVE"):
-                from ryu.lib import hub
-                self.thread = hub.spawn(self._run_server)
-                return
-        except Exception:
-            pass
-
-        self.thread = threading.Thread(target=self._run_server, daemon=True)
+        # Run dashboard server in standard daemon thread decoupled from Ryu/eventlet hub
+        self.thread = threading.Thread(target=self._run_server, daemon=True, name="SDN-DashboardServer")
         self.thread.start()
 
     def _run_server(self):
@@ -490,6 +501,7 @@ class DashboardServer:
 
                 mutation_paths = {
                     '/api/simulate/traffic_burst', '/api/simulate/core_jamming',
+                    '/api/simulate/wcmp',
                     '/api/simulate/apply_flow', '/api/simulate/link_fail',
                     '/api/simulate/link_degrade', '/api/simulate/inject_burst',
                     '/api/simulate/link_restore', '/api/simulate/clear_flows',
@@ -540,11 +552,16 @@ class DashboardServer:
                         topo_id = query.get('topo', [None])[0]
                         self._send_json(self._get_topology_data(topo_id))
                     elif p in ('/api/telemetry', '/api/metrics'):
+                        ha_summary = server_inst._get_ha_telemetry_summary()
+                        stats_summary = state_manager.get_network_te_summary()
+                        curr_scenario = getattr(server_inst, 'active_scenario', "🔄 Nominal Baseline Network Stabilization Active")
+                        stats_summary['active_scenario'] = curr_scenario
                         telemetry_bundle = {
                             "status": "success",
                             "timestamp": time.time(),
+                            "active_scenario": curr_scenario,
                             "topology": self._get_topology_data(None),
-                            "stats": state_manager.get_network_te_summary(),
+                            "stats": stats_summary,
                             "overhead": state_manager.get_control_overhead_summary(),
                             "rl_metrics": self._get_rl_data(),
                             "flows": state_manager.get_flow_records(),
@@ -557,7 +574,8 @@ class DashboardServer:
                                 "device": str(getattr(agent, 'device', 'cpu')).upper(),
                                 "architecture": "Dueling Double DQN (D3QN)"
                             },
-                            "ha_cluster": server_inst._get_ha_telemetry_summary()
+                            "ha_cluster": ha_summary,
+                            "ha_status": ha_summary
                         }
                         self._send_json(telemetry_bundle)
                     elif p == '/api/health':
@@ -640,7 +658,9 @@ class DashboardServer:
                     elif p == '/api/topologies':
                         self._send_json(list_available_topologies())
                     elif p == '/api/stats':
-                        self._send_json(state_manager.get_network_te_summary())
+                        stats_summary = state_manager.get_network_te_summary()
+                        stats_summary['active_scenario'] = getattr(server_inst, 'active_scenario', "🔄 Nominal Baseline Network Stabilization Active")
+                        self._send_json(stats_summary)
                     elif p == '/api/control_overhead':
                         self._send_json(state_manager.get_control_overhead_summary())
                     elif p == '/api/rl_metrics':
@@ -661,7 +681,7 @@ class DashboardServer:
                             self._send_error_json(f"Invalid demand '{raw_demand}': must be a positive float", code=400)
                             return
                         self._send_json(self._get_model_prediction(src, dst, demand=demand))
-                    elif p == '/api/verse':
+                    elif p in ('/api/versus', '/api/verse'):
                         topo_id = query.get('topo', ['tree'])[0]
                         raw_proto = query.get('protocol', query.get('protocols', ['ospf']))
                         protocols = []
@@ -860,7 +880,7 @@ class DashboardServer:
 
                 try:
                     query = parse_qs(parsed.query)
-                    if p == '/api/verse':
+                    if p in ('/api/versus', '/api/verse'):
                         topo_id = body_data.get('topo') or query.get('topo', ['tree'])[0]
                         raw_proto = body_data.get('protocols') or body_data.get('protocol') or query.get('protocols') or query.get('protocol', ['ospf'])
                         if isinstance(raw_proto, str):
@@ -879,65 +899,104 @@ class DashboardServer:
                         res = self._run_verse_simulation(topo_id, protocols, pattern, flow_cnt, preset)
                         self._send_json(res)
                     elif p == '/api/simulate/traffic_burst':
+                        server_inst.active_scenario = "⚡ Pod Ingress Surge (h2->h5, h3->h7) -> DQN Path Diversity Active"
+                        state_manager.active_scenario = server_inst.active_scenario
                         self._handle_simulate_traffic_burst()
-                        self._send_json({"status": "success", "message": "⚡ Traffic burst injected."})
+                        self._send_json({"status": "success", "message": "⚡ Traffic burst injected.", "active_scenario": server_inst.active_scenario})
                     elif p == '/api/simulate/core_jamming':
+                        server_inst.active_scenario = "🔥 Core Switch Saturation (96% Load) -> Autonomous Lateral Rerouting Active"
+                        state_manager.active_scenario = server_inst.active_scenario
                         state_manager.inject_core_congestion(utilization=0.96)
-                        self._send_json({"status": "success", "message": "🔥 Core links saturated. DQN offload active."})
+                        self._send_json({"status": "success", "message": "🔥 Core links saturated. DQN offload active.", "active_scenario": server_inst.active_scenario})
+                    elif p == '/api/simulate/wcmp':
+                        server_inst.active_scenario = "⚖️ Weighted Cost Multi-Path (WCMP) Load Distribution Active"
+                        state_manager.active_scenario = server_inst.active_scenario
+                        self._handle_simulate_wcmp()
+                        self._send_json({"status": "success", "message": "⚖️ WCMP multipath load distribution active across candidate paths.", "active_scenario": server_inst.active_scenario})
                     elif p == '/api/simulate/apply_flow':
                         src = int(body_data.get('src') or query.get('src', [4])[0])
                         dst = int(body_data.get('dst') or query.get('dst', [7])[0])
                         demand = float(body_data.get('demand') or query.get('demand', [25.0])[0])
                         duration = float(body_data.get('duration') or query.get('duration', [35.0])[0])
                         direct = (body_data.get('direct') or query.get('direct', ['0'])[0]) in ('1', 'true', 'True', True)
-                        self._send_json(self._handle_apply_flow(src, dst, demand, duration, direct=direct))
+                        server_inst.active_scenario = f"🚀 Custom Flow Injection: s{src} ➔ s{dst} ({demand} Mbps)"
+                        state_manager.active_scenario = server_inst.active_scenario
+                        res = self._handle_apply_flow(src, dst, demand, duration, direct=direct)
+                        res['active_scenario'] = server_inst.active_scenario
+                        self._send_json(res)
                     elif p == '/api/simulate/link_fail':
                         u = body_data.get('u') or query.get('u', [None])[0]
                         v = body_data.get('v') or query.get('v', [None])[0]
-                        self._send_json(self._handle_link_fail(u, v))
+                        link_label = f"s{u} ↔ s{v}" if (u and v) else "Core Backbone"
+                        server_inst.active_scenario = f"⚡ Fiber Cut Failover: Link {link_label} severed -> Sub-millisecond Autonomous Detour Active"
+                        state_manager.active_scenario = server_inst.active_scenario
+                        res = self._handle_link_fail(u, v)
+                        res['active_scenario'] = server_inst.active_scenario
+                        self._send_json(res)
                     elif p == '/api/simulate/link_degrade':
                         u = body_data.get('u') or query.get('u', [1])[0]
                         v = body_data.get('v') or query.get('v', [2])[0]
+                        server_inst.active_scenario = f"⚠️ Link Degradation: Link s{u} ↔ s{v} throttled to 10% (brownout simulated)"
+                        state_manager.active_scenario = server_inst.active_scenario
                         ok = state_manager.inject_link_degradation(int(u), int(v))
-                        self._send_json({"status": "success" if ok else "error", "message": f"⚠️ Link s{u} ↔ s{v} throttled to 10% (brownout simulated)."})
+                        self._send_json({"status": "success" if ok else "error", "message": f"⚠️ Link s{u} ↔ s{v} throttled to 10% (brownout simulated).", "active_scenario": server_inst.active_scenario})
                     elif p == '/api/simulate/inject_burst':
                         u = body_data.get('u') or query.get('u', [1])[0]
                         v = body_data.get('v') or query.get('v', [None])[0]
                         mbps = float(body_data.get('mbps') or query.get('mbps', [50.0])[0])
+                        server_inst.active_scenario = f"⚡ Flash Traffic Burst: {mbps} Mbps on switch s{u}"
+                        state_manager.active_scenario = server_inst.active_scenario
                         cnt = state_manager.inject_traffic_burst(int(u), int(v) if v else None, mbps)
-                        self._send_json({"status": "success", "message": f"⚡ Injected {mbps} Mbps flash burst across {cnt} link(s)."})
+                        self._send_json({"status": "success", "message": f"⚡ Injected {mbps} Mbps flash burst across {cnt} link(s).", "active_scenario": server_inst.active_scenario})
                     elif p == '/api/simulate/link_restore':
                         u = body_data.get('u') or query.get('u', [None])[0]
                         v = body_data.get('v') or query.get('v', [None])[0]
+                        server_inst.active_scenario = "🛡️ Link Restoration: All degraded/severed links restored to nominal"
+                        state_manager.active_scenario = server_inst.active_scenario
                         state_manager.restore_degraded_links()
-                        self._send_json(self._handle_link_restore(u, v))
+                        res = self._handle_link_restore(u, v)
+                        res['active_scenario'] = server_inst.active_scenario
+                        self._send_json(res)
                     elif p == '/api/simulate/clear_flows':
+                        server_inst.active_scenario = "🧹 Flows Flushed: Active dynamic flows cleared"
+                        state_manager.active_scenario = server_inst.active_scenario
                         state_manager.clear_dynamic_flows()
                         state_manager.flow_stats.clear()
                         state_manager.raw_flow_stats.clear()
                         state_manager.flow_paths.clear()
                         state_manager.port_rates.clear()
-                        self._send_json({"status": "success", "message": "🧹 Cleared active dynamic flows."})
+                        self._send_json({"status": "success", "message": "🧹 Cleared active dynamic flows.", "active_scenario": server_inst.active_scenario})
                     elif p == '/api/simulate/switch_topology':
                         query = parse_qs(parsed.query)
                         topo_id = body_data.get('topo') or query.get('topo', ['tree'])[0]
                         msg = self._handle_switch_topology(topo_id)
-                        self._send_json({"status": "success", "message": msg, "current_topo": topo_id})
+                        server_inst.active_scenario = f"🌐 Topology Switched: {topo_id.upper()} Fabric Active"
+                        state_manager.active_scenario = server_inst.active_scenario
+                        self._send_json({"status": "success", "message": msg, "current_topo": topo_id, "active_scenario": server_inst.active_scenario})
                     elif p == '/api/network_settings':
                         self._send_json(self._update_network_settings(body_data))
                     elif p in ('/api/simulate/controller_fail', '/api/ha/fail'):
                         target = body_data.get('target') or query.get('target', [None])[0]
+                        target_name = (target or 'Primary').title()
+                        server_inst.active_scenario = f"💥 Controller Failover: {target_name} (:6633) down -> Standby Promotion Active"
+                        state_manager.active_scenario = server_inst.active_scenario
                         res = server_inst._handle_controller_fail(target)
+                        res['active_scenario'] = server_inst.active_scenario
                         self._send_json(res)
                     elif p in ('/api/simulate/controller_recover', '/api/ha/recover'):
                         target = body_data.get('target') or query.get('target', [None])[0]
+                        server_inst.active_scenario = "💚 Controller Recovery: Cluster restored to Nominal Master (:6633)"
+                        state_manager.active_scenario = server_inst.active_scenario
                         res = server_inst._handle_controller_recover(target)
+                        res['active_scenario'] = server_inst.active_scenario
                         self._send_json(res)
                     elif p == '/api/simulate/reset':
+                        server_inst.active_scenario = "🔄 Nominal Baseline Network Stabilization Active"
+                        state_manager.active_scenario = server_inst.active_scenario
                         flows_only = (body_data.get('flows_only') or query.get('flows_only', ['0'])[0]) in ('1', 'true', 'True', True)
                         state_manager.reset_simulation(restore_faults=not flows_only)
                         server_inst._handle_controller_recover("all")
-                        self._send_json({"status": "success", "message": "🔄 Nominal state restored across all nodes and topology."})
+                        self._send_json({"status": "success", "message": "🔄 Nominal state restored across all nodes and topology.", "active_scenario": server_inst.active_scenario})
                     else:
                         self.send_response(404)
                         self.end_headers()
@@ -1022,6 +1081,48 @@ class DashboardServer:
                         state_manager.record_packet_in(64)
                         state_manager.record_flow_mod(72)
                         state_manager.record_decision_latency(random.uniform(0.35, 0.75))
+
+            def _handle_simulate_wcmp(self):
+                active_topo_id = getattr(state_manager, 'current_topology_id', 'tree')
+                _, meta = get_topology(active_topo_id)
+                edge_nodes = meta.get('edge_nodes', list(state_manager.graph.nodes()))
+                if len(edge_nodes) >= 2:
+                    pairs = [(edge_nodes[i], edge_nodes[(i + 1) % len(edge_nodes)]) for i in range(min(4, len(edge_nodes)))]
+                    for s, d in pairs:
+                        cand = state_manager.get_candidate_paths(s, d)
+                        if not cand:
+                            continue
+                        if controller is not None and hasattr(controller, 'routing_module') and hasattr(controller.routing_module, 'calculate_wcmp_weights'):
+                            weighted_paths = controller.routing_module.calculate_wcmp_weights(cand)
+                        else:
+                            scores = []
+                            for p in cand:
+                                max_u = 0.0
+                                for i in range(len(p) - 1):
+                                    edge = (p[i], p[i + 1])
+                                    max_u = max(max_u, state_manager.link_utilization.get(edge, 0.0))
+                                scores.append(-4.0 * max_u)
+                            exp_s = np.exp(np.array(scores) - np.max(scores))
+                            probs = exp_s / max(1e-9, np.sum(exp_s))
+                            int_w = np.maximum(1, np.round(probs * 100.0).astype(int))
+                            weighted_paths = list(zip(cand, int_w.tolist()))
+
+                        total_w = sum(w for _, w in weighted_paths) or 1
+                        total_demand = 30.0
+                        for idx, (p, w) in enumerate(weighted_paths):
+                            share_mbps = round((w / total_w) * total_demand, 1)
+                            if share_mbps < 0.5:
+                                continue
+                            pps = round(share_mbps * 60.0, 1)
+                            state_manager.allocate_dynamic_flow(
+                                f"wcmp_{s}_{d}_{idx}_{random.randint(100, 999)}", p,
+                                mbps=share_mbps, duration_sec=25.0,
+                                src_ip=f"10.0.{s}.{idx + 1}", dst_ip=f"10.0.{d}.{idx + 1}",
+                                src_dpid=s, pps=pps,
+                            )
+                            state_manager.record_packet_in(64)
+                            state_manager.record_flow_mod(72)
+                            state_manager.record_decision_latency(random.uniform(0.20, 0.50))
 
             def _handle_apply_flow(self, src, dst, demand=25.0, duration=35.0, direct=False):
                 if getattr(server_inst, 'ha_simulated_role', None) == 'none':
@@ -1761,7 +1862,7 @@ class DashboardServer:
                             return json.load(f)
                     except Exception:
                         pass
-                return {"message": "Tournament benchmark pending execution. Use /api/verse to run live."}
+                return {"message": "Tournament benchmark pending execution. Use /api/versus to run live."}
 
             def _get_network_settings(self):
                 topo_id = getattr(state_manager, 'current_topology_id', 'tree')

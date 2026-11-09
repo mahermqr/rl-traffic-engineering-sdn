@@ -3,8 +3,8 @@
 > **File:** `controller/state_manager.py`  
 > **Subsystem / Category:** 2. SDN Controller Architecture & Modules  
 > **Language:** `python`  
-> **Lines of Code:** 1,036  
-> **File Size:** 48.09 KB  
+> **Lines of Code:** 1,061  
+> **File Size:** 49.20 KB  
 
 ---
 
@@ -73,6 +73,7 @@ class StateManager:
         self.link_loss = {}         # Packet loss rate percentage [0.0 - 100.0%]
         self._prev_delays = {}      # Previous delay sample for jitter calculation
         self.active_dynamic_flows = {} # flow_id -> {'path', 'mbps', 'expires_at'}
+        self.active_scenario = "🔄 Nominal Baseline Network Stabilization Active"
 
         # Host tracking tables: enables dynamic ARP/L2/L3 resolution
         self.host_ip_to_mac = {}    # ip -> mac
@@ -439,7 +440,9 @@ class StateManager:
         """Returns structured flow table telemetry for REST and dashboard display."""
         records = []
         flow_paths = getattr(self, 'flow_paths', {})
+        seen_keys = set()
         for (dpid, src_ip, dst_ip), stats in self.flow_stats.items():
+            seen_keys.add((dpid, src_ip, dst_ip))
             path = flow_paths.get((dpid, src_ip, dst_ip), [])
             path_str = " \u2192 ".join(f"s{n}" for n in path) if path else f"s{dpid}"
             records.append({
@@ -450,7 +453,28 @@ class StateManager:
                 'bytes': stats.get('bytes', 0),
                 'mbps': round(stats.get('mbps', 0.0), 2),
                 'pps': round(stats.get('pps', 0.0), 1),
-                'path': path_str
+                'path': path_str,
+                'path_nodes': list(path)
+            })
+        for fid, f in getattr(self, 'active_dynamic_flows', {}).items():
+            k = f.get('flow_key')
+            if k and k in seen_keys:
+                continue
+            p = f.get('path', [])
+            if not p or len(p) < 2:
+                continue
+            origin = p[0]
+            mbps = float(f.get('mbps', 0.0))
+            records.append({
+                'dpid': origin,
+                'src_ip': f.get('src_ip', f"10.0.{origin}.1"),
+                'dst_ip': f.get('dst_ip', f"10.0.{p[-1]}.1"),
+                'packets': int(mbps * 60),
+                'bytes': int(mbps * 1e6 / 8.0),
+                'mbps': round(mbps, 2),
+                'pps': round(mbps * 60.0, 1),
+                'path': " \u2192 ".join(f"s{n}" for n in p),
+                'path_nodes': list(p)
             })
         return records
 
@@ -611,7 +635,8 @@ class StateManager:
             'active_flows_count': len(self.active_dynamic_flows) if self.active_dynamic_flows else len({(k[1], k[2]) for k in self.flow_stats}),
             'control_overhead': self.get_control_overhead_summary(),
             'current_topology': getattr(self, 'current_topology_id', 'tree'),
-            'topology_name': getattr(self, 'current_topology_meta', {}).get('name', 'Hierarchical Tree (Baseline)')
+            'topology_name': getattr(self, 'current_topology_meta', {}).get('name', 'Hierarchical Tree (Baseline)'),
+            'active_scenario': getattr(self, 'active_scenario', "🔄 Nominal Baseline Network Stabilization Active")
         }
         return summary
 

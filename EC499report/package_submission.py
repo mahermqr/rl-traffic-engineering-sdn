@@ -58,8 +58,8 @@ def main():
         shutil.rmtree(BUNDLE_ROOT)
     BUNDLE_ROOT.mkdir(parents=True, exist_ok=True)
 
-    # 1. 01_Final_Thesis_Report
-    dir_thesis = BUNDLE_ROOT / "01_Final_Thesis_Report"
+    # 1. 01_Thesis_Document
+    dir_thesis = BUNDLE_ROOT / "01_Thesis_Document"
     dir_thesis.mkdir(parents=True, exist_ok=True)
     master_pdf = PROJECT_ROOT.parent / "Project_Report_EC499_Final.pdf"
     report_artifacts_pdf = REPORT_DIR / "report_artifacts" / "main.pdf"
@@ -69,8 +69,14 @@ def main():
     elif report_artifacts_pdf.exists():
         shutil.copy2(report_artifacts_pdf, dir_thesis / "Project_Report_EC499_Final.pdf")
         shutil.copy2(report_artifacts_pdf, dir_thesis / "main.pdf")
-    if (REPORT_DIR / "report_artifacts" / "main.tex").exists():
+
+    master_tex = PROJECT_ROOT.parent / "Project_Report_EC499_Final.tex"
+    if master_tex.exists():
+        shutil.copy2(master_tex, dir_thesis / "Project_Report_EC499_Final.tex")
+        shutil.copy2(master_tex, dir_thesis / "main.tex")
+    elif (REPORT_DIR / "report_artifacts" / "main.tex").exists():
         shutil.copy2(REPORT_DIR / "report_artifacts" / "main.tex", dir_thesis / "main.tex")
+
     if (REPORT_DIR / "report_artifacts" / "references.bib").exists():
         shutil.copy2(REPORT_DIR / "report_artifacts" / "references.bib", dir_thesis / "references.bib")
     if (DOCS_DIR / "Project_Report_EC499_Monolithic.tex").exists():
@@ -82,12 +88,24 @@ def main():
     if (DOCS_DIR / "appendices").exists():
         shutil.copytree(DOCS_DIR / "appendices", dir_thesis / "appendices")
     docx_src = DOCS_DIR / "Project_Report_EC499_Final.docx"
+    if not docx_src.exists():
+        docx_src = PROJECT_ROOT.parent / "Project_Report_EC499_Final.docx"
     if docx_src.exists():
         shutil.copy2(docx_src, dir_thesis / "Project_Report_EC499_Final.docx")
-    print("  [+] Staged 01_Final_Thesis_Report (PDF, DOCX & Complete LaTeX Sources)")
+    print("  [+] Staged 01_Thesis_Document (PDF, DOCX & Complete LaTeX Sources)")
 
-    # 2. 02_Defense_Presentation
-    dir_defense = BUNDLE_ROOT / "02_Defense_Presentation"
+    # 2. 02_Examination_Handout
+    dir_handout = BUNDLE_ROOT / "02_Examination_Handout"
+    dir_handout.mkdir(parents=True, exist_ok=True)
+    for handout_name in ["mahermqr.pdf", "mahermqr.docx", "mahermqr.md", "mahermqr.tex"]:
+        for h_dir in [DOCS_DIR, REPORT_DIR, PROJECT_ROOT.parent]:
+            if (h_dir / handout_name).exists():
+                shutil.copy2(h_dir / handout_name, dir_handout / handout_name)
+                break
+    print("  [+] Staged 02_Examination_Handout (PDF, DOCX, MD, TeX)")
+
+    # 3. 03_Defense_Presentation
+    dir_defense = BUNDLE_ROOT / "03_Defense_Presentation"
     dir_defense.mkdir(parents=True, exist_ok=True)
     slides_dir = PROJECT_ROOT.parent / "EC499sildes"
     if (slides_dir / "EC499_Defense_Slides.pdf").exists():
@@ -108,47 +126,10 @@ def main():
         shutil.copy2(DOCS_DIR / "DEFENSE_CHEAT_SHEET.md", dir_defense / "DEFENSE_CHEAT_SHEET.md")
     if (DOCS_DIR / "VIVA_DEFENSE_MASTER_GUIDE.md").exists():
         shutil.copy2(DOCS_DIR / "VIVA_DEFENSE_MASTER_GUIDE.md", dir_defense / "VIVA_DEFENSE_MASTER_GUIDE.md")
-    print("  [+] Staged 02_Defense_Presentation (Vector PDF, PPTX Deck, Interactive HTML, Viva Guide, Demo Runbook)")
+    print("  [+] Staged 03_Defense_Presentation (Vector PDF, PPTX Deck, Interactive HTML, Viva Guide)")
 
-    # 3. 03_Experimental_Figures_and_Plots
-    dir_plots = BUNDLE_ROOT / "03_Experimental_Figures_and_Plots"
-    dir_plots.mkdir(parents=True, exist_ok=True)
-    for plot_file in PLOTS_DIR.glob("*.png"):
-        shutil.copy2(plot_file, dir_plots / plot_file.name)
-    if (DOCS_DIR / "figures").exists():
-        for fig_file in (DOCS_DIR / "figures").glob("*.png"):
-            shutil.copy2(fig_file, dir_plots / fig_file.name)
-    artifacts_fig_dir = REPORT_DIR / "report_artifacts" / "figures"
-    if artifacts_fig_dir.exists():
-        for fig_file in artifacts_fig_dir.glob("*.png"):
-            shutil.copy2(fig_file, dir_plots / fig_file.name)
-    print(f"  [+] Staged 03_Experimental_Figures_and_Plots ({len(list(dir_plots.glob('*.png')))} figures and UI captures)")
-
-    # 4. 04_Validation_Logs_and_Metrics
-    dir_logs = BUNDLE_ROOT / "04_Validation_Logs_and_Metrics"
-    dir_logs.mkdir(parents=True, exist_ok=True)
-    matrix_src = LOGS_DIR / "mininet_matrix" / "validation_matrix_S7_udp_20261015_075319.csv"
-    if matrix_src.exists():
-        shutil.copy2(matrix_src, dir_logs / "validation_matrix_S7_udp_20261015_075319.csv")
-    for log_name in ["training_metrics.csv", "evaluation_results.json", "routing_tournament_results.json", "pareto_sensitivity_ablation.json"]:
-        p = LOGS_DIR / log_name
-        if p.exists():
-            shutil.copy2(p, dir_logs / log_name)
-    artifacts_data_dir = REPORT_DIR / "report_artifacts" / "data"
-    if artifacts_data_dir.exists():
-        for data_file in artifacts_data_dir.glob("*.json"):
-            shutil.copy2(data_file, dir_logs / data_file.name)
-    print("  [+] Staged 04_Validation_Logs_and_Metrics (Official CSV Matrix & JSON Benchmarks)")
-
-    # 5. 05_Trained_D3QN_Model
-    dir_model = BUNDLE_ROOT / "05_Trained_D3QN_Model"
-    dir_model.mkdir(parents=True, exist_ok=True)
-    if (MODELS_DIR / "dqn_router.pth").exists():
-        shutil.copy2(MODELS_DIR / "dqn_router.pth", dir_model / "dqn_router.pth")
-    print("  [+] Staged 05_Trained_D3QN_Model (PyTorch Neural Weights)")
-
-    # 6. 06_Source_Code_and_Dashboard
-    dir_code = BUNDLE_ROOT / "06_Source_Code_and_Dashboard"
+    # 4. 04_Source_Code
+    dir_code = BUNDLE_ROOT / "04_Source_Code"
     dir_code.mkdir(parents=True, exist_ok=True)
     if CONTROLLER_DIR.exists():
         shutil.copytree(CONTROLLER_DIR, dir_code / "controller", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
@@ -156,6 +137,9 @@ def main():
         shutil.copytree(AGENT_DIR, dir_code / "agent", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
     if TOPOLOGY_DIR.exists():
         shutil.copytree(TOPOLOGY_DIR, dir_code / "topology", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+    report_builder_src = PROJECT_ROOT.parent / "report_builder"
+    if report_builder_src.exists():
+        shutil.copytree(report_builder_src, dir_code / "report_builder", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
     scripts_dir = BASE_DIR / "scripts"
     if scripts_dir.exists():
         shutil.copytree(scripts_dir, dir_code / "scripts", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
@@ -180,15 +164,52 @@ def main():
             p = TESTS_DIR / script
         if p.exists():
             shutil.copy2(p, dir_code / script)
-    print("  [+] Staged 06_Source_Code_and_Dashboard (Controller, Simulation, Tests, Tools)")
+    print("  [+] Staged 04_Source_Code (Controller, Agent, Topology, Report Builder, Tests, Tools)")
 
-    # 7. 07_Live_Demo_and_Screenshots
-    dir_demo = BUNDLE_ROOT / "07_Live_Demo_and_Screenshots"
-    dir_demo.mkdir(parents=True, exist_ok=True)
+    # 5. 05_Trained_Models
+    dir_models = BUNDLE_ROOT / "05_Trained_Models"
+    dir_models.mkdir(parents=True, exist_ok=True)
+    if (MODELS_DIR / "dqn_router.pth").exists():
+        shutil.copy2(MODELS_DIR / "dqn_router.pth", dir_models / "dqn_router.pth")
+    if MODELS_DIR.exists():
+        for mf in MODELS_DIR.glob("*.pth"):
+            shutil.copy2(mf, dir_models / mf.name)
+    print("  [+] Staged 05_Trained_Models (PyTorch Neural Weights)")
+
+    # 6. 06_Test_Reports
+    dir_reports = BUNDLE_ROOT / "06_Test_Reports"
+    dir_reports.mkdir(parents=True, exist_ok=True)
+    matrix_dir = LOGS_DIR / "mininet_matrix"
+    if matrix_dir.exists():
+        shutil.copytree(matrix_dir, dir_reports / "mininet_matrix", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+    for log_name in ["training_metrics.csv", "evaluation_results.json", "routing_tournament_results.json", "pareto_sensitivity_ablation.json"]:
+        p = LOGS_DIR / log_name
+        if p.exists():
+            shutil.copy2(p, dir_reports / log_name)
+    artifacts_data_dir = REPORT_DIR / "report_artifacts" / "data"
+    if artifacts_data_dir.exists():
+        for data_file in artifacts_data_dir.glob("*.json"):
+            shutil.copy2(data_file, dir_reports / data_file.name)
+    dir_plots = dir_reports / "figures"
+    dir_plots.mkdir(parents=True, exist_ok=True)
+    for plot_file in PLOTS_DIR.glob("*.png"):
+        shutil.copy2(plot_file, dir_plots / plot_file.name)
+    if (DOCS_DIR / "figures").exists():
+        for fig_file in (DOCS_DIR / "figures").glob("*.png"):
+            shutil.copy2(fig_file, dir_plots / fig_file.name)
+    artifacts_fig_dir = REPORT_DIR / "report_artifacts" / "figures"
+    if artifacts_fig_dir.exists():
+        for fig_file in artifacts_fig_dir.glob("*.png"):
+            shutil.copy2(fig_file, dir_plots / fig_file.name)
+    root_fig_dir = PROJECT_ROOT.parent / "figures"
+    if root_fig_dir.exists():
+        for fig_file in root_fig_dir.glob("*.png"):
+            if not (dir_plots / fig_file.name).exists():
+                shutil.copy2(fig_file, dir_plots / fig_file.name)
     demo_src = BASE_DIR.parent / "demo2026"
     if demo_src.exists():
-        shutil.copytree(demo_src, dir_demo / "demo2026", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
-        print(f"  [+] Staged 07_Live_Demo_and_Screenshots (Interactive Demo Suite & All Scenarios)")
+        shutil.copytree(demo_src, dir_reports / "demo2026", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+    print("  [+] Staged 06_Test_Reports (CSV Matrices, JSON Benchmarks, Figures, Demo Suite)")
 
     # 8. Generate README_GRADUATION_SUBMISSION.md
     readme_path = BUNDLE_ROOT / "README_GRADUATION_SUBMISSION.md"
@@ -197,8 +218,8 @@ def main():
 **University of Tripoli &bull; Faculty of Engineering &bull; Department of Computer Engineering**  
 **Project Title:** *Reinforcement Learning for Adaptive Traffic Engineering in an SDN Network*  
 **Degree Candidate:** Maher Abdulnasir Alqadhi (Student ID: `2210249576`)  
-**Project Supervisor:** Dr. Suad El-Geder (Associate Professor)  
-**Submission Date:** October 2026  
+**Project Supervisor:** Dr. Suad El-Geder  
+**Submission Date:** Spring 2026  
 
 ---
 
@@ -216,58 +237,54 @@ Maher_Alqadhi_2210249576_EC499_Final_Graduation_Submission/
 ├── README_GRADUATION_SUBMISSION.md        <- This authoritative dossier
 ├── CHECKSUMS_SHA256.txt                   <- Cryptographic SHA256 integrity hashes
 │
-├── 01_Final_Thesis_Report/
-│   ├── Project_Report_EC499_Final.pdf     <- Authoritative Master Thesis PDF (85 pages)
+├── 01_Thesis_Document/
+│   ├── Project_Report_EC499_Final.pdf     <- Authoritative Master Thesis PDF (82 pages)
 │   ├── Project_Report_EC499_Final.docx    <- Authoritative Master Thesis DOCX (Word Document)
-│   ├── Project_Report_EC499_Monolithic.tex<- Monolithic LaTeX document (3,886 lines)
+│   ├── Project_Report_EC499_Final.tex     <- Monolithic LaTeX document (4,150+ lines)
 │   ├── main.tex                           <- Clean Root LaTeX file
 │   ├── references.bib                     <- Complete academic bibliography
-│   ├── chapters/                          <- All 11 thesis chapters (Modular LaTeX)
-│   └── appendices/                        <- All 5 technical appendices (Modular LaTeX)
+│   ├── chapters/                          <- Thesis chapters (Modular LaTeX)
+│   └── appendices/                        <- Technical appendices (Modular LaTeX)
 │
-├── 02_Defense_Presentation/
-│   ├── EC499_Graduation_Defense_Presentation.pptx <- 30-Slide PowerPoint Presentation Deck
-│   ├── EC499_Graduation_Defense_Slides.html       <- Standalone Interactive HTML5 Deck
-│   └── DEFENSE_CHEAT_SHEET.md                     <- 5-Minute Demo Runbook & 11 Committee Q&As
+├── 02_Examination_Handout/
+│   ├── mahermqr.pdf                       <- 4-Page Examination Defense Handout PDF
+│   ├── mahermqr.docx                      <- Editable Word Handout
+│   ├── mahermqr.md                        <- Markdown Handout
+│   └── mahermqr.tex                       <- LaTeX Source for Handout
 │
-├── 03_Experimental_Figures_and_Plots/     <- All 15 High-Resolution Publication Plots
-│   ├── proposal_benchmarks_all_metrics.png
-│   ├── proposal_tournament_radar.png
-│   ├── dqn_te_training_convergence.png
-│   ├── routing_cdfs_latency_jitter.png
-│   ├── stress_test_load_balancing.png
-│   ├── blind_topologies_radar.png
-│   ├── blind_topologies_stress_benchmark.png
-│   ├── traffic_load_scaling_curves.png
-│   ├── random_blind_topologies_evaluation.png
-│   ├── dashboard_topology_telemetry.png
-│   ├── dashboard_versus_tournament.png
-│   ├── dashboard_model_inspector.png
-│   ├── dashboard_network_settings.png
-│   ├── pareto_weight_sensitivity.png
-│   └── vmware_virtual_machine_specs.png
+├── 03_Defense_Presentation/
+│   ├── EC499_Defense_Slides.pdf           <- Presentation Slides PDF
+│   ├── EC499_Final_Defense_Presentation.pptx <- PowerPoint Presentation Deck
+│   ├── EC499_Defense_Deck_Interactive.html <- Standalone Interactive HTML5 Deck
+│   ├── slides.css                         <- Presentation Stylesheet
+│   ├── slides.js                          <- Interactive Presentation Scripts
+│   ├── DEFENSE_CHEAT_SHEET.md             <- 5-Minute Demo Runbook & Committee Q&As
+│   └── VIVA_DEFENSE_MASTER_GUIDE.md       <- Complete Oral Examination Defense Guide
 │
-├── 04_Validation_Logs_and_Metrics/        <- Benchmark Data and Validation Records
-│   ├── validation_matrix_S7_udp_20261015_075319.csv <- Official Mininet Emulation Matrix
-│   ├── training_metrics.csv               <- 500-Episode D3QN Training Convergence Log
-│   ├── evaluation_results.json            <- Multi-topology evaluation records
-│   ├── routing_tournament_results.json    <- 6-protocol tournament benchmark records
-│   └── pareto_sensitivity_ablation.json   <- Pareto weight sensitivity ablation records
+├── 04_Source_Code/                        <- Carrier-Grade Python 3.10+ Codebase
+│   ├── controller/                        <- Ryu SDN controller, state manager, web dashboard
+│   ├── agent/                             <- D3QN model and replay buffer
+│   ├── topology/                          <- Network graphs and Mininet fabrics
+│   ├── report_builder/                    <- Automated LaTeX report generation pipeline
+│   ├── config.py                          <- Centralized runtime configuration
+│   ├── benchmark_routing_algorithms.py    <- 6-Protocol Tournament Benchmark Runner
+│   ├── stress_test_blind_topologies.py    <- Zero-Shot Generalization Test Runner
+│   ├── ablate_reward_weights.py           <- Pareto Sensitivity Ablation Suite
+│   ├── audit_dqn_agent_deep.py            <- Deep Mathematical & Policy Audit Suite
+│   ├── run_tests.sh                       <- 42-Test Automated Unit & Integration Suite
+│   └── requirements.txt                   <- Python Dependencies Manifest
 │
-├── 05_Trained_D3QN_Model/
+├── 05_Trained_Models/
 │   └── dqn_router.pth                     <- Optimized PyTorch Neural Network Weights
 │
-└── 06_Source_Code_and_Dashboard/          <- Carrier-Grade Python 3.10+ Codebase
-    ├── controller/                        <- Ryu SDN controller, state manager, web dashboard
-    ├── agent/                             <- D3QN model and replay buffer
-    ├── topology/                          <- Network graphs and Mininet fabrics
-    ├── config.py                          <- Centralized runtime configuration
-    ├── benchmark_routing_algorithms.py    <- 6-Protocol Tournament Benchmark Runner
-    ├── stress_test_blind_topologies.py    <- Zero-Shot Generalization Test Runner
-    ├── ablate_reward_weights.py           <- Pareto Sensitivity Ablation Suite
-    ├── audit_dqn_agent_deep.py            <- Deep Mathematical & Policy Audit Suite
-    ├── run_tests.sh                       <- 32-Test Automated Unit & Integration Suite
-    └── requirements.txt                   <- Python Dependencies Manifest
+└── 06_Test_Reports/                       <- Validation Records, Benchmarks & Figures
+    ├── mininet_matrix/                    <- Official Mininet Emulation Matrix
+    ├── training_metrics.csv               <- D3QN Training Convergence Log
+    ├── evaluation_results.json            <- Multi-topology evaluation records
+    ├── routing_tournament_results.json    <- 6-protocol tournament benchmark records
+    ├── pareto_sensitivity_ablation.json   <- Pareto weight sensitivity ablation records
+    ├── figures/                           <- High-Resolution Publication Plots & UI Captures
+    └── demo2026/                          <- Interactive Demo Suite & Scenarios
 ```
 
 ---
@@ -276,21 +293,21 @@ Maher_Alqadhi_2210249576_EC499_Final_Graduation_Submission/
 
 ### A. Running the Automated Test Suite
 ```bash
-cd 06_Source_Code_and_Dashboard
+cd 04_Source_Code
 bash run_tests.sh
 ```
 *Expected Result:* all tests complete with `OK`.
 
 ### B. Launching the Interactive Web Dashboard
 ```bash
-cd 06_Source_Code_and_Dashboard
+cd 04_Source_Code
 python3 controller/web_dashboard.py
 ```
 Open **Google Chrome** to `http://localhost:8080`.
 
 ### C. Viewing Presentation Slides
-- Open `02_Defense_Presentation/EC499_Graduation_Defense_Slides.html` in Google Chrome (press `F` for Fullscreen, `N` for Speaker Notes).
-- Open `02_Defense_Presentation/EC499_Graduation_Defense_Presentation.pptx` in Microsoft PowerPoint.
+- Open `03_Defense_Presentation/EC499_Defense_Deck_Interactive.html` in Google Chrome (press `F` for Fullscreen, `N` for Speaker Notes).
+- Open `03_Defense_Presentation/EC499_Final_Defense_Presentation.pptx` in Microsoft PowerPoint.
 
 ---
 
@@ -346,12 +363,16 @@ tests and benchmarks on the target environment before citing them as current mea
     downloads_dir = Path("/home/maher/Downloads")
     downloads_zip = downloads_dir / f"{BUNDLE_NAME}.zip"
     shutil.copy2(ZIP_OUTPUT_DOCS, downloads_zip)
+    root_workspace_zip = PROJECT_ROOT.parent / f"{BUNDLE_NAME}.zip"
+    shutil.copy2(ZIP_OUTPUT_DOCS, root_workspace_zip)
 
-    # Also copy DOCX and PDF directly to Downloads for immediate access
+    # Also copy DOCX and PDF directly to Downloads and workspace root for immediate access
     if (DOCS_DIR / "Project_Report_EC499_Final.docx").exists():
         shutil.copy2(DOCS_DIR / "Project_Report_EC499_Final.docx", downloads_dir / "Project_Report_EC499_Final.docx")
+        shutil.copy2(DOCS_DIR / "Project_Report_EC499_Final.docx", PROJECT_ROOT.parent / "Project_Report_EC499_Final.docx")
     if (DOCS_DIR / "Project_Report_EC499_Final.pdf").exists():
         shutil.copy2(DOCS_DIR / "Project_Report_EC499_Final.pdf", downloads_dir / "Project_Report_EC499_Final.pdf")
+        shutil.copy2(DOCS_DIR / "Project_Report_EC499_Final.pdf", PROJECT_ROOT.parent / "Project_Report_EC499_Final.pdf")
 
     # Generate Overleaf Ready Package with main.tex, references.bib, and all figures
     overleaf_zip = DOCS_DIR / "Overleaf_EC499_Ready_Package.zip"
@@ -364,16 +385,25 @@ tests and benchmarks on the target environment before citing them as current mea
         if (REPORT_DIR / "report_artifacts" / "references.bib").exists():
             oz.write(REPORT_DIR / "report_artifacts" / "references.bib", "references.bib")
         fig_src = REPORT_DIR / "report_artifacts" / "figures"
-        if fig_src.exists():
-            for f in fig_src.glob("*"):
-                if f.is_file():
-                    oz.write(f, f.name)
+        seen_figs = set()
+        for fdir in [
+            fig_src,
+            PROJECT_ROOT.parent / "figures",
+            PROJECT_ROOT / "logs" / "plots",
+        ]:
+            if fdir.exists():
+                for f in fdir.glob("*"):
+                    if f.is_file() and f.name not in seen_figs:
+                        oz.write(f, f.name)
+                        seen_figs.add(f.name)
     shutil.copy2(overleaf_zip, downloads_dir / "Overleaf_EC499_Ready_Package.zip")
+    shutil.copy2(overleaf_zip, PROJECT_ROOT.parent / "Overleaf_EC499_Ready_Package.zip")
 
     zip_size_mb = ZIP_OUTPUT_DOCS.stat().st_size / (1024 * 1024)
     print(f"[+] Successfully generated Graduation Submission ZIP:")
     print(f"    - Docs Copy: {ZIP_OUTPUT_DOCS} ({zip_size_mb:.2f} MB)")
-    print(f"    - Root Copy: {ZIP_OUTPUT_ROOT} ({zip_size_mb:.2f} MB)")
+    print(f"    - Inner Root Copy: {ZIP_OUTPUT_ROOT} ({zip_size_mb:.2f} MB)")
+    print(f"    - Workspace Root Copy: {root_workspace_zip} ({zip_size_mb:.2f} MB)")
     print(f"    - Downloads Copy: {downloads_zip} ({zip_size_mb:.2f} MB)")
     print(f"    - Overleaf ZIP: {overleaf_zip}")
 

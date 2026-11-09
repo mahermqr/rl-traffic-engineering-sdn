@@ -68,9 +68,19 @@ MODELS_DIR = get_config_val("models_dir", "SDN_MODELS_DIR", os.path.join(BASE_DI
 LOGS_DIR = get_config_val("logs_dir", "SDN_LOGS_DIR", os.path.join(BASE_DIR, "logs"))
 PLOTS_DIR = get_config_val("plots_dir", "SDN_PLOTS_DIR", os.path.join(LOGS_DIR, "plots"))
 
-DEFAULT_MODEL_PATH = get_config_val(
+_cand_model = get_config_val(
     "model_path", "SDN_MODEL_PATH", os.path.join(MODELS_DIR, "dqn_router.pth")
 )
+if not os.path.exists(_cand_model):
+    for _fallback in [
+        os.path.join(BASE_DIR, "..", "05_Trained_D3QN_Model", "dqn_router.pth"),
+        os.path.join(BASE_DIR, "..", "models", "dqn_router.pth"),
+        os.path.join(BASE_DIR, "models", "dqn_router.pth")
+    ]:
+        if os.path.exists(_fallback):
+            _cand_model = os.path.abspath(_fallback)
+            break
+DEFAULT_MODEL_PATH = _cand_model
 METRICS_CSV_PATH = get_config_val(
     "metrics_csv", "SDN_METRICS_CSV", os.path.join(LOGS_DIR, "training_metrics.csv")
 )

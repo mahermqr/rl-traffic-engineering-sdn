@@ -1,44 +1,23 @@
 # Chapter 5: Conclusion
 
-CHAPTER_5_CONCLUSION = r'''% ============================================================================
-% CHAPTER 5: CONCLUSION
-% ============================================================================
+CHAPTER_5_CONCLUSION = r'''
 \chapter{Conclusion}
 \label{chap:conclusion}
 
-\section{Restatement of the Problem}
-Modern telecommunication backbones and cloud datacenter fabrics are constrained by static shortest path routing protocols (OSPF, ECMP) that remain decoupled from instantaneous buffer occupancy. Under asymmetric microbursts, these protocols persistently overload identical shortest paths, inducing severe core link saturation, bufferbloat, tail-drop packet loss, and RFC 3393 jitter, while viable edge-disjoint bypass paths remain idle.
+\section{Work Completed}
+The project developed a software-defined traffic-engineering prototype that combines network-state monitoring, candidate-path generation, a trained routing agent, and OpenFlow rule installation. The implementation also includes routing baselines, a web dashboard, automated tests, and an active/standby controller-endpoint pool. The resulting system provides a practical environment for inspecting route choices and repeating controlled comparisons.
 
-\section{Summary of Proposed System and Methodology}
-To address these limitations, this graduation project designed, formalized, and implemented an autonomous closed-loop Adaptive Traffic Engineering prototype powered by Deep Reinforcement Learning (DRL) over an OpenFlow 1.3 SDN substrate. Its routing results are reproducible software-model evaluations; the repository also supplies a separate packet-level Mininet/OVS protocol for confirmatory emulation. The system integrates:
-\begin{itemize}
-    \item A Dueling Double Deep Q-Network (D3QN) that factorizes state value $V(s)$ from action advantage $A(s, a)$ and uses Double-DQN targets to reduce overestimation bias.
-    \item A binary SumTree Prioritized Experience Replay (PER) engine that achieves $O(\log N)$ proportional sampling, retaining rare congestion transitions.
-    \item A multi-objective reward formulation incorporating modelled queueing delay, jitter, drop penalties, and a thresholded quadratic congestion term that encourages bypass selection under load.
-    \item Candidate route pruning via Yen's $K$-shortest paths algorithm ($K=4$) with dynamic invalid-action masking, guaranteeing loop-freedom and bounded $O(1)$ decision complexity.
-    \item A health-checked active/standby 3-node controller pool delivering sub-millisecond local failover bookkeeping ($0.001$~ms), cascaded process failover ($41.62$--$45.28$~ms), and transparent client HTTP recovery ($37.96$~ms).
-\end{itemize}
+The work met the implementation objectives by connecting the learning components to the controller and providing saved test outputs. The 42 automated checks passed for the behaviours covered by the suite, and the packet experiment completed all 120 scheduled conditions. These checks support the operation of the prototype within its tested software environment.
 
-\section{Quantitative Impact and Performance Milestones}
-Benchmark tournaments across five network topologies demonstrated the following results within the stated queue and traffic model:
-\begin{itemize}
-    \item \textbf{53.9\% Mean Bottleneck Utilization Reduction:} Lowering arithmetic mean peak link load from $66.80\%$ to $30.80\%$ across the final seed-42 run, with the largest displayed reduction on Spine-Leaf ($99.84\% \to 20.89\%$).
-    \item \textbf{71.9\% Mean Modelled Latency Reduction:} Reducing arithmetic-mean path latency from $158.34$~ms to $44.50$~ms in the final model-based tournament. This improvement is topology-dependent and most pronounced on rich multipath fabrics.
-    \item \textbf{71.1\% Mean Modelled Jitter Reduction:} Reducing arithmetic-mean jitter from $9.39$~ms to $2.71$~ms in the same run ($0.515$~ms vs. $15.50$~ms on Spine-Leaf).
-    \item \textbf{89.0\% Overall Modelled Packet Loss Reduction:} Reducing arithmetic-mean estimated packet drop from $4.13\%$ to $0.45\%$. Four table entries round to zero; this is not a hardware zero-loss guarantee.
-    \item \textbf{High-Availability Resilience:} Achieving an internal failover pointer update latency of \textbf{0.001 ms}, cascaded process failover in \textbf{41.62--45.28 ms}, and an end-to-end client HTTP recovery time of \textbf{37.96 ms} under simulated controller process failure.
-    \item \textbf{Statistical Robustness:} The checked-in multi-seed ANOVA analysis confirms that model initialization seed accounts for $<1\%$ of variance ($p = 0.80$), while topology geometry naturally dominates variance ($93.5\%$--$98.5\%$) due to physical design differences across fabrics.
-\end{itemize}
+\section{Main Results and Usefulness}
+The final five-topology software-model comparison reports mean sampled path-bottleneck utilisation of 30.80\% for D3QN and 66.80\% for the OSPF-style baseline. Mean modelled delay changes from 158.34 to 44.50~ms. These results show that the implemented policy can select useful alternative routes within the model, although its performance varies by topology and metric.
 
-\section{Restrictions, Engineering Limits, and Weaknesses}
-In adherence to academic rigor, the restrictions and engineering limits of this study are candidly stated:
-\begin{enumerate}
-    \item \textbf{Unsplittable Forwarding Regime:} The system operates exclusively on unsplittable flow forwarding to prevent TCP packet reordering. It does not perform multi-path packet-level spraying.
-    \item \textbf{Fixed Candidate Path Pool ($K=4$) and Action Masking:} While bounding action space complexity to $O(1)$, candidate paths are pre-synthesized using physical link metrics; under multi-link failure events, candidate sets must be dynamically recomputed.
-    \item \textbf{Summary Path Representation vs. Structural Invariance:} The 10D state vector encodes summary path statistics rather than raw graph adjacency matrices. While enabling fixed-size transfer over tested graph distributions, it does not provide true permutation-equivariant structural invariance (such as that offered by GNNs).
-    \item \textbf{Jain's Fairness Trade-Off:} In the final run, D3QN lowers mean Jain's Fairness Index ($0.697$ vs $0.768$ for OSPF), representing an operational trade-off alongside its congestion relief.
-    \item \textbf{Active/Standby Controller Pool vs. Distributed Consensus:} The current resilience mechanism utilizes health probing and local standby promotion rather than a fully replicated distributed state machine (such as Raft with quorum voting and log replication).
-    \item \textbf{Software Emulation Boundary:} The empirical validation was conducted inside Linux network namespaces using Open vSwitch. Hardware ASIC testing on Barefoot Tofino or Broadcom StrataXGS hardware was not performed due to physical laboratory constraints.
-    \item \textbf{Empirical Packet-Level Mininet Emulation Scope:} The 120-trial empirical Mininet evaluation demonstrates that D3QN sustains high line-rate throughput (up to $48.69\text{ Mbps}$) with sub-millisecond inference ($0.52$--$0.76\text{ ms}$). However, the empirical packet measurements also reveal clear operational boundaries: under TCP workloads on rich multipath fabrics, D3QN incurs higher packet loss ($36.0\%$) than static SPF ($18.0\%$) due to window interactions with dynamic route adaptation, and on single-bottleneck tree topologies, the lightweight LLR heuristic delivers higher throughput ($38.09\text{ Mbps}$) with zero loss compared to D3QN ($34.08\text{ Mbps}$ and $10.0\%$ loss). These empirical findings confirm that DRL traffic engineering is not a universal panacea, but rather an advanced optimization framework best suited for rich multipath fabrics with diverse candidate routing paths.
-\end{enumerate}
+The separate packet measurements give a more mixed result. Tree TCP throughput averages 34.08~Mbps for D3QN, 28.56~Mbps for SPF, and 38.09~Mbps for least-loaded routing. On Fat-Tree UDP, D3QN has a modest datagram-loss advantage over SPF, while the least-loaded heuristic remains competitive. The confidence intervals and detailed comparisons are reported in Chapter~\ref{chap:project}. The practical lesson is that a trained policy should be assessed against simple load-aware methods for the intended workload.
+
+The recovery tests separately demonstrate local standby selection and client HTTP retry. The reported 0.001~ms bookkeeping observation and 37.96~ms client-recovery observation describe different operations; neither establishes uninterrupted packet forwarding.
+
+\section{Limitations}
+The results are limited to software models and packet emulation on a virtualised host. The route selector uses ten summary features and at most four candidates, so it cannot represent every possible network state or route. Modelled jitter and loss must be distinguished from iperf and ICMP measurements. In addition, the fixed-duration background stream can finish before the measured packet transfer ends.
+
+The endpoint pool does not maintain consistent replicated controller state, and its HTTP tests do not measure OpenFlow reconnection or packet continuity. Hardware-switch performance, production availability, and arbitrary-topology generalisation remain unverified. Within these limits, the project delivers a working platform, repeatable procedures, and recorded results that can support further development.
 '''

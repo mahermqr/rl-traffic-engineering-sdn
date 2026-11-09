@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ==============================================================================
 # EC499 Final Defense Presentation Launcher
-# Reinforcement Learning for Adaptive Traffic Engineering in an SDN Network
+# Reinforcement Learning for Adaptive Traffic Engineering in Software-Defined Network
 # Candidate: Maher Alqadhi (ID: 2210249576) | Supervisor: Dr. Suad El-Geder
 # ==============================================================================
 

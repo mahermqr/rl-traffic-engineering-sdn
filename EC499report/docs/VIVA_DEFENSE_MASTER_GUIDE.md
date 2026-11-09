@@ -2,9 +2,9 @@
 
 **Candidate:** Maher Abdulnasir Alqadhi (Student ID: `2210249576`)  
 **Project:** *Reinforcement Learning for Adaptive Traffic Engineering in an SDN Network*  
-**Supervisor:** Dr. Suad El-Geder (Associate Professor)  
+**Supervisor:** Dr. Suad El-Geder  
 **Department:** Computer Engineering, Faculty of Engineering, University of Tripoli  
-**Degree:** Bachelor of Science (B.Sc.) in Computer Engineering • October 2026  
+**Degree:** Bachelor of Science (B.Sc.) in Computer Engineering • Spring 2026  
 
 ---
 

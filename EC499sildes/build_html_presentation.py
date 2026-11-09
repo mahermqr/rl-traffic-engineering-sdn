@@ -21,7 +21,7 @@ def build_index_html():
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EC499 Final Graduation Defense — Reinforcement Learning for Adaptive Traffic Engineering in SDN</title>
+  <title>EC499 Final Graduation Defense — Reinforcement Learning for Adaptive Traffic Engineering in Software-Defined Network</title>
   <link rel="stylesheet" href="slides.css">
 </head>
 <body>
@@ -62,11 +62,11 @@ def build_index_html():
         <div class="slide-body-full" style="justify-content:center; align-items:center; text-align:center; padding: 15px 40px;">
           <div style="display:inline-block; margin-bottom:10px;">
             <span style="background:rgba(6,182,212,0.15); border:1px solid rgba(6,182,212,0.4); color:var(--accent-cyan); font-family:var(--font-mono); font-size:13px; font-weight:700; padding:6px 18px; border-radius:30px; letter-spacing:1px;">
-              B.Sc. FINAL GRADUATION DEFENSE • ACADEMIC YEAR 2025/2026
+              B.Sc. FINAL GRADUATION DEFENSE • SPRING 2026
             </span>
           </div>
           <h1 class="slide-heading" style="font-size:36px; max-width:1100px; margin: 10px auto 14px auto;">
-            Reinforcement Learning for <span class="gradient-text">Adaptive Traffic Engineering</span> in an SDN Network
+            Reinforcement Learning for <span class="gradient-text">Adaptive Traffic Engineering</span> in Software-Defined Network
           </h1>
           <p style="font-size:15.5px; color:var(--text-secondary); max-width:880px; margin:0 auto 24px auto; line-height:1.6;">
             Autonomous D3QN Route Optimization, 3-Controller Carrier-Grade High Availability & Closed-Loop Queueing Validation
@@ -81,7 +81,7 @@ def build_index_html():
             <div class="glass-card" style="padding:14px; text-align:left;">
               <div style="font-size:11px; color:var(--text-muted); font-weight:700; text-transform:uppercase;">Supervisor</div>
               <div style="font-size:15px; font-weight:700; color:var(--text-main); margin-top:3px;">Dr. Suad El-Geder</div>
-              <div style="font-size:12px; color:var(--accent-violet);">Associate Professor</div>
+              <div style="font-size:12px; color:var(--accent-violet);">Project Supervisor</div>
             </div>
             <div class="glass-card" style="padding:14px; text-align:left;">
               <div style="font-size:11px; color:var(--text-muted); font-weight:700; text-transform:uppercase;">Department</div>
@@ -106,7 +106,7 @@ def build_index_html():
         </div>
         <div class="speaker-notes" style="display:none;">
           <p>Welcome esteemed members of the examination committee, Dr. Suad El-Geder, and colleagues.</p>
-          <p>Today I present my final graduation defense for the EC499 Engineering Project: <strong>Reinforcement Learning for Adaptive Traffic Engineering in an SDN Network</strong>.</p>
+          <p>Today I present my final graduation defense for the EC499 Engineering Project: <strong>Reinforcement Learning for Adaptive Traffic Engineering in Software-Defined Network</strong>.</p>
           <p>In this defense, I will demonstrate how we solved the two greatest historic obstacles to deep reinforcement learning in production telecommunication networks: computational decision latency and topology scale explosion.</p>
         </div>
       </section>

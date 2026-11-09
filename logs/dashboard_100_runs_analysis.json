@@ -4,12 +4,12 @@
   "failed": 0,
   "pass_rate_pct": 100.0,
   "latency_stats_ms": {
-    "min": 0.93,
-    "mean": 17.26,
-    "p50": 2.82,
-    "p95": 125.4,
-    "p99": 330.5,
-    "max": 330.5
+    "min": 0.47,
+    "mean": 10.98,
+    "p50": 1.22,
+    "p95": 72.41,
+    "p99": 216.4,
+    "max": 216.4
   },
   "issues_identified": [],
   "runs": [
@@ -21,7 +21,7 @@
       "path": "/api/topology",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 14.92,
+      "elapsed_ms": 10.3,
       "passed": true,
       "anomalies": [],
       "summary": "{'nodes': [{'id': 1, 'label': 's1', 'type': 'core', 'x': 0.5, 'y': 0.16, 'cpu': 0.16, 'ram': 0.16}, {'id': 2, 'label': '"
@@ -34,7 +34,7 @@
       "path": "/api/topology?topo=tree",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 2.03,
+      "elapsed_ms": 0.83,
       "passed": true,
       "anomalies": [],
       "summary": "{'nodes': [{'id': 1, 'label': 's1', 'type': 'core', 'x': 0.5, 'y': 0.16, 'cpu': 0.16, 'ram': 0.16}, {'id': 2, 'label': '"
@@ -47,7 +47,7 @@
       "path": "/api/topology?topo=fattree",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 2.11,
+      "elapsed_ms": 1.12,
       "passed": true,
       "anomalies": [],
       "summary": "{'nodes': [{'id': 101, 'label': 'c1', 'type': 'core', 'x': 0.25, 'y': 0.15, 'cpu': 0.28, 'ram': 0.24}, {'id': 102, 'labe"
@@ -60,7 +60,7 @@
       "path": "/api/topology?topo=abilene",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 2.97,
+      "elapsed_ms": 1.04,
       "passed": true,
       "anomalies": [],
       "summary": "{'nodes': [{'id': 1, 'label': 'Seattle', 'type': 'wan_node', 'x': 0.12, 'y': 0.2, 'cpu': 0.16, 'ram': 0.16}, {'id': 2, '"
@@ -73,7 +73,7 @@
       "path": "/api/topology?topo=nsfnet",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 1.94,
+      "elapsed_ms": 0.98,
       "passed": true,
       "anomalies": [],
       "summary": "{'nodes': [{'id': 1, 'label': 'N1', 'type': 'wan_mesh', 'x': 0.08, 'y': 0.28, 'cpu': 0.22, 'ram': 0.2}, {'id': 2, 'label"
@@ -86,7 +86,7 @@
       "path": "/api/topology?topo=spineleaf",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 3.84,
+      "elapsed_ms": 0.97,
       "passed": true,
       "anomalies": [],
       "summary": "{'nodes': [{'id': 1, 'label': 'Spine-1', 'type': 'spine', 'x': 0.25, 'y': 0.22, 'cpu': 0.52, 'ram': 0.4}, {'id': 2, 'lab"
@@ -99,7 +99,7 @@
       "path": "/api/topologies",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 2.98,
+      "elapsed_ms": 1.13,
       "passed": true,
       "anomalies": [],
       "summary": "[{'id': 'tree', 'name': 'Hierarchical Tree (Baseline)', 'switches': 7, 'links': 8, 'hosts': 8}, {'id': 'fattree', 'name'"
@@ -112,10 +112,10 @@
       "path": "/api/simulate/switch_topology?topo=fattree",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 3.76,
+      "elapsed_ms": 1.1,
       "passed": true,
       "anomalies": [],
-      "summary": "{'status': 'success', 'message': 'Switched to Fat-Tree Data Center Fabric (k=4)', 'current_topo': 'fattree'}"
+      "summary": "{'status': 'success', 'message': 'Switched to Fat-Tree Data Center Fabric (k=4)', 'current_topo': 'fattree', 'active_sce"
     },
     {
       "run_id": 9,
@@ -125,7 +125,7 @@
       "path": "/api/topology",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 1.99,
+      "elapsed_ms": 0.99,
       "passed": true,
       "anomalies": [],
       "summary": "{'nodes': [{'id': 101, 'label': 'c1', 'type': 'core', 'x': 0.25, 'y': 0.15, 'cpu': 0.28, 'ram': 0.24}, {'id': 102, 'labe"
@@ -138,10 +138,10 @@
       "path": "/api/simulate/switch_topology?topo=abilene",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 2.62,
+      "elapsed_ms": 1.0,
       "passed": true,
       "anomalies": [],
-      "summary": "{'status': 'success', 'message': 'Switched to Abilene Internet2 US Backbone', 'current_topo': 'abilene'}"
+      "summary": "{'status': 'success', 'message': 'Switched to Abilene Internet2 US Backbone', 'current_topo': 'abilene', 'active_scenari"
     },
     {
       "run_id": 11,
@@ -151,7 +151,7 @@
       "path": "/api/topology",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 2.33,
+      "elapsed_ms": 1.23,
       "passed": true,
       "anomalies": [],
       "summary": "{'nodes': [{'id': 1, 'label': 'Seattle', 'type': 'wan_node', 'x': 0.12, 'y': 0.2, 'cpu': 0.16, 'ram': 0.16}, {'id': 2, '"
@@ -164,10 +164,10 @@
       "path": "/api/simulate/switch_topology?topo=nsfnet",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 1.97,
+      "elapsed_ms": 1.2,
       "passed": true,
       "anomalies": [],
-      "summary": "{'status': 'success', 'message': 'Switched to NSFNet 14-Node Continental Mesh', 'current_topo': 'nsfnet'}"
+      "summary": "{'status': 'success', 'message': 'Switched to NSFNet 14-Node Continental Mesh', 'current_topo': 'nsfnet', 'active_scenar"
     },
     {
       "run_id": 13,
@@ -177,10 +177,10 @@
       "path": "/api/simulate/switch_topology?topo=spineleaf",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 2.67,
+      "elapsed_ms": 1.06,
       "passed": true,
       "anomalies": [],
-      "summary": "{'status': 'success', 'message': 'Switched to Spine-Leaf Data Center Clos Fabric', 'current_topo': 'spineleaf'}"
+      "summary": "{'status': 'success', 'message': 'Switched to Spine-Leaf Data Center Clos Fabric', 'current_topo': 'spineleaf', 'active_"
     },
     {
       "run_id": 14,
@@ -190,10 +190,10 @@
       "path": "/api/simulate/switch_topology?topo=tree",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 1.65,
+      "elapsed_ms": 0.8,
       "passed": true,
       "anomalies": [],
-      "summary": "{'status': 'success', 'message': 'Switched to Hierarchical Tree (Baseline)', 'current_topo': 'tree'}"
+      "summary": "{'status': 'success', 'message': 'Switched to Hierarchical Tree (Baseline)', 'current_topo': 'tree', 'active_scenario': "
     },
     {
       "run_id": 15,
@@ -203,7 +203,7 @@
       "path": "/api/topology?topo=nonexistent_xyz_99",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 4.01,
+      "elapsed_ms": 0.87,
       "passed": true,
       "anomalies": [],
       "summary": "{'nodes': [{'id': 1, 'label': 's1', 'type': 'core', 'x': 0.5, 'y': 0.16, 'cpu': 0.16, 'ram': 0.16}, {'id': 2, 'label': '"
@@ -216,10 +216,10 @@
       "path": "/api/telemetry",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 2.76,
+      "elapsed_ms": 1.54,
       "passed": true,
       "anomalies": [],
-      "summary": "{'status': 'success', 'timestamp': 1792668310.8420756, 'topology': {'nodes': [{'id': 1, 'label': 's1', 'type': 'core', '"
+      "summary": "{'status': 'success', 'timestamp': 1793587925.6319072, 'active_scenario': '\ud83c\udf10 Topology Switched: TREE Fabric Active', 'to"
     },
     {
       "run_id": 17,
@@ -229,10 +229,10 @@
       "path": "/api/metrics",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 3.35,
+      "elapsed_ms": 1.22,
       "passed": true,
       "anomalies": [],
-      "summary": "{'status': 'success', 'timestamp': 1792668310.8458683, 'topology': {'nodes': [{'id': 1, 'label': 's1', 'type': 'core', '"
+      "summary": "{'status': 'success', 'timestamp': 1793587925.6336222, 'active_scenario': '\ud83c\udf10 Topology Switched: TREE Fabric Active', 'to"
     },
     {
       "run_id": 18,
@@ -242,7 +242,7 @@
       "path": "/api/health",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 1.5,
+      "elapsed_ms": 0.53,
       "passed": true,
       "anomalies": [],
       "summary": "{'status': 'healthy', 'topology': 'tree', 'nodes': 7, 'links': 16, 'flows': 0}"
@@ -255,10 +255,10 @@
       "path": "/api/ha/status",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 1.49,
+      "elapsed_ms": 0.54,
       "passed": true,
       "anomalies": [],
-      "summary": "{'status': 'ok', 'role': 'primary', 'ofp_port': 6633, 'rest_port': 8080, 'is_primary': True, 'cluster_nodes': ['primary'"
+      "summary": "{'status': 'ok', 'role': 'primary', 'ofp_port': 6633, 'rest_port': 8080, 'is_primary': True, 'active_leader': 'primary',"
     },
     {
       "run_id": 20,
@@ -268,10 +268,10 @@
       "path": "/api/stats",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 1.39,
+      "elapsed_ms": 0.82,
       "passed": true,
       "anomalies": [],
-      "summary": "{'total_throughput_mbps': 0.0, 'aggregate_link_tx_mbps': 0.0, 'bottleneck_utilization_pct': 0.0, 'mean_utilization_pct':"
+      "summary": "{'total_throughput_mbps': 0.0, 'aggregate_link_tx_mbps': 0.0, 'bottleneck_utilization_pct': 0.0, 'peak_bottleneck_util_p"
     },
     {
       "run_id": 21,
@@ -281,10 +281,10 @@
       "path": "/api/control_overhead",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 2.0,
+      "elapsed_ms": 0.65,
       "passed": true,
       "anomalies": [],
-      "summary": "{'packet_in_count': 56, 'flow_mod_count': 56, 'stats_request_count': 0, 'stats_reply_count': 0, 'total_control_messages'"
+      "summary": "{'packet_in_count': 456, 'flow_mod_count': 456, 'stats_request_count': 0, 'stats_reply_count': 0, 'total_control_message"
     },
     {
       "run_id": 22,
@@ -294,10 +294,10 @@
       "path": "/api/history",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 4.35,
+      "elapsed_ms": 0.62,
       "passed": true,
       "anomalies": [],
-      "summary": "[{'timestamp': '13:22:13', 'throughput_mbps': 102.4, 'bottleneck_utilization_pct': 96.0, 'mean_utilization_pct': 35.25, "
+      "summary": "[{'timestamp': '04:49:08', 'throughput_mbps': 219.2, 'bottleneck_utilization_pct': 112.0, 'mean_utilization_pct': 80.24,"
     },
     {
       "run_id": 23,
@@ -307,7 +307,7 @@
       "path": "/api/flows",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 1.37,
+      "elapsed_ms": 0.49,
       "passed": true,
       "anomalies": [],
       "summary": "None"
@@ -320,10 +320,10 @@
       "path": "/api/benchmarks",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 8.97,
+      "elapsed_ms": 4.18,
       "passed": true,
       "anomalies": [],
-      "summary": "{'bottleneck_util': {'OSPF (RFC 2328)': [56.67, 94.69, 33.35, 49.63, 99.87], 'Dijkstra SPF': [42.11, 94.69, 33.11, 49.64"
+      "summary": "{'metadata': {'seed': 42, 'policy_mode': 'pure', 'flows_per_topology': 150, 'candidate_paths': 4, 'model_path': '/home/m"
     },
     {
       "run_id": 25,
@@ -333,7 +333,7 @@
       "path": "/api/plot_list",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 3.7,
+      "elapsed_ms": 2.16,
       "passed": true,
       "anomalies": [],
       "summary": "{'status': 'success', 'plots': [{'id': 'proposal_benchmarks_all_metrics', 'title': 'Comprehensive All-Metrics Benchmark "
@@ -346,7 +346,7 @@
       "path": "/api/model_inspect",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 4.57,
+      "elapsed_ms": 1.84,
       "passed": true,
       "anomalies": [],
       "summary": "{'agent': {'router_epsilon': 0.01, 'router_device': 'CPU', 'use_per': True, 'memory_size': 0, 'model_loaded': True, 'mod"
@@ -359,7 +359,7 @@
       "path": "/api/rl_metrics",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 1.36,
+      "elapsed_ms": 0.77,
       "passed": true,
       "anomalies": [],
       "summary": "{'router_epsilon': 0.01, 'router_device': 'CPU', 'use_per': True, 'memory_size': 0, 'model_loaded': True, 'model_path': "
@@ -372,10 +372,10 @@
       "path": "/api/model_predict?src=4&dst=7&demand=5",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 2.85,
+      "elapsed_ms": 1.72,
       "passed": true,
       "anomalies": [],
-      "summary": "{'src': 4, 'dst': 7, 'demand_mbps': 5.0, 'inference_time_ms': 0.97, 'state_vector': [0.3, 0.0, 0.0, 0.0, 0.0, 0.28, 0.28"
+      "summary": "{'src': 4, 'dst': 7, 'demand_mbps': 5.0, 'inference_time_ms': 0.604, 'state_vector': [0.3, 0.0, 0.0, 0.0, 0.0, 0.28, 0.2"
     },
     {
       "run_id": 29,
@@ -385,10 +385,10 @@
       "path": "/api/model_predict?src=4&dst=7&demand=25",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 3.49,
+      "elapsed_ms": 1.59,
       "passed": true,
       "anomalies": [],
-      "summary": "{'src': 4, 'dst': 7, 'demand_mbps': 25.0, 'inference_time_ms': 1.145, 'state_vector': [0.3, 0.0, 0.0, 0.0, 0.0, 0.28, 0."
+      "summary": "{'src': 4, 'dst': 7, 'demand_mbps': 25.0, 'inference_time_ms': 0.51, 'state_vector': [0.3, 0.0, 0.0, 0.0, 0.0, 0.28, 0.2"
     },
     {
       "run_id": 30,
@@ -398,10 +398,10 @@
       "path": "/api/model_predict?src=4&dst=7&demand=75",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 4.16,
+      "elapsed_ms": 2.12,
       "passed": true,
       "anomalies": [],
-      "summary": "{'src': 4, 'dst': 7, 'demand_mbps': 75.0, 'inference_time_ms': 1.201, 'state_vector': [0.3, 0.0, 0.0, 0.0, 0.0, 0.28, 0."
+      "summary": "{'src': 4, 'dst': 7, 'demand_mbps': 75.0, 'inference_time_ms': 0.667, 'state_vector': [0.3, 0.0, 0.0, 0.0, 0.0, 0.28, 0."
     },
     {
       "run_id": 31,
@@ -411,10 +411,10 @@
       "path": "/api/model_predict?src=4&dst=7&demand=150",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 2.83,
+      "elapsed_ms": 1.68,
       "passed": true,
       "anomalies": [],
-      "summary": "{'src': 4, 'dst': 7, 'demand_mbps': 150.0, 'inference_time_ms': 0.802, 'state_vector': [0.3, 0.0, 0.0, 0.0, 0.0, 0.28, 0"
+      "summary": "{'src': 4, 'dst': 7, 'demand_mbps': 150.0, 'inference_time_ms': 0.493, 'state_vector': [0.3, 0.0, 0.0, 0.0, 0.0, 0.28, 0"
     },
     {
       "run_id": 32,
@@ -424,10 +424,10 @@
       "path": "/api/model_predict?src=4&dst=5&demand=30",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 3.07,
+      "elapsed_ms": 1.77,
       "passed": true,
       "anomalies": [],
-      "summary": "{'src': 4, 'dst': 5, 'demand_mbps': 30.0, 'inference_time_ms': 0.853, 'state_vector': [0.2, 0.0, 0.0, 0.0, 0.0, 0.12, 0."
+      "summary": "{'src': 4, 'dst': 5, 'demand_mbps': 30.0, 'inference_time_ms': 0.541, 'state_vector': [0.2, 0.0, 0.0, 0.0, 0.0, 0.12, 0."
     },
     {
       "run_id": 33,
@@ -437,10 +437,10 @@
       "path": "/api/model_predict?src=1&dst=7&demand=20",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 3.92,
+      "elapsed_ms": 9.67,
       "passed": true,
       "anomalies": [],
-      "summary": "{'src': 1, 'dst': 7, 'demand_mbps': 20.0, 'inference_time_ms': 1.456, 'state_vector': [0.2, 0.0, 0.0, 0.0, 0.0, 0.1, 0.2"
+      "summary": "{'src': 1, 'dst': 7, 'demand_mbps': 20.0, 'inference_time_ms': 4.222, 'state_vector': [0.2, 0.0, 0.0, 0.0, 0.0, 0.1, 0.2"
     },
     {
       "run_id": 34,
@@ -450,10 +450,10 @@
       "path": "/api/model_predict?src=7&dst=4&demand=30",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 3.85,
+      "elapsed_ms": 1.8,
       "passed": true,
       "anomalies": [],
-      "summary": "{'src': 7, 'dst': 4, 'demand_mbps': 30.0, 'inference_time_ms': 1.129, 'state_vector': [0.3, 0.0, 0.0, 0.0, 0.0, 0.28, 0."
+      "summary": "{'src': 7, 'dst': 4, 'demand_mbps': 30.0, 'inference_time_ms': 0.524, 'state_vector': [0.3, 0.0, 0.0, 0.0, 0.0, 0.28, 0."
     },
     {
       "run_id": 35,
@@ -463,10 +463,10 @@
       "path": "/api/model_predict?src=4&dst=7&demand=0.2",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 2.88,
+      "elapsed_ms": 1.71,
       "passed": true,
       "anomalies": [],
-      "summary": "{'src': 4, 'dst': 7, 'demand_mbps': 0.2, 'inference_time_ms': 0.677, 'state_vector': [0.3, 0.0, 0.0, 0.0, 0.0, 0.28, 0.2"
+      "summary": "{'src': 4, 'dst': 7, 'demand_mbps': 0.2, 'inference_time_ms': 0.467, 'state_vector': [0.3, 0.0, 0.0, 0.0, 0.0, 0.28, 0.2"
     },
     {
       "run_id": 36,
@@ -476,10 +476,10 @@
       "path": "/api/model_predict?src=1&dst=4&demand=15",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 2.79,
+      "elapsed_ms": 2.13,
       "passed": true,
       "anomalies": [],
-      "summary": "{'src': 1, 'dst': 4, 'demand_mbps': 15.0, 'inference_time_ms': 0.856, 'state_vector': [0.2, 0.0, 0.0, 0.0, 0.0, 0.1, 0.2"
+      "summary": "{'src': 1, 'dst': 4, 'demand_mbps': 15.0, 'inference_time_ms': 0.513, 'state_vector': [0.2, 0.0, 0.0, 0.0, 0.0, 0.1, 0.2"
     },
     {
       "run_id": 37,
@@ -489,10 +489,10 @@
       "path": "/api/model_predict?src=2&dst=6&demand=100",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 3.33,
+      "elapsed_ms": 1.6,
       "passed": true,
       "anomalies": [],
-      "summary": "{'src': 2, 'dst': 6, 'demand_mbps': 100.0, 'inference_time_ms': 0.756, 'state_vector': [0.2, 0.0, 0.0, 0.0, 1.0, 0.22, 0"
+      "summary": "{'src': 2, 'dst': 6, 'demand_mbps': 100.0, 'inference_time_ms': 0.451, 'state_vector': [0.2, 0.0, 0.0, 0.0, 1.0, 0.22, 0"
     },
     {
       "run_id": 38,
@@ -502,10 +502,10 @@
       "path": "/api/model_predict?src=6&dst=2&demand=100",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 3.18,
+      "elapsed_ms": 1.49,
       "passed": true,
       "anomalies": [],
-      "summary": "{'src': 6, 'dst': 2, 'demand_mbps': 100.0, 'inference_time_ms': 0.725, 'state_vector': [0.2, 0.0, 0.0, 0.0, 1.0, 0.22, 0"
+      "summary": "{'src': 6, 'dst': 2, 'demand_mbps': 100.0, 'inference_time_ms': 0.433, 'state_vector': [0.2, 0.0, 0.0, 0.0, 1.0, 0.22, 0"
     },
     {
       "run_id": 39,
@@ -515,7 +515,7 @@
       "path": "/api/model_predict?src=4&dst=7&demand=0.0",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 1.27,
+      "elapsed_ms": 0.68,
       "passed": true,
       "anomalies": [],
       "summary": "{'status': 'error', 'message': 'Demand must be strictly positive in (0, 100000] Mbps'}"
@@ -528,10 +528,10 @@
       "path": "/api/model_predict?src=4&dst=7&demand=500",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 3.27,
+      "elapsed_ms": 1.25,
       "passed": true,
       "anomalies": [],
-      "summary": "{'src': 4, 'dst': 7, 'demand_mbps': 500.0, 'inference_time_ms': 0.865, 'state_vector': [0.3, 0.0, 0.0, 0.0, 0.0, 0.28, 0"
+      "summary": "{'src': 4, 'dst': 7, 'demand_mbps': 500.0, 'inference_time_ms': 0.41, 'state_vector': [0.3, 0.0, 0.0, 0.0, 0.0, 0.28, 0."
     },
     {
       "run_id": 41,
@@ -541,7 +541,7 @@
       "path": "/api/model_predict?src=999&dst=7&demand=25",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 1.59,
+      "elapsed_ms": 0.51,
       "passed": true,
       "anomalies": [],
       "summary": "{'status': 'error', 'message': 'Source or destination node not in active topology'}"
@@ -554,7 +554,7 @@
       "path": "/api/model_predict?src=4&dst=888&demand=25",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 2.29,
+      "elapsed_ms": 0.6,
       "passed": true,
       "anomalies": [],
       "summary": "{'status': 'error', 'message': 'Source or destination node not in active topology'}"
@@ -567,7 +567,7 @@
       "path": "/api/model_predict?src=4&dst=4&demand=25",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 2.1,
+      "elapsed_ms": 0.58,
       "passed": true,
       "anomalies": [],
       "summary": "{'status': 'error', 'message': 'Source and destination nodes must be distinct'}"
@@ -580,7 +580,7 @@
       "path": "/api/model_predict?src=4&dst=7&demand=-20",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 0.93,
+      "elapsed_ms": 0.66,
       "passed": true,
       "anomalies": [],
       "summary": "{'status': 'error', 'message': 'Demand must be strictly positive in (0, 100000] Mbps'}"
@@ -593,7 +593,7 @@
       "path": "/api/model_predict?src=4&dst=7&demand=bad_val",
       "status": 400,
       "expected_status": 400,
-      "elapsed_ms": 1.37,
+      "elapsed_ms": 0.54,
       "passed": true,
       "anomalies": [],
       "summary": "{'status': 'error', 'error': \"Invalid demand 'bad_val': must be a positive float\"}"
@@ -606,7 +606,7 @@
       "path": "/api/verse?topo=tree&protocol=ospf&pattern=jam&flows=10",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 15.94,
+      "elapsed_ms": 9.48,
       "passed": true,
       "anomalies": [],
       "summary": "{'status': 'success', 'topology_id': 'tree', 'topology_name': 'Hierarchical Tree (Baseline)', 'traffic_pattern': 'jam', "
@@ -619,7 +619,7 @@
       "path": "/api/verse?topo=tree&protocol=ecmp&pattern=burst&flows=15",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 21.68,
+      "elapsed_ms": 11.78,
       "passed": true,
       "anomalies": [],
       "summary": "{'status': 'success', 'topology_id': 'tree', 'topology_name': 'Hierarchical Tree (Baseline)', 'traffic_pattern': 'burst'"
@@ -632,7 +632,7 @@
       "path": "/api/verse?topo=tree&protocol=wsp&pattern=hotspot&flows=20",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 28.04,
+      "elapsed_ms": 14.73,
       "passed": true,
       "anomalies": [],
       "summary": "{'status': 'success', 'topology_id': 'tree', 'topology_name': 'Hierarchical Tree (Baseline)', 'traffic_pattern': 'hotspo"
@@ -645,7 +645,7 @@
       "path": "/api/verse?topo=tree&protocol=llr&pattern=crowd&flows=20",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 21.75,
+      "elapsed_ms": 13.88,
       "passed": true,
       "anomalies": [],
       "summary": "{'status': 'success', 'topology_id': 'tree', 'topology_name': 'Hierarchical Tree (Baseline)', 'traffic_pattern': 'crowd'"
@@ -658,7 +658,7 @@
       "path": "/api/verse?topo=tree&protocol=dijkstra&pattern=uniform&flows=15",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 18.25,
+      "elapsed_ms": 11.41,
       "passed": true,
       "anomalies": [],
       "summary": "{'status': 'success', 'topology_id': 'tree', 'topology_name': 'Hierarchical Tree (Baseline)', 'traffic_pattern': 'unifor"
@@ -671,7 +671,7 @@
       "path": "/api/verse?topo=tree&protocol=ospf,ecmp&pattern=jam&flows=15",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 29.13,
+      "elapsed_ms": 16.72,
       "passed": true,
       "anomalies": [],
       "summary": "{'status': 'success', 'topology_id': 'tree', 'topology_name': 'Hierarchical Tree (Baseline)', 'traffic_pattern': 'jam', "
@@ -684,7 +684,7 @@
       "path": "/api/verse?topo=tree&protocol=ospf,wsp,llr&pattern=burst&flows=20",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 37.84,
+      "elapsed_ms": 22.77,
       "passed": true,
       "anomalies": [],
       "summary": "{'status': 'success', 'topology_id': 'tree', 'topology_name': 'Hierarchical Tree (Baseline)', 'traffic_pattern': 'burst'"
@@ -697,7 +697,7 @@
       "path": "/api/verse?topo=tree&protocol=all&pattern=hotspot&flows=25",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 69.91,
+      "elapsed_ms": 42.01,
       "passed": true,
       "anomalies": [],
       "summary": "{'status': 'success', 'topology_id': 'tree', 'topology_name': 'Hierarchical Tree (Baseline)', 'traffic_pattern': 'hotspo"
@@ -710,7 +710,7 @@
       "path": "/api/verse?topo=fattree&protocol=ospf&pattern=crowd&flows=20",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 87.13,
+      "elapsed_ms": 52.83,
       "passed": true,
       "anomalies": [],
       "summary": "{'status': 'success', 'topology_id': 'fattree', 'topology_name': 'Fat-Tree Data Center Fabric (k=4)', 'traffic_pattern':"
@@ -723,7 +723,7 @@
       "path": "/api/verse?topo=fattree&protocol=ecmp&pattern=jam&flows=25",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 97.12,
+      "elapsed_ms": 61.84,
       "passed": true,
       "anomalies": [],
       "summary": "{'status': 'success', 'topology_id': 'fattree', 'topology_name': 'Fat-Tree Data Center Fabric (k=4)', 'traffic_pattern':"
@@ -736,7 +736,7 @@
       "path": "/api/verse?topo=fattree&protocol=all&pattern=diurnal&flows=30",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 330.5,
+      "elapsed_ms": 216.4,
       "passed": true,
       "anomalies": [],
       "summary": "{'status': 'success', 'topology_id': 'fattree', 'topology_name': 'Fat-Tree Data Center Fabric (k=4)', 'traffic_pattern':"
@@ -749,7 +749,7 @@
       "path": "/api/verse?topo=abilene&protocol=ospf&pattern=failover&flows=15",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 24.54,
+      "elapsed_ms": 19.58,
       "passed": true,
       "anomalies": [],
       "summary": "{'status': 'success', 'topology_id': 'abilene', 'topology_name': 'Abilene Internet2 US Backbone', 'traffic_pattern': 'fa"
@@ -762,7 +762,7 @@
       "path": "/api/verse?topo=abilene&protocol=all&pattern=burst&flows=20",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 125.4,
+      "elapsed_ms": 72.41,
       "passed": true,
       "anomalies": [],
       "summary": "{'status': 'success', 'topology_id': 'abilene', 'topology_name': 'Abilene Internet2 US Backbone', 'traffic_pattern': 'bu"
@@ -775,7 +775,7 @@
       "path": "/api/verse?topo=nsfnet&protocol=all&pattern=pareto&flows=25",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 219.95,
+      "elapsed_ms": 155.51,
       "passed": true,
       "anomalies": [],
       "summary": "{'status': 'success', 'topology_id': 'nsfnet', 'topology_name': 'NSFNet 14-Node Continental Mesh', 'traffic_pattern': 'p"
@@ -788,7 +788,7 @@
       "path": "/api/verse?topo=spineleaf&protocol=all&pattern=uniform&flows=30",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 171.53,
+      "elapsed_ms": 115.33,
       "passed": true,
       "anomalies": [],
       "summary": "{'status': 'success', 'topology_id': 'spineleaf', 'topology_name': 'Spine-Leaf Data Center Clos Fabric', 'traffic_patter"
@@ -801,7 +801,7 @@
       "path": "/api/verse?topo=tree&protocol=ospf&pattern=jam&flows=1",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 4.06,
+      "elapsed_ms": 3.37,
       "passed": true,
       "anomalies": [],
       "summary": "{'status': 'success', 'topology_id': 'tree', 'topology_name': 'Hierarchical Tree (Baseline)', 'traffic_pattern': 'jam', "
@@ -814,7 +814,7 @@
       "path": "/api/verse?topo=tree&protocol=ospf&pattern=burst&flows=150",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 139.97,
+      "elapsed_ms": 104.42,
       "passed": true,
       "anomalies": [],
       "summary": "{'status': 'success', 'topology_id': 'tree', 'topology_name': 'Hierarchical Tree (Baseline)', 'traffic_pattern': 'burst'"
@@ -827,7 +827,7 @@
       "path": "/api/verse?topo=tree&protocol=ospf&pattern=jam&flows=20&preset=aggressive",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 26.7,
+      "elapsed_ms": 16.85,
       "passed": true,
       "anomalies": [],
       "summary": "{'status': 'success', 'topology_id': 'tree', 'topology_name': 'Hierarchical Tree (Baseline)', 'traffic_pattern': 'jam', "
@@ -840,7 +840,7 @@
       "path": "/api/verse?topo=tree&protocol=ospf&pattern=jam&flows=20&preset=conservative",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 30.05,
+      "elapsed_ms": 18.95,
       "passed": true,
       "anomalies": [],
       "summary": "{'status': 'success', 'topology_id': 'tree', 'topology_name': 'Hierarchical Tree (Baseline)', 'traffic_pattern': 'jam', "
@@ -853,7 +853,7 @@
       "path": "/api/verse?topo=tree&protocol=ospf&pattern=jam&flows=999",
       "status": 400,
       "expected_status": 400,
-      "elapsed_ms": 1.1,
+      "elapsed_ms": 0.78,
       "passed": true,
       "anomalies": [],
       "summary": "{'status': 'error', 'error': 'flows must be between 1 and 500'}"
@@ -866,10 +866,10 @@
       "path": "/api/simulate/apply_flow?src=4&dst=7&demand=20&duration=30",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 2.11,
+      "elapsed_ms": 1.77,
       "passed": true,
       "anomalies": [],
-      "summary": "{'status': 'success', 'flow_id': 'user_flow_4_7_2474', 'src': 4, 'dst': 7, 'demand_mbps': 20.0, 'duration_sec': 30.0, 'i"
+      "summary": "{'status': 'success', 'flow_id': 'user_flow_4_7_6679', 'src': 4, 'dst': 7, 'demand_mbps': 20.0, 'duration_sec': 30.0, 'i"
     },
     {
       "run_id": 67,
@@ -879,10 +879,10 @@
       "path": "/api/simulate/apply_flow?src=2&dst=5&demand=30&duration=30",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 2.84,
+      "elapsed_ms": 1.57,
       "passed": true,
       "anomalies": [],
-      "summary": "{'status': 'success', 'flow_id': 'user_flow_2_5_2477', 'src': 2, 'dst': 5, 'demand_mbps': 30.0, 'duration_sec': 30.0, 'i"
+      "summary": "{'status': 'success', 'flow_id': 'user_flow_2_5_6680', 'src': 2, 'dst': 5, 'demand_mbps': 30.0, 'duration_sec': 30.0, 'i"
     },
     {
       "run_id": 68,
@@ -892,10 +892,10 @@
       "path": "/api/simulate/apply_flow?src=3&dst=6&demand=15&duration=30",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 2.72,
+      "elapsed_ms": 1.34,
       "passed": true,
       "anomalies": [],
-      "summary": "{'status': 'success', 'flow_id': 'user_flow_3_6_2480', 'src': 3, 'dst': 6, 'demand_mbps': 15.0, 'duration_sec': 30.0, 'i"
+      "summary": "{'status': 'success', 'flow_id': 'user_flow_3_6_6682', 'src': 3, 'dst': 6, 'demand_mbps': 15.0, 'duration_sec': 30.0, 'i"
     },
     {
       "run_id": 69,
@@ -905,7 +905,7 @@
       "path": "/api/flows",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 1.49,
+      "elapsed_ms": 0.54,
       "passed": true,
       "anomalies": [],
       "summary": "[{'dpid': 4, 'src_ip': '10.0.4.1', 'dst_ip': '10.0.7.1', 'packets': 45000, 'bytes': 75000000, 'mbps': 20.0, 'pps': 1500."
@@ -918,10 +918,10 @@
       "path": "/api/stats",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 2.3,
+      "elapsed_ms": 0.94,
       "passed": true,
       "anomalies": [],
-      "summary": "{'total_throughput_mbps': 65.0, 'aggregate_link_tx_mbps': 195.0, 'bottleneck_utilization_pct': 100.0, 'mean_utilization_"
+      "summary": "{'total_throughput_mbps': 65.0, 'aggregate_link_tx_mbps': 195.0, 'bottleneck_utilization_pct': 100.0, 'peak_bottleneck_u"
     },
     {
       "run_id": 71,
@@ -931,10 +931,10 @@
       "path": "/api/simulate/inject_burst?u=1&v=2&mbps=45",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 1.98,
+      "elapsed_ms": 0.67,
       "passed": true,
       "anomalies": [],
-      "summary": "{'status': 'success', 'message': '\u26a1 Injected 45.0 Mbps flash burst across 1 link(s).'}"
+      "summary": "{'status': 'success', 'message': '\u26a1 Injected 45.0 Mbps flash burst across 1 link(s).', 'active_scenario': '\u26a1 Flash Traff"
     },
     {
       "run_id": 72,
@@ -944,10 +944,10 @@
       "path": "/api/stats",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 3.41,
+      "elapsed_ms": 1.09,
       "passed": true,
       "anomalies": [],
-      "summary": "{'total_throughput_mbps': 65.0, 'aggregate_link_tx_mbps': 240.0, 'bottleneck_utilization_pct': 100.0, 'mean_utilization_"
+      "summary": "{'total_throughput_mbps': 65.0, 'aggregate_link_tx_mbps': 240.0, 'bottleneck_utilization_pct': 100.0, 'peak_bottleneck_u"
     },
     {
       "run_id": 73,
@@ -957,10 +957,10 @@
       "path": "/api/simulate/core_jamming",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 1.83,
+      "elapsed_ms": 0.88,
       "passed": true,
       "anomalies": [],
-      "summary": "{'status': 'success', 'message': '\ud83d\udd25 Core links saturated. DQN offload active.'}"
+      "summary": "{'status': 'success', 'message': '\ud83d\udd25 Core links saturated. DQN offload active.', 'active_scenario': '\ud83d\udd25 Core Switch Satura"
     },
     {
       "run_id": 74,
@@ -970,10 +970,10 @@
       "path": "/api/telemetry",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 2.67,
+      "elapsed_ms": 1.54,
       "passed": true,
       "anomalies": [],
-      "summary": "{'status': 'success', 'timestamp': 1792668312.4975846, 'topology': {'nodes': [{'id': 1, 'label': 's1', 'type': 'core', '"
+      "summary": "{'status': 'success', 'timestamp': 1793587926.6889215, 'active_scenario': '\ud83d\udd25 Core Switch Saturation (96% Load) -> Autono"
     },
     {
       "run_id": 75,
@@ -983,10 +983,10 @@
       "path": "/api/simulate/traffic_burst",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 5.91,
+      "elapsed_ms": 2.91,
       "passed": true,
       "anomalies": [],
-      "summary": "{'status': 'success', 'message': '\u26a1 Traffic burst injected.'}"
+      "summary": "{'status': 'success', 'message': '\u26a1 Traffic burst injected.', 'active_scenario': '\u26a1 Pod Ingress Surge (h2->h5, h3->h7) -"
     },
     {
       "run_id": 76,
@@ -996,10 +996,10 @@
       "path": "/api/simulate/clear_flows",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 2.23,
+      "elapsed_ms": 0.71,
       "passed": true,
       "anomalies": [],
-      "summary": "{'status': 'success', 'message': '\ud83e\uddf9 Cleared active dynamic flows.'}"
+      "summary": "{'status': 'success', 'message': '\ud83e\uddf9 Cleared active dynamic flows.', 'active_scenario': '\ud83e\uddf9 Flows Flushed: Active dynamic "
     },
     {
       "run_id": 77,
@@ -1009,7 +1009,7 @@
       "path": "/api/flows",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 1.15,
+      "elapsed_ms": 0.66,
       "passed": true,
       "anomalies": [],
       "summary": "None"
@@ -1022,10 +1022,10 @@
       "path": "/api/stats",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 1.5,
+      "elapsed_ms": 0.98,
       "passed": true,
       "anomalies": [],
-      "summary": "{'total_throughput_mbps': 0.0, 'aggregate_link_tx_mbps': 0.0, 'bottleneck_utilization_pct': 96.0, 'mean_utilization_pct'"
+      "summary": "{'total_throughput_mbps': 0.0, 'aggregate_link_tx_mbps': 0.0, 'bottleneck_utilization_pct': 96.0, 'peak_bottleneck_util_"
     },
     {
       "run_id": 79,
@@ -1035,10 +1035,10 @@
       "path": "/api/simulate/apply_flow?src=1&dst=2&demand=20&direct=1",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 2.56,
+      "elapsed_ms": 1.7,
       "passed": true,
       "anomalies": [],
-      "summary": "{'status': 'success', 'flow_id': 'user_flow_1_2_2514', 'src': 1, 'dst': 2, 'demand_mbps': 20.0, 'duration_sec': 35.0, 'i"
+      "summary": "{'status': 'success', 'flow_id': 'user_flow_1_2_6697', 'src': 1, 'dst': 2, 'demand_mbps': 20.0, 'duration_sec': 35.0, 'i"
     },
     {
       "run_id": 80,
@@ -1048,10 +1048,10 @@
       "path": "/api/simulate/clear_flows",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 1.4,
+      "elapsed_ms": 0.64,
       "passed": true,
       "anomalies": [],
-      "summary": "{'status': 'success', 'message': '\ud83e\uddf9 Cleared active dynamic flows.'}"
+      "summary": "{'status': 'success', 'message': '\ud83e\uddf9 Cleared active dynamic flows.', 'active_scenario': '\ud83e\uddf9 Flows Flushed: Active dynamic "
     },
     {
       "run_id": 81,
@@ -1061,10 +1061,10 @@
       "path": "/api/simulate/link_degrade?u=1&v=2",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 2.19,
+      "elapsed_ms": 0.57,
       "passed": true,
       "anomalies": [],
-      "summary": "{'status': 'success', 'message': '\u26a0\ufe0f Link s1 \u2194 s2 throttled to 10% (brownout simulated).'}"
+      "summary": "{'status': 'success', 'message': '\u26a0\ufe0f Link s1 \u2194 s2 throttled to 10% (brownout simulated).', 'active_scenario': '\u26a0\ufe0f Link D"
     },
     {
       "run_id": 82,
@@ -1074,7 +1074,7 @@
       "path": "/api/topology",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 1.99,
+      "elapsed_ms": 0.83,
       "passed": true,
       "anomalies": [],
       "summary": "{'nodes': [{'id': 1, 'label': 's1', 'type': 'core', 'x': 0.5, 'y': 0.16, 'cpu': 0.16, 'ram': 0.16}, {'id': 2, 'label': '"
@@ -1087,7 +1087,7 @@
       "path": "/api/simulate/link_fail?u=2&v=4",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 1.25,
+      "elapsed_ms": 0.61,
       "passed": true,
       "anomalies": [],
       "summary": "{'status': 'success', 'message': '\u26a1 Physical link cut: s2 \u26a1 s4 severed! D3QN dynamic failover triggered.', 'severed_link"
@@ -1100,7 +1100,7 @@
       "path": "/api/topology",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 1.56,
+      "elapsed_ms": 0.76,
       "passed": true,
       "anomalies": [],
       "summary": "{'nodes': [{'id': 1, 'label': 's1', 'type': 'core', 'x': 0.5, 'y': 0.16, 'cpu': 0.16, 'ram': 0.16}, {'id': 2, 'label': '"
@@ -1113,10 +1113,10 @@
       "path": "/api/model_predict?src=4&dst=7&demand=20",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 4.66,
+      "elapsed_ms": 1.68,
       "passed": true,
       "anomalies": [],
-      "summary": "{'src': 4, 'dst': 7, 'demand_mbps': 20.0, 'inference_time_ms': 0.964, 'state_vector': [0.3, 0.15, 0.96, 1.0, 1.0, 0.319,"
+      "summary": "{'src': 4, 'dst': 7, 'demand_mbps': 20.0, 'inference_time_ms': 0.588, 'state_vector': [0.3, 0.15, 0.96, 1.0, 1.0, 0.319,"
     },
     {
       "run_id": 86,
@@ -1126,10 +1126,10 @@
       "path": "/api/simulate/link_restore",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 1.65,
+      "elapsed_ms": 0.67,
       "passed": true,
       "anomalies": [],
-      "summary": "{'status': 'success', 'message': '\u2705 All severed and degraded links restored to full operational state.'}"
+      "summary": "{'status': 'success', 'message': '\u2705 All severed and degraded links restored to full operational state.', 'active_scenari"
     },
     {
       "run_id": 87,
@@ -1139,7 +1139,7 @@
       "path": "/api/topology",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 1.6,
+      "elapsed_ms": 1.06,
       "passed": true,
       "anomalies": [],
       "summary": "{'nodes': [{'id': 1, 'label': 's1', 'type': 'core', 'x': 0.5, 'y': 0.16, 'cpu': 0.16, 'ram': 0.16}, {'id': 2, 'label': '"
@@ -1152,10 +1152,10 @@
       "path": "/api/simulate/link_fail?u=99&v=100",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 1.08,
+      "elapsed_ms": 0.62,
       "passed": true,
       "anomalies": [],
-      "summary": "{'status': 'error', 'message': 'Link s99 \u2194 s100 not found'}"
+      "summary": "{'status': 'error', 'message': 'Link s99 \u2194 s100 not found', 'active_scenario': '\u26a1 Fiber Cut Failover: Link s99 \u2194 s100 se"
     },
     {
       "run_id": 89,
@@ -1165,10 +1165,10 @@
       "path": "/api/simulate/reset",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 0.98,
+      "elapsed_ms": 0.59,
       "passed": true,
       "anomalies": [],
-      "summary": "{'status': 'success', 'message': '\ud83d\udd04 Nominal state restored.'}"
+      "summary": "{'status': 'success', 'message': '\ud83d\udd04 Nominal state restored across all nodes and topology.', 'active_scenario': '\ud83d\udd04 Nomina"
     },
     {
       "run_id": 90,
@@ -1178,10 +1178,10 @@
       "path": "/api/telemetry",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 2.09,
+      "elapsed_ms": 1.21,
       "passed": true,
       "anomalies": [],
-      "summary": "{'status': 'success', 'timestamp': 1792668312.5381532, 'topology': {'nodes': [{'id': 1, 'label': 's1', 'type': 'core', '"
+      "summary": "{'status': 'success', 'timestamp': 1793587926.708943, 'active_scenario': '\ud83d\udd04 Nominal Baseline Network Stabilization Activ"
     },
     {
       "run_id": 91,
@@ -1191,7 +1191,7 @@
       "path": "/api/simulate/apply_flow",
       "status": 405,
       "expected_status": 405,
-      "elapsed_ms": 1.48,
+      "elapsed_ms": 0.54,
       "passed": true,
       "anomalies": [],
       "summary": "{'status': 'error', 'error': 'State-changing endpoints require POST'}"
@@ -1204,7 +1204,7 @@
       "path": "/api/simulate/link_fail",
       "status": 405,
       "expected_status": 405,
-      "elapsed_ms": 1.05,
+      "elapsed_ms": 0.47,
       "passed": true,
       "anomalies": [],
       "summary": "{'status': 'error', 'error': 'State-changing endpoints require POST'}"
@@ -1217,7 +1217,7 @@
       "path": "/api/simulate/reset",
       "status": 405,
       "expected_status": 405,
-      "elapsed_ms": 1.18,
+      "elapsed_ms": 0.5,
       "passed": true,
       "anomalies": [],
       "summary": "{'status': 'error', 'error': 'State-changing endpoints require POST'}"
@@ -1230,7 +1230,7 @@
       "path": "/api/network_settings",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 1.37,
+      "elapsed_ms": 0.57,
       "passed": true,
       "anomalies": [],
       "summary": "{'status': 'success', 'topology_id': 'tree', 'topology_name': 'Hierarchical Tree (Baseline)', 'node_count': 7, 'link_cou"
@@ -1243,7 +1243,7 @@
       "path": "/",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 2.68,
+      "elapsed_ms": 1.2,
       "passed": true,
       "anomalies": [],
       "summary": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width"
@@ -1256,36 +1256,10 @@
       "path": "/index.html",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 2.82,
+      "elapsed_ms": 1.36,
       "passed": true,
       "anomalies": [],
       "summary": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width"
-    },
-    {
-      "run_id": 97,
-      "category": "Concurrent",
-      "description": "Parallel Query 1: Telemetry bundle under load",
-      "method": "GET",
-      "path": "/api/telemetry",
-      "status": 200,
-      "expected_status": 200,
-      "elapsed_ms": 2.97,
-      "passed": true,
-      "anomalies": [],
-      "summary": "{'status': 'success', 'timestamp': 1792668312.563218, 'topology': {'nodes': [{'id': 1, 'label': 's1', 'type': 'core', 'x"
-    },
-    {
-      "run_id": 98,
-      "category": "Concurrent",
-      "description": "Parallel Query 2: Stats summary under load",
-      "method": "GET",
-      "path": "/api/stats",
-      "status": 200,
-      "expected_status": 200,
-      "elapsed_ms": 3.1,
-      "passed": true,
-      "anomalies": [],
-      "summary": "{'total_throughput_mbps': 0.0, 'aggregate_link_tx_mbps': 0.0, 'bottleneck_utilization_pct': 5.0, 'mean_utilization_pct':"
     },
     {
       "run_id": 99,
@@ -1295,10 +1269,10 @@
       "path": "/api/model_predict?src=4&dst=7&demand=30",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 7.31,
+      "elapsed_ms": 2.09,
       "passed": true,
       "anomalies": [],
-      "summary": "{'src': 4, 'dst': 7, 'demand_mbps': 30.0, 'inference_time_ms': 3.139, 'state_vector': [0.3, 0.05, 0.05, 0.05, 0.05, 0.28"
+      "summary": "{'src': 4, 'dst': 7, 'demand_mbps': 30.0, 'inference_time_ms': 0.524, 'state_vector': [0.3, 0.05, 0.05, 0.05, 0.05, 0.28"
     },
     {
       "run_id": 100,
@@ -1308,10 +1282,36 @@
       "path": "/api/ha/status",
       "status": 200,
       "expected_status": 200,
-      "elapsed_ms": 8.89,
+      "elapsed_ms": 2.29,
       "passed": true,
       "anomalies": [],
-      "summary": "{'status': 'ok', 'role': 'primary', 'ofp_port': 6633, 'rest_port': 8080, 'is_primary': True, 'cluster_nodes': ['primary'"
+      "summary": "{'status': 'ok', 'role': 'primary', 'ofp_port': 6633, 'rest_port': 8080, 'is_primary': True, 'active_leader': 'primary',"
+    },
+    {
+      "run_id": 98,
+      "category": "Concurrent",
+      "description": "Parallel Query 2: Stats summary under load",
+      "method": "GET",
+      "path": "/api/stats",
+      "status": 200,
+      "expected_status": 200,
+      "elapsed_ms": 4.17,
+      "passed": true,
+      "anomalies": [],
+      "summary": "{'total_throughput_mbps': 0.0, 'aggregate_link_tx_mbps': 0.0, 'bottleneck_utilization_pct': 5.0, 'peak_bottleneck_util_p"
+    },
+    {
+      "run_id": 97,
+      "category": "Concurrent",
+      "description": "Parallel Query 1: Telemetry bundle under load",
+      "method": "GET",
+      "path": "/api/telemetry",
+      "status": 200,
+      "expected_status": 200,
+      "elapsed_ms": 5.6,
+      "passed": true,
+      "anomalies": [],
+      "summary": "{'status': 'success', 'timestamp': 1793587926.7231853, 'active_scenario': '\ud83d\udd04 Nominal Baseline Network Stabilization Acti"
     }
   ]
 }

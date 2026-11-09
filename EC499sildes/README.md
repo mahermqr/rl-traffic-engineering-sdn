@@ -1,8 +1,8 @@
 # EC499 Final Defense Presentation Suite
 
-**Project Title:** Reinforcement Learning for Adaptive Traffic Engineering in an SDN Network  
+**Project Title:** Reinforcement Learning for Adaptive Traffic Engineering in Software-Defined Network  
 **Candidate:** Maher Alqadhi (Student ID: `2210249576`)  
-**Supervisor:** Dr. Suad El-Geder, Associate Professor  
+**Supervisor:** Dr. Suad El-Geder  
 **Department:** Department of Computer Engineering, Faculty of Engineering, University of Tripoli  
 **Academic Year:** 2025 / 2026  
 **Verification:** 42 / 42 Tests Passed (100% Comprehensive Coverage)

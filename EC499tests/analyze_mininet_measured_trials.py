@@ -136,7 +136,7 @@ def write_figure(summaries: list[dict[str, Any]], path: Path) -> None:
         axis.set_ylabel(label)
         axis.grid(axis="y", alpha=0.25)
     axes[0].legend(frameon=False, ncol=3)
-    fig.suptitle("Measured Mininet/OVS Trial Summary")
+    fig.suptitle("Measured Mininet/OVS Trial Summary\n(TCP retransmissions uninstrumented; ICMP echo loss is diagnostic)", fontsize=11)
     path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(path, dpi=300)
     plt.close(fig)

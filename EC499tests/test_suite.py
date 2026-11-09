@@ -566,6 +566,17 @@ class TestWebDashboardAndVersusAPI(unittest.TestCase):
         self.assertEqual(raised.exception.code, 405)
         raised.exception.close()
 
+        with self.assertRaises(urllib.error.HTTPError) as raised_wcmp:
+            urllib.request.urlopen(
+                f"http://127.0.0.1:{self.test_port}/api/simulate/wcmp", timeout=10
+            )
+        self.assertEqual(raised_wcmp.exception.code, 405)
+        raised_wcmp.exception.close()
+
+        self._post_json('/api/simulate/reset')
+        wcmp_res = self._post_json('/api/simulate/wcmp')
+        self.assertEqual(wcmp_res.get('status'), 'success')
+
         self._post_json('/api/simulate/reset')
         result = self._post_json('/api/simulate/apply_flow?src=4&dst=7&demand=10&duration=5')
         self.assertEqual(result['status'], 'success')
@@ -596,7 +607,7 @@ class TestWebDashboardAndVersusAPI(unittest.TestCase):
         self.assertEqual(len(pred["candidate_paths"]), 4)
 
     def test_versus_endpoint_single_protocol(self):
-        res = self._get_json("/api/verse?topo=tree&protocol=ospf&pattern=jam&flows=15")
+        res = self._get_json("/api/versus?topo=tree&protocol=ospf&pattern=jam&flows=15")
         self.assertEqual(res["status"], "success")
         self.assertEqual(res["topology_id"], "tree")
         self.assertIn("DQN (Ours)", res["metrics"])
@@ -604,9 +615,12 @@ class TestWebDashboardAndVersusAPI(unittest.TestCase):
         self.assertIn("deltas", res)
         self.assertIn("radar", res)
         self.assertIn("verdict", res)
+        # Verify backwards-compatibility alias
+        res_alias = self._get_json("/api/verse?topo=tree&protocol=ospf&pattern=jam&flows=15")
+        self.assertEqual(res_alias["status"], "success")
 
     def test_versus_endpoint_multi_protocol_checklist(self):
-        res = self._get_json("/api/verse?topo=fattree&protocol=ospf,ecmp,wsp&pattern=burst&flows=15")
+        res = self._get_json("/api/versus?topo=fattree&protocol=ospf,ecmp,wsp&pattern=burst&flows=15")
         self.assertEqual(res["status"], "success")
         self.assertEqual(len(res["algorithms"]), 4)  # DQN + OSPF + ECMP + WSP
         self.assertIn("DQN (Ours)", res["algorithms"])
@@ -617,7 +631,7 @@ class TestWebDashboardAndVersusAPI(unittest.TestCase):
         self.assertEqual(res["deltas"]["competitors_count"], 3)
 
     def test_versus_endpoint_all_baselines(self):
-        res = self._get_json("/api/verse?topo=nsfnet&protocol=all&pattern=jam&flows=15")
+        res = self._get_json("/api/versus?topo=nsfnet&protocol=all&pattern=jam&flows=15")
         self.assertEqual(res["status"], "success")
         self.assertGreaterEqual(len(res["algorithms"]), 6)
         self.assertIn("DQN (Ours)", res["algorithms"])

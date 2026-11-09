@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Master Presentation Suite Builder for EC499 Graduation Project:
-"Reinforcement Learning for Adaptive Traffic Engineering in an SDN Network"
+"Reinforcement Learning for Adaptive Traffic Engineering in Software-Defined Network"
 Candidate: Maher Abdulnasir Alqadhi (ID: 2210249576)
 Supervisor: Dr. Suad El-Geder
 Department of Computer Engineering, University of Tripoli.
@@ -150,7 +150,7 @@ def build_pptx_deck():
     tf1 = tx1.text_frame
     tf1.word_wrap = True
     p1 = tf1.paragraphs[0]
-    p1.text = "Reinforcement Learning for Adaptive Traffic Engineering in an SDN Network"
+    p1.text = "Reinforcement Learning for Adaptive Traffic Engineering in Software-Defined Network"
     p1.font.size = Pt(32)
     p1.font.bold = True
     p1.font.color.rgb = WHITE
@@ -180,8 +180,8 @@ def build_pptx_deck():
     add_meta_line(tf_m, "Candidate", "Maher Abdulnasir Alqadhi (ID: 2210249576)")
     add_meta_line(tf_m, "Supervisor", "Dr. Suad El-Geder")
     add_meta_line(tf_m, "Department", "Department of Computer Engineering, Faculty of Engineering")
-    add_meta_line(tf_m, "Institution", "University of Tripoli — Academic Year 2025 / 2026")
-    add_notes(s1, "Welcome esteemed members of the examination committee, Dr. Suad, and colleagues. Today I present my final graduation defense on Reinforcement Learning for Adaptive Traffic Engineering in an SDN Network. This project bridges deep reinforcement learning with carrier-grade OpenFlow systems to solve trunk congestion with mathematical rigor.")
+    add_meta_line(tf_m, "Institution", "University of Tripoli — Spring 2026")
+    add_notes(s1, "Welcome esteemed members of the examination committee, Dr. Suad, and colleagues. Today I present my final graduation defense on Reinforcement Learning for Adaptive Traffic Engineering in Software-Defined Network. This project bridges deep reinforcement learning with carrier-grade OpenFlow systems to solve trunk congestion with mathematical rigor.")
 
     # Slides 2-32 definitions in loop
     slides_data = [

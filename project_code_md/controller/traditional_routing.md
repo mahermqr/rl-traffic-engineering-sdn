@@ -1,0 +1,261 @@
+# `controller/traditional_routing.py`
+
+> **File:** `controller/traditional_routing.py`  
+> **Subsystem / Category:** 2. SDN Controller Architecture & Modules  
+> **Language:** `python`  
+> **Lines of Code:** 237  
+> **File Size:** 8.79 KB  
+
+---
+
+## Overview
+
+Traditional routing algorithms baseline suite implementing Dijkstra SPF, Equal-Cost Multi-Path (ECMP), Widest-Path, and Hop-Count routing.
+
+### Architecture & Symbols
+- **Classes:** None (Procedural / Script)
+- **Key Functions:** `compute_path_metrics`, `ospf_routing`, `dijkstra_spf`, `ecmp_routing`, `widest_shortest_path`, `least_loaded_routing`, `random_routing`
+
+---
+
+## Source Code
+
+```python
+"""
+Traditional SDN Routing Algorithms Baseline Engine (EC499).
+Implements classical network routing protocols and greedy heuristics for head-to-head benchmarking:
+ 1. OSPF (Open Shortest Path First - RFC 2328 with Reference Bandwidth Cost Metric)
+ 2. Dijkstra Shortest Path First (SPF - Hop Count Metric)
+ 3. Equal-Cost Multi-Path (ECMP)
+ 4. Widest Shortest Path (WSP / CSPF - Residual Bandwidth Priority)
+ 5. Greedy Least Loaded Routing (LLR - Minimum Peak & Average Utilization)
+ 6. Random Path Routing Baseline
+
+Computes comprehensive network telemetry metrics required by Proposal:
+ - Bottleneck Link Utilization (%)
+ - Total Path Latency (ms)
+ - Network Jitter (ms Delay Variation)
+ - Packet Loss Rate (%)
+ - Hop Count & Control Overhead
+"""
+
+import os
+import sys
+import itertools
+import networkx as nx
+import numpy as np
+
+_BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _BASE_DIR not in sys.path:
+    sys.path.insert(0, _BASE_DIR)
+
+try:
+    import config
+except ImportError:
+    config = None
+try:
+    from .queue_model import mm1k_metrics
+except ImportError:
+    from queue_model import mm1k_metrics
+
+
+def compute_path_metrics(path, link_utilization, link_delays=None, link_bandwidths=None,
+                         jitter_history=None, queue_depth=None, observed_delays=True):
+    """
+    Computes bottleneck utilization, total latency, network jitter, packet loss rate, and hop count.
+
+    Mathematical Models:
+      1. Latency (ms): sum observed D_e; when ``observed_delays=False``,
+         D_total = sum(base D_e + M/M/1/K queue_delay(U_e)).
+      2. Jitter (ms): Packet Delay Variation (RFC 3393). In packet queues, queuing variation
+         scales non-linearly with bottleneck link utilization:
+         Jitter = base_jitter + 0.15 * total_delay * (U_bottleneck / max(0.01, 1.0 - min(0.98, U_bottleneck)))
+      3. Packet Loss (%): Finite buffer queue overflow model (M/M/1/K queuing approximation).
+         Loss is near 0% under low load (U <= threshold), then escalates sharply when links saturate.
+    """
+    if not path or len(path) <= 1:
+        return {
+            'bottleneck_util': 0.0,
+            'total_delay': 0.0,
+            'jitter': 0.0,
+            'packet_loss': 0.0,
+            'hops': 0
+        }
+
+    delays = link_delays or {}
+    bws = link_bandwidths or {}
+    hops = len(path) - 1
+    total_delay = 0.0
+    total_queue_delay = 0.0
+    bottleneck_util = 0.0
+    default_delay = getattr(config, 'DEFAULT_LINK_DELAY', 2.0)
+    queue_depth = int(queue_depth or getattr(config, 'SWITCH_QUEUE_DEPTH', 256))
+    max_queue_delay = float(getattr(config, 'MAX_QUEUE_DELAY_MS', 1000.0))
+    survival_probability = 1.0
+
+    for i in range(len(path) - 1):
+        u, v = path[i], path[i + 1]
+        util = float(link_utilization.get((u, v), 0.0))
+        # Ensure bidirectional or directional fallback
+        if util == 0.0 and (v, u) in link_utilization:
+            util = float(link_utilization[(v, u)])
+
+        prop_delay = float(delays.get((u, v), delays.get((v, u), default_delay)))
+        prop_delay = max(0.0, prop_delay)
+
+        queue = mm1k_metrics(
+            util,
+            queue_depth=queue_depth,
+            service_time_ms=max(0.01, prop_delay),
+            max_queue_delay_ms=max_queue_delay,
+        )
+        queue_delay = queue['queue_delay_ms']
+        survival_probability *= 1.0 - queue['blocking_probability']
+
+        # StateManager delays are end-to-end link observations that already include
+        # queueing. Static/base delays can opt into analytical queue addition.
+        total_delay += prop_delay if observed_delays else (prop_delay + queue_delay)
+        total_queue_delay += queue_delay
+        bottleneck_util = max(bottleneck_util, util)
+
+    # 1. Network Jitter (RFC 3393 Packet Delay Variation)
+    # Jitter reflects queuing delay variation; bounded by standard buffer variance (typically 15-30% of queuing latency)
+    base_jitter = 0.25 * hops
+    congestion_factor = (bottleneck_util ** 2) / max(0.05, 1.0 - min(0.95, bottleneck_util))
+    queuing_latency_portion = float(total_queue_delay)
+    jitter_ms = float(base_jitter + min(15.0, 0.22 * queuing_latency_portion * min(2.5, congestion_factor)))
+
+    loss_pct = 100.0 * (1.0 - survival_probability)
+
+    return {
+        'bottleneck_util': float(bottleneck_util),
+        'total_delay': float(total_delay),
+        'jitter': float(jitter_ms),
+        'packet_loss': float(loss_pct),
+        'hops': int(hops)
+    }
+
+
+def ospf_routing(graph, src, dst, link_bandwidths=None, reference_bandwidth=100.0):
+    """
+    Standard OSPF (Open Shortest Path First) Routing (RFC 2328).
+    Computes shortest path based on standard Cisco/IETF OSPF interface cost:
+      Cost(u, v) = max(1, round(Reference_Bandwidth / Capacity_Mbps))
+    High-bandwidth links have lower cost; lower-bandwidth links have higher cost.
+    OSPF remains static and oblivious to dynamic traffic load.
+    """
+    bws = link_bandwidths or {}
+    ospf_graph = graph.copy()
+
+    for u, v in ospf_graph.edges():
+        cap = float(bws.get((u, v), bws.get((v, u), 100.0)))
+        # OSPF Cost metric: Cost = Reference_Bandwidth / Capacity
+        cost = max(1.0, round(float(reference_bandwidth) / max(1.0, cap)))
+        ospf_graph[u][v]['ospf_cost'] = cost
+
+    try:
+        return list(nx.shortest_path(ospf_graph, src, dst, weight='ospf_cost'))
+    except (nx.NetworkXNoPath, nx.NodeNotFound):
+        return []
+
+
+def dijkstra_spf(graph, src, dst, weight=None):
+    """
+    Standard Dijkstra Shortest Path First (SPF) with hop count metric (unit edge weights).
+    Pure shortest-hop path calculation.
+    """
+    try:
+        return list(nx.shortest_path(graph, src, dst, weight=weight))
+    except (nx.NetworkXNoPath, nx.NodeNotFound):
+        return []
+
+
+def ecmp_routing(graph, src, dst, flow_hash=0, weight=None):
+    """
+    Equal-Cost Multi-Path (ECMP).
+    Discovers all shortest paths of identical minimum cost/hop count and hashes flows across them.
+    Incapable of offloading onto slightly longer but uncongested alternative paths.
+    """
+    try:
+        all_shortest = list(nx.all_shortest_paths(graph, src, dst, weight=weight))
+        if not all_shortest:
+            return []
+        selected_idx = int(flow_hash) % len(all_shortest)
+        return all_shortest[selected_idx]
+    except (nx.NetworkXNoPath, nx.NodeNotFound):
+        return []
+
+
+def widest_shortest_path(graph, src, dst, link_utilization, link_delays=None, candidate_paths=None):
+    """
+    Widest Shortest Path (WSP / CSPF).
+    Greedy heuristic: evaluates candidate paths and selects the path with the largest
+    residual bandwidth (minimum bottleneck link utilization). Breaks ties using shortest latency/hop count.
+    """
+    if candidate_paths is None:
+        try:
+            candidate_paths = list(itertools.islice(nx.shortest_simple_paths(graph, src, dst), 8))
+        except Exception:
+            candidate_paths = []
+
+    if not candidate_paths:
+        return []
+
+    delays = link_delays or {}
+    scored_paths = []
+    for p in candidate_paths:
+        metrics = compute_path_metrics(p, link_utilization, delays)
+        # Score tuple: (bottleneck_util ascending, total_delay ascending, hops ascending)
+        scored_paths.append((metrics['bottleneck_util'], metrics['total_delay'], metrics['hops'], p))
+
+    scored_paths.sort(key=lambda item: (item[0], item[1], item[2]))
+    return scored_paths[0][3]
+
+
+def least_loaded_routing(graph, src, dst, link_utilization, candidate_paths=None):
+    """
+    Greedy Least Loaded Routing (LLR).
+    Evaluates candidate paths and selects the path that minimizes the blended
+    maximum and average link utilization across all hops.
+    """
+    if candidate_paths is None:
+        try:
+            candidate_paths = list(itertools.islice(nx.shortest_simple_paths(graph, src, dst), 8))
+        except Exception:
+            candidate_paths = []
+
+    if not candidate_paths:
+        return []
+
+    scored_paths = []
+    for p in candidate_paths:
+        if len(p) <= 1:
+            scored_paths.append((0.0, p))
+            continue
+        utils = [link_utilization.get((p[i], p[i+1]), 0.0) for i in range(len(p)-1)]
+        avg_util = sum(utils) / max(1, len(utils))
+        max_util = max(utils) if utils else 0.0
+        # Blend peak and average link load
+        load_metric = 0.65 * max_util + 0.35 * avg_util
+        scored_paths.append((load_metric, p))
+
+    scored_paths.sort(key=lambda item: item[0])
+    return scored_paths[0][1]
+
+
+def random_routing(graph, src, dst, candidate_paths=None):
+    """
+    Random Routing baseline. Uniform random selection across candidate paths.
+    """
+    if candidate_paths is None:
+        try:
+            candidate_paths = list(itertools.islice(nx.shortest_simple_paths(graph, src, dst), 4))
+        except Exception:
+            candidate_paths = []
+
+    if not candidate_paths:
+        return []
+
+    idx = np.random.randint(0, len(candidate_paths))
+    return candidate_paths[idx]
+```

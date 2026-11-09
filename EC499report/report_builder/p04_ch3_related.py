@@ -1,77 +1,73 @@
 # Chapter 3: Related Work
 
-CHAPTER_3_RELATED = r'''% ============================================================================
-% CHAPTER 3: RELATED WORK
-% ============================================================================
+CHAPTER_3_RELATED = r'''
 \chapter{Related Work}
 \label{chap:related}
 
-\section{Overview and Taxonomy of Traffic Engineering}
-Traffic Engineering (TE) has evolved across three major technological paradigms:
-\begin{enumerate}
-    \item \textbf{Distributed Classical Heuristics (1990--2005):} Protocols such as OSPF, IS-IS, and early MPLS-TE operated distributed routing computations with static administrative weights.
-    \item \textbf{Centralized SDN Optimization (2008--2016):} Decoupled control planes enabled centralized linear solvers (e.g., Hedera \cite{al2010hedera}, Google B4 \cite{jain2013b4}, Microsoft SWAN \cite{hong2013achieving}).
-    \item \textbf{Learning-Driven and AI-Based TE (2017--Present):} Machine learning, deep reinforcement learning, and graph neural networks deployed for autonomous routing adaptation.
-\end{enumerate}
+This chapter reviews systems relevant to the project's route selector, controller integration, and evaluation. Recent work is considered first, followed by the earlier routing methods used as references. The purpose is to explain the design choices, rather than to claim that this prototype replaces those systems.
 
-\section{Classical Heuristic and Static Metric Optimization}
-The earliest formalization of IP traffic engineering focused on optimizing static OSPF/IS-IS link metrics. Fortz and Thorup \cite{fortz2000internet, fortz2002optimizing} proved that optimizing link weights to minimize a piecewise-linear convex congestion function is NP-hard. They proposed local search heuristics to tune static weights. However, static weight tuning assumes quasi-static traffic matrices; under dynamic microbursts, static weights cannot adapt, inducing severe localized bottlenecks.
+\section{Recent Learning-Based Routing Systems}
+\subsection{ENERO}
+ENERO combines a graph-based reinforcement-learning policy with a local-search stage to improve WAN routing configurations \cite{almasan2022enero}. Its two-stage design is relevant because it shows that a learned decision can be combined with a conventional optimisation method. The present project instead selects one of four candidate paths using a fixed summary vector. This is simpler to integrate with the controller, but retains less information about the graph.
 
-Equal-Cost Multi-Path (ECMP) \cite{moy1998ospf} hashes packet 5-tuples (source IP, destination IP, protocol, source port, destination port) across paths with identical administrative cost. However, ECMP cannot route traffic over paths with even one additional hop, leaving viable edge-disjoint paths unused. Furthermore, hash collisions between long-lived ``elephant flows'' cause persistent link saturation and packet drops.
+\subsection{Graph-Based Routing Agents}
+Almasan et al. combine graph neural networks with reinforcement learning for an optical-routing use case \cite{almasan2022gnn}. Their work evaluates transfer to unseen topologies. It informs the choice to examine transfer separately in this project, while also identifying a limitation of the ten-feature representation. The current implementation uses path summaries and does not implement a graph neural network; its transfer results therefore apply only to the sampled graphs and workloads.
 
-\section{Centralized SDN Heuristics and Linear Solvers}
-The emergence of OpenFlow \cite{lanzisera2010openflow} enabled centralized global visibility. Al-Fares et al. introduced \textbf{Hedera} \cite{al2010hedera}, a dynamic flow management system for multi-rooted Fat-Tree datacenter topologies. Hedera monitors flow rates on edge switches and dynamically computes multi-commodity flow allocations for flows exceeding $10\%$ of link capacity using a greedy heuristic. However, Hedera relies on heuristic path hunting that does not learn from historical traffic dynamics.
+\subsection{RouteNet-Fermi}
+RouteNet-Fermi predicts network delay, jitter, and loss using a graph neural network \cite{almasan2022routenet}. It is a performance model rather than the same route-selection task. Its relevance is the need to represent topology, traffic, and queue behaviour accurately. The present project uses a simpler analytical queue model and checks it against separate packet-emulation observations. Results from the two evaluation methods are reported separately.
 
-Google deployed \textbf{B4} \cite{jain2013b4}, a private software-defined WAN connecting global datacenters. B4 employs centralized Traffic Engineering servers that solve linear programs periodically (every few minutes) to allocate bandwidth based on application priority classes. Similarly, Microsoft developed \textbf{SWAN} \cite{hong2013achieving}, which coordinates inter-datacenter transfers using centralized constrained optimization. While effective for predictable bulk transfers, the solver latency of linear programs (spanning tens of seconds to several minutes) renders them incapable of reacting to sub-second microbursts or transient localized buffer bloat.
+\section{Earlier Systems and Routing Baselines}
+RL-Routing studies reinforcement-learning routing with throughput and delay rewards and compares it with OSPF and least-loaded routing \cite{chen2020rlrouting}. This supports the inclusion of simple routing baselines in the project. Stampa et al. also investigate learned routing configurations for reducing delay \cite{stampa2017deep}. The local plain-DQN ablation is a project implementation baseline, not a reproduction of either publication.
 
-\section{Deep Reinforcement Learning in Network Routing}
-In recent years, deep reinforcement learning has been explored for network routing:
-\begin{itemize}
-    \item \textbf{Stampa et al. (2017):} \cite{stampa2017deep} introduced a standard Deep Q-Network (DQN) for SDN routing optimization, demonstrating delay reduction on a 14-node network. However, their system utilized a standard flat DQN (suffering from overestimation bias), uniform experience replay, and an unpenalized reward function that neglected packet loss and jitter.
-    \item \textbf{Valadarsky et al. (2017):} \cite{valadarsky2017learning} proposed DRL-TE, applying policy gradient methods to optimize split ratios. However, their action space scaled combinatorially with network size, preventing convergence on larger topologies.
-    \item \textbf{Aurochs (Chen et al., 2018):} \cite{chen2018aurochs} designed a data-driven TE framework for enterprise networks, but relied on slow offline training pipelines without closed-loop real-time failover.
-    \item \textbf{RL-Routing (Chen et al., 2020):} \cite{chen2020rlrouting} proposed an SDN routing algorithm based on standard Deep Q-Networks evaluated against OSPF and Least-Loaded Routing on topologies such as NSFNet. While RL-Routing demonstrated the potential of model-free reinforcement learning in OpenFlow environments, it relied on a single-stream Q-network (susceptible to maximization bias), uniform random experience replay (which fails to prioritize critical tail-congestion events), unconstrained next-hop decisions (which can create transient routing loops or dead ends without topological action masking), and an idealized single-controller architecture without high-availability failover.
-    \item \textbf{RouteNet and RouteNet-Fermi (Rusek et al., 2020; Almasan et al., 2022):} \cite{rusek2019routenet, almasan2022routenet} leveraged Graph Neural Networks (GNNs) to model the non-linear relationship between topology, traffic matrix, and packet-level delay/jitter distributions. While RouteNet-Fermi achieves structural scale-invariance across arbitrary topologies, it operates primarily as an offline digital-twin forward performance evaluator rather than an autonomous closed-loop routing actuator, relying on external meta-heuristic search to select forwarding paths.
-    \item \textbf{Multi-Path DRL Routing (Sun et al., 2021):} \cite{sun2021multi} developed multi-path DRL traffic engineering with dynamic split-ratio tuning over OpenFlow. However, per-packet multi-path splitting introduces significant TCP out-of-order delivery penalties, underscoring the necessity of unsplittable flow allocation for real-time transport streams.
-    \item \textbf{Multi-Agent SDN TE (Xu et al., 2022):} \cite{xu2022multiagent} explored multi-agent reinforcement learning for large-scale multi-domain SDN, decomposing wide-area routing into regional sub-controllers. While reducing state dimension per agent, inter-controller communication overhead and non-stationarity during joint exploration remain significant deployment challenges.
-\end{itemize}
+Earlier SDN systems demonstrate other ways to allocate traffic. Hedera schedules flows in data-centre networks \cite{al2010hedera}, while B4 and SWAN use centralised optimisation for WAN traffic allocation \cite{jain2013b4,hong2013achieving}. They provide context for controller-based traffic management, but differ from the small virtual testbed and per-flow route selector built here.
 
-\section{High Availability and Resilience in SDN Control Planes}
-Carrier networks may target $99.999\%$ availability (maximum 5.26 minutes of downtime per year). Distributed controllers such as ONOS and OpenDaylight provide clustering mechanisms. Many DRL-for-routing evaluations nevertheless treat the controller as an idealized single-node abstraction, making controller-crash recovery, socket reconnection, and state synchronization comparatively less explored in the selected routing literature.
+The project also compares with shortest-path and equal-cost forwarding methods \cite{moy1998ospf}. These baselines are useful because they are inexpensive and provide predictable reference behaviour. Least-loaded routing provides a further check on whether the trained model offers a practical benefit over a load-aware heuristic.
 
-\section{Systematic Comparison of Related Work}
-Table~\ref{tab:related_work} provides a rigorous, multi-dimensional comparison between existing traffic engineering paradigms and the proposed D3QN platform.
+\section{How Related Work Informed the Project}
+Table~\ref{tab:related_work} relates the reviewed systems to the final implementation.
 
 \begin{table}[htbp]
 \centering
-\caption{Systematic Comparison of Related Work vs. Proposed D3QN Platform}
+\caption{Related Systems and Their Relevance to the Project}
 \label{tab:related_work}
-\scriptsize
-\begin{tabularx}{\textwidth}{l >{\raggedright\arraybackslash}p{2.2cm} >{\centering\arraybackslash}p{1.6cm} >{\raggedright\arraybackslash}X c >{\centering\arraybackslash}p{2.2cm} c}
+\small
+\begin{tabularx}{\textwidth}{p{3.0cm} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
 \toprule
-\textbf{Framework} & \textbf{Core Algorithm} & \textbf{Telemetry} & \textbf{Reward Formulation} & \textbf{Replay} & \textbf{HA Cluster} & \textbf{Zero-Shot} \\
+System or approach & Relevant feature & Project design decision \\
 \midrule
-OSPF (RFC 2328) \cite{moy1998ospf} & Dijkstra SPF & Static & None (Admin) & None & None & N/A \\
-ECMP \cite{moy1998ospf} & Hash Multipath & Static & None (Equal Cost) & None & None & N/A \\
-Fortz \& Thorup \cite{fortz2000internet} & Local Search Heuristic & Periodic & Convex Congestion & None & None & No \\
-Hedera \cite{al2010hedera} & Greedy Flow-Fit & 5-sec deltas & Bisection Bandwidth & None & None & No \\
-Google B4 \cite{jain2013b4} & Centralized LP & OpenFlow TM & Priority Max-Min & None & Master-Slave & No \\
-Stampa et al. \cite{stampa2017deep} & Flat Standard DQN & 1D Delay & Delay Reduction Only & Uniform & None & No \\
-RL-Routing \cite{chen2020rlrouting} & Vanilla DQN & Multi-Hop & Hop / Delay & Uniform & None & No \\
-RouteNet \cite{rusek2019routenet} & Graph Neural Net & Full Matrix & Supervised Delay & N/A & None & Yes \\
-\textbf{Proposed (Ours)} & \textbf{D3QN + Yen's KSP} & \textbf{10D Norm} & \textbf{Delay, Jitter, Loss, $\Phi(u)$} & \textbf{SumTree} & \textbf{3-Node Pool (Fail-Secure)} & \textbf{Yes} \\
+ENERO (2022) & Learned routing combined with local search & Compare the neural policy with a separate heuristic-assisted mode. \\
+DRL with GNNs (2022) & Graph-based representation and transfer tests & Keep the present input small and state its transfer limits. \\
+RouteNet-Fermi (2023) & Learned prediction of network performance & Distinguish the analytical model from packet measurements. \\
+RL-Routing (2020) & Throughput/delay rewards and routing comparisons & Include SPF and least-loaded baselines. \\
+Hedera, B4, and SWAN & Controller-based traffic allocation & Use a controller to install routes and collect counters. \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
-\section{Research Gap and Key Innovations}
-The critical review of existing literature reveals four major research gaps:
-\begin{enumerate}
-    \item \textbf{Gap 1: Q-Value Overestimation and Action Explosion:} Existing DRL routing approaches use flat DQN architectures that suffer from catastrophic overestimation bias, or unconstrained action spaces that scale exponentially ($O(|V|^2)$), preventing real-time convergence.
-    \item \textbf{Gap 2: Loss of Critical Congestion Transitions in Replay:} Standard uniform replay buffers discard or severely dilute rare buffer overflow and link saturation events, causing agents to unlearn defensive rerouting policies.
-    \item \textbf{Gap 3: Complete Neglect of Controller High Availability:} Prior DRL-TE publications assume an infallible centralized controller, omitting failover latency, leader election, and state synchronization.
-    \item \textbf{Gap 4: Lack of Statistical and Zero-Shot Transfer Rigor:} Most studies evaluate on a single topology under static Poisson traffic, omitting multi-seed ANOVA decomposition and zero-shot transfer evaluations on unvisited graph topologies.
-\end{enumerate}
+To systematically situate this dissertation within the broader traffic-engineering landscape, Table~\ref{tab:taxonomy} presents a comparative taxonomy contrasting the EC499 platform against representative classical SDN systems, centralized optimization frameworks, and deep reinforcement learning routing architectures across six key architectural dimensions: algorithmic methodology, state observation representation, action space structure, control plane substrate, loop/forwarding safety mechanisms, and empirical evaluation fidelity.
 
-The platform developed in this project directly addresses and resolves all four research gaps.
+\begin{table}[htbp]
+\centering
+\caption{Comparative Taxonomy Contrasting EC499 with State-of-the-Art SDN TE and DRL Routing Systems.}
+\label{tab:taxonomy}
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{1.7cm} >{\raggedright\arraybackslash}p{2.1cm} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}p{1.6cm} >{\raggedright\arraybackslash}p{1.6cm} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+\textbf{System} & \textbf{Algorithm} & \textbf{State Representation} & \textbf{Action Space} & \textbf{Substrate} & \textbf{Safety Mechanism} & \textbf{Evaluation Fidelity} \\
+\midrule
+Hedera \cite{al2010hedera} & Demand-fit heuristic & Host flow rates & Discrete path set & OpenFlow & Flow pre-reservation & Hardware \& Mininet \\
+B4 / SWAN \cite{jain2013b4,hong2013achieving} & Centralized LP / TE & Tunnel traffic matrices & Continuous split ratios & OpenFlow / BGP & Bandwidth reservations & Production WAN hardware \\
+Stampa et al. \cite{stampa2017deep} & Single DQN & Traffic matrix vector & Discrete path index & OpenFlow / Ryu & None (unconstrained) & OMNeT++ discrete-event sim \\
+RL-Routing \cite{chen2020rlrouting} & Deep DRL (DDPG) & Link utilization vector & Continuous flow fractions & OpenFlow & Boundary clipping & Mininet network emulation \\
+ENERO \cite{almasan2022enero} & DRL + Local Search & Graph (Message-Passing GNN) & Discrete link weights & P4 / OpenFlow & Local search validation & OMNeT++ packet simulation \\
+RouteNet-Fermi \cite{almasan2022routenet} & Graph Neural Net & Graph topology \& queues & Performance inference & SDN Telemetry & GNN calibration & Hardware testbed \& sim \\
+\midrule
+\textbf{EC499 (This Work)} & \textbf{Dueling D3QN + SumTree PER} & \textbf{10-D graph-invariant summary vector} & \textbf{Discrete $K=4$ loopless candidate paths} & \textbf{Ryu OpenFlow 1.3 (Flow/Group)} & \textbf{Precomputed simple paths \& shadow reservation} & \textbf{500-step sim + 120-run Mininet emulation} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Chapter Summary}
+The reviewed work supports the use of network-state information, reproducible comparisons, and explicit transfer tests. The project brings these ideas together in a smaller software prototype with controller integration, a dashboard, and separate recovery tests. The next chapter describes the implemented modules, the experiment procedures, and the final results.
 '''

@@ -19,6 +19,7 @@ import time
 import json
 import socket
 import logging
+import threading
 import subprocess
 import urllib.request
 import urllib.error
@@ -100,6 +101,7 @@ class HAControllerPool:
         self.active_index = 0
         self.failover_history: List[Dict[str, Any]] = []
         self._all_failed = False
+        self._failover_lock = threading.Lock()
 
     def probe_node_health(self, node: ControllerNode, timeout: float = 1.0) -> bool:
         """Probes the health of a controller node via its REST endpoint."""
@@ -133,15 +135,21 @@ class HAControllerPool:
             return current
 
         if auto_promote:
-            for idx, candidate in enumerate(self.nodes):
-                if idx != self.active_index and self.probe_node_health(candidate):
-                    self._trigger_failover(old_idx=self.active_index, new_idx=idx, reason="health_check_failed")
-                    return candidate
+            with self._failover_lock:
+                current = self.nodes[self.active_index]
+                if self.probe_node_health(current):
+                    return current
+                for idx, candidate in enumerate(self.nodes):
+                    if idx != self.active_index and self.probe_node_health(candidate):
+                        self._trigger_failover(old_idx=self.active_index, new_idx=idx, reason="health_check_failed")
+                        return candidate
 
         return current
 
     def _trigger_failover(self, old_idx: int, new_idx: int, reason: str = "crash"):
         """Records failover telemetry and updates the active leader."""
+        if old_idx == new_idx:
+            return
         t_start = time.perf_counter()
         old_node = self.nodes[old_idx]
         new_node = self.nodes[new_idx]
@@ -176,74 +184,82 @@ class HAControllerPool:
 
     def fail_node(self, target: str) -> Optional[ControllerNode]:
         """Marks a specific controller as dead and dynamically fails over to the next healthy node."""
-        target_idx = None
-        for idx, n in enumerate(self.nodes):
-            if n.name == target:
-                n._failed = True
-                n.is_alive = False
-                target_idx = idx
-                break
-        if target_idx is None:
-            raise ValueError(f"Unknown controller node '{target}'")
+        with self._failover_lock:
+            target_idx = None
+            for idx, n in enumerate(self.nodes):
+                if n.name == target:
+                    n._failed = True
+                    n.is_alive = False
+                    target_idx = idx
+                    break
+            if target_idx is None:
+                raise ValueError(f"Unknown controller node '{target}'")
 
-        if all(getattr(n, '_failed', False) for n in self.nodes):
-            self._all_failed = True
-            logger.error("[HA Pool] TOTAL OUTAGE: All controllers dead! OpenFlow switches entering Fail-Secure mode.")
-            return None
+            if all(getattr(n, '_failed', False) for n in self.nodes):
+                self._all_failed = True
+                logger.error("[HA Pool] TOTAL OUTAGE: All controllers dead! OpenFlow switches entering Fail-Secure mode.")
+                return None
 
-        if target_idx == self.active_index:
-            for i in range(1, len(self.nodes)):
-                cand_idx = (self.active_index + i) % len(self.nodes)
-                if not getattr(self.nodes[cand_idx], '_failed', False):
-                    self._trigger_failover(self.active_index, cand_idx, reason=f"{target}_failure")
-                    return self.nodes[cand_idx]
-            self._all_failed = True
-            logger.error("[HA Pool] TOTAL OUTAGE: All controllers dead! OpenFlow switches entering Fail-Secure mode.")
-            return None
-        return self.nodes[self.active_index]
+            if target_idx == self.active_index:
+                for i in range(1, len(self.nodes)):
+                    cand_idx = (self.active_index + i) % len(self.nodes)
+                    if not getattr(self.nodes[cand_idx], '_failed', False):
+                        self._trigger_failover(self.active_index, cand_idx, reason=f"{target}_failure")
+                        return self.nodes[cand_idx]
+                self._all_failed = True
+                logger.error("[HA Pool] TOTAL OUTAGE: All controllers dead! OpenFlow switches entering Fail-Secure mode.")
+                return None
+            return self.nodes[self.active_index]
 
     def recover_node(self, target: str) -> ControllerNode:
         """Restores a failed controller to healthy standby/master state."""
-        self._all_failed = False
-        for n in self.nodes:
-            if n.name == target:
-                n._failed = False
-                n.is_alive = True
-                break
-        if not getattr(self.nodes[0], '_failed', False) and self.active_index != 0:
-            self._trigger_failover(self.active_index, 0, reason=f"{target}_recovered_rebalance")
-        return self.nodes[self.active_index]
+        with self._failover_lock:
+            self._all_failed = False
+            for n in self.nodes:
+                if n.name == target:
+                    n._failed = False
+                    n.is_alive = True
+                    break
+            for idx, n in enumerate(self.nodes):
+                if not getattr(n, '_failed', False):
+                    if self.active_index != idx:
+                        self._trigger_failover(self.active_index, idx, reason=f"{target}_recovered_rebalance")
+                    break
+            return self.nodes[self.active_index]
 
     def fail_all(self):
         """Simulates total catastrophic failure where all 3 controllers are unreachable."""
-        self._all_failed = True
-        for n in self.nodes:
-            n._failed = True
-            n.is_alive = False
-        logger.critical("[HA Pool] ALL CONTROLLERS CRASHED. Entering Fail-Secure survival mode.")
+        with self._failover_lock:
+            self._all_failed = True
+            for n in self.nodes:
+                n._failed = True
+                n.is_alive = False
+            logger.critical("[HA Pool] ALL CONTROLLERS CRASHED. Entering Fail-Secure survival mode.")
 
     def recover_all(self):
         """Restores all controllers in the cluster to nominal state."""
-        self._all_failed = False
-        for n in self.nodes:
-            n._failed = False
-            n.is_alive = True
-        self.active_index = 0
-        logger.info("[HA Pool] Complete cluster self-healing complete: Primary is Master on port 6633.")
+        with self._failover_lock:
+            self._all_failed = False
+            for n in self.nodes:
+                n._failed = False
+                n.is_alive = True
+            self.active_index = 0
+            logger.info("[HA Pool] Complete cluster self-healing complete: Primary is Master on port 6633.")
 
     def failover(self, reason: str = "manual") -> Optional[ControllerNode]:
         """Manually or programmatically triggers failover to the next healthy controller in the pool."""
-        if self.is_all_failed():
-            return None
-        old_idx = self.active_index
-        for i in range(1, len(self.nodes)):
-            cand_idx = (self.active_index + i) % len(self.nodes)
-            if not getattr(self.nodes[cand_idx], '_failed', False):
-                self._trigger_failover(old_idx, cand_idx, reason=reason)
-                return self.nodes[cand_idx]
-        new_idx = (self.active_index + 1) % len(self.nodes)
-        self._trigger_failover(old_idx, new_idx, reason=reason)
-        return self.nodes[new_idx]
+        with self._failover_lock:
+            if self.is_all_failed():
+                return None
+            old_idx = self.active_index
+            for i in range(1, len(self.nodes)):
+                cand_idx = (self.active_index + i) % len(self.nodes)
+                if not getattr(self.nodes[cand_idx], '_failed', False):
+                    self._trigger_failover(old_idx, cand_idx, reason=reason)
+                    return self.nodes[cand_idx]
+            new_idx = (self.active_index + 1) % len(self.nodes)
+            self._trigger_failover(old_idx, new_idx, reason=reason)
+            return self.nodes[new_idx]
 
     def get_ovs_controller_targets(self) -> List[str]:
         """Returns list of Open vSwitch controller connection strings (e.g. ['tcp:127.0.0.1:6633', ...])."""
@@ -258,7 +274,8 @@ class HAControllerPool:
         max_attempts = len(self.nodes)
 
         while attempts < max_attempts:
-            active = self.nodes[self.active_index]
+            active_idx = self.active_index
+            active = self.nodes[active_idx]
             url = f"{active.base_url}{path}"
             data_bytes = json.dumps(payload).encode('utf-8') if payload else None
             headers = {'Content-Type': 'application/json'} if payload else {}
@@ -271,16 +288,24 @@ class HAControllerPool:
             except (urllib.error.URLError, socket.timeout, ConnectionRefusedError) as e:
                 attempts += 1
                 logger.warning("[HA Pool] Connection failed to %s (%s). Attempting immediate failover...", active.name, e)
-                # Find next healthy controller
-                found = False
-                for i in range(len(self.nodes)):
-                    cand_idx = (self.active_index + 1 + i) % len(self.nodes)
-                    if self.probe_node_health(self.nodes[cand_idx]):
-                        self._trigger_failover(self.active_index, cand_idx, reason=f"http_error_{type(e).__name__}")
-                        found = True
+                with self._failover_lock:
+                    if self.active_index != active_idx:
+                        # Another thread already completed failover while this thread was handling the error.
+                        # Retry on newly elected active controller without duplicate health probing.
+                        attempts = 0
+                        continue
+                    active.is_alive = False
+                    active.last_rtt_ms = -1.0
+                    # Find next healthy controller
+                    found = False
+                    for i in range(1, len(self.nodes)):
+                        cand_idx = (active_idx + i) % len(self.nodes)
+                        if not getattr(self.nodes[cand_idx], '_failed', False) and self.probe_node_health(self.nodes[cand_idx], timeout=0.5):
+                            self._trigger_failover(active_idx, cand_idx, reason=f"http_error_{type(e).__name__}")
+                            found = True
+                            break
+                    if not found:
                         break
-                if not found:
-                    break
 
         raise RuntimeError(f"All {len(self.nodes)} controllers in the HA pool are unreachable.")
 

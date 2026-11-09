@@ -8,11 +8,24 @@ custom academic color tokens, and speaker notes.
 import os
 import sys
 from pathlib import Path
-from pptx import Presentation
-from pptx.util import Inches, Pt
-from pptx.enum.text import PP_ALIGN
-from pptx.dml.color import RGBColor
-from pptx.enum.shapes import MSO_SHAPE
+
+try:
+    from pptx import Presentation
+    from pptx.util import Inches, Pt
+    from pptx.enum.text import PP_ALIGN
+    from pptx.dml.color import RGBColor
+    from pptx.enum.shapes import MSO_SHAPE
+except ImportError:
+    _curr = Path(__file__).resolve().parent
+    candidates = [
+        _curr.parent / ".venv" / "bin" / "python",
+        _curr.parent.parent / ".venv" / "bin" / "python",
+        Path("/home/maher/Downloads/EC499t/.venv/bin/python")
+    ]
+    for cand in candidates:
+        if cand.exists() and sys.executable != str(cand):
+            os.execv(str(cand), [str(cand)] + sys.argv)
+    raise
 
 _curr = Path(__file__).resolve().parent
 PROJECT_ROOT = _curr if (_curr / "agent").exists() else _curr.parent
@@ -125,7 +138,7 @@ def main():
     # Title
     tx = slide.shapes.add_textbox(Inches(1.0), Inches(2.1), Inches(11.3), Inches(1.8))
     p = tx.text_frame.paragraphs[0]
-    p.text = "Reinforcement Learning for Adaptive Traffic Engineering in an SDN Network"
+    p.text = "Reinforcement Learning for Adaptive Traffic Engineering in Software-Defined Network"
     p.font.size = Pt(30)
     p.font.bold = True
     p.font.color.rgb = COLOR_WHITE
@@ -161,7 +174,7 @@ def main():
     p.font.bold = True
     p.font.color.rgb = COLOR_WHITE
     p2 = tf.add_paragraph()
-    p2.text = "Associate Professor\nDept. of Computer Engineering\nFaculty of Engineering, University of Tripoli"
+    p2.text = "Dept. of Computer Engineering\nFaculty of Engineering, University of Tripoli"
     p2.font.size = Pt(11)
     p2.font.color.rgb = RGBColor(148, 163, 184)
 
@@ -884,6 +897,18 @@ def main():
     # Save presentation
     prs.save(str(OUTPUT_PPTX))
     print(f"[+] Successfully generated official defense presentation: {OUTPUT_PPTX} ({OUTPUT_PPTX.stat().st_size:,} bytes)")
+    import shutil
+    for dest in [
+        PROJECT_ROOT.parent / "EC499sildes" / "EC499_Final_Defense_Presentation.pptx",
+        PROJECT_ROOT / "EC499sildes" / "EC499_Final_Defense_Presentation.pptx",
+        Path("/home/maher/Downloads") / "EC499_Final_Defense_Presentation.pptx",
+        Path("/home/maher/Downloads") / "EC499_Graduation_Defense_Presentation.pptx",
+    ]:
+        try:
+            shutil.copy2(OUTPUT_PPTX, dest)
+            print(f"Copied defense presentation to {dest}")
+        except Exception as e:
+            print(f"Notice: could not copy to {dest}: {e}")
 
 if __name__ == '__main__':
     main()

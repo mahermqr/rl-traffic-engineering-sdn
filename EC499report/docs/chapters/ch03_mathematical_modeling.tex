@@ -274,13 +274,14 @@ In physical OpenFlow switches, output port queues possess a finite buffer capaci
 
 The stationary distribution of an $M/M/1/K$ queue with traffic intensity $\rho = \lambda / \mu$ yields the blocking probability $P_K$:
 \begin{equation}
-    P_{\text{loss}} = P_K = \frac{(1 - \rho)\rho^K}{1 - \rho^{K+1}}
+    P_{\text{loss}} = P_K = \begin{cases} \dfrac{(1 - \rho)\rho^K}{1 - \rho^{K+1}} & \text{if } \rho \neq 1, \\[2mm] \dfrac{1}{K+1} & \text{if } \rho = 1. \end{cases}
+    \label{eq:mm1k_loss}
 \end{equation}
 When traffic intensity $\rho = u \le 0.70$ and buffer size $K \ge 100$, the theoretical loss probability is astronomically small ($P_{\text{loss}} < 10^{-6}$). However, when utilization surges beyond $80\%$, microbursts exhaust the remaining buffer slots, triggering drop-tail packet loss. We formulate this empirical reality via:
 \begin{equation}
     P_{\text{loss}}(u) = \begin{cases}
-        0.01\% & \text{if } u \le 0.70 \\[0.5em]
-        0.01\% + 35.0 \cdot \left( \dfrac{u - 0.70}{0.30} \right)^{2.2} & \text{if } u > 0.70
+        0.01\% & \text{if } u \le 0.70, \\[0.5em]
+        0.01\% + 35.0 \cdot \left( \dfrac{u - 0.70}{0.30} \right)^{2.2} & \text{if } u > 0.70.
     \end{cases}
     \label{eq:packet_loss_model}
 \end{equation}

@@ -300,9 +300,9 @@ def main():
     readme_lines = [
         "# EC499: SDN Traffic Engineering with Reinforcement Learning — Codebase Documentation",
         "",
-        "> **Project:** Reinforcement Learning for Adaptive Traffic Engineering in an SDN Network  ",
+        "> **Project:** Reinforcement Learning for Adaptive Traffic Engineering in Software-Defined Network  ",
         "> **Student:** Maher Alqadhi (ID: 2210249576)  ",
-        "> **Institution:** University of Tripoli — Faculty of Engineering — Department of Electrical & Electronic Engineering  ",
+        "> **Institution:** University of Tripoli — Faculty of Engineering — Department of Computer Engineering  ",
         f"> **Total Source Files:** {len(all_files)} files  ",
         f"> **Total Lines of Code:** {total_loc:,} lines  ",
         f"> **Total Codebase Size:** {total_size / 1024:.2f} KB ({total_size / (1024 * 1024):.2f} MB)  ",
@@ -347,13 +347,13 @@ def main():
 
     # Generate Consolidated ALL_PROJECT_CODES.md
     master_lines = [
-        "# EC499: Reinforcement Learning for Adaptive Traffic Engineering in an SDN Network",
+        "# EC499: Reinforcement Learning for Adaptive Traffic Engineering in Software-Defined Network",
         "## Complete Project Source Code Repository (Unified Markdown Document)",
         "",
-        "> **Project Title:** Reinforcement Learning for Adaptive Traffic Engineering in an SDN Network  ",
+        "> **Project Title:** Reinforcement Learning for Adaptive Traffic Engineering in Software-Defined Network  ",
         "> **Author / Candidate:** Maher Alqadhi (Student ID: 2210249576)  ",
         "> **Academic Institution:** University of Tripoli — Faculty of Engineering  ",
-        "> **Department:** Electrical & Electronic Engineering Department (Computer Engineering Branch)  ",
+        "> **Department:** Department of Computer Engineering  ",
         "> **Course:** EC499 Graduation Project (Senior Design Thesis)  ",
         f"> **Total Source Files:** {len(all_files)} files  ",
         f"> **Total Codebase Lines:** {total_loc:,} lines of code  ",
@@ -441,18 +441,26 @@ def main():
     p1 = os.path.join(OUTPUT_DIR, "ALL_PROJECT_CODES.md")
     p2 = os.path.join(PROJECT_ROOT, "ALL_PROJECT_CODES.md")
     p3 = os.path.join(WORKSPACE_ROOT, "ALL_PROJECT_CODES.md")
+    p4 = os.path.join(PROJECT_ROOT, "EC499report", "ALL_PROJECT_CODES.md")
+    p5 = os.path.join(PROJECT_ROOT, "EC499report", "project_code_md", "ALL_PROJECT_CODES.md")
     
-    with open(p1, "w", encoding="utf-8") as fp:
-        fp.write(master_content)
-    with open(p2, "w", encoding="utf-8") as fp:
-        fp.write(master_content)
-    with open(p3, "w", encoding="utf-8") as fp:
-        fp.write(master_content)
+    for path in [p1, p2, p3, p4, p5]:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w", encoding="utf-8") as fp:
+            fp.write(master_content)
         
+    ec499_md_dir = os.path.join(PROJECT_ROOT, "EC499report", "project_code_md")
+    if os.path.exists(OUTPUT_DIR):
+        if os.path.exists(ec499_md_dir):
+            shutil.rmtree(ec499_md_dir)
+        shutil.copytree(OUTPUT_DIR, ec499_md_dir)
+
     print(f"Generated master file at:")
     print(f"  - {p1} ({os.path.getsize(p1):,} bytes)")
     print(f"  - {p2} ({os.path.getsize(p2):,} bytes)")
     print(f"  - {p3} ({os.path.getsize(p3):,} bytes)")
+    print(f"  - {p4} ({os.path.getsize(p4):,} bytes)")
+    print(f"  - {p5} ({os.path.getsize(p5):,} bytes)")
 
 if __name__ == "__main__":
     main()

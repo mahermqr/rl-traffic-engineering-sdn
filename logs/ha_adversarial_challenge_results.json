@@ -1,0 +1,38 @@
+{
+  "timestamp": "2026-11-02 05:59:17",
+  "benchmarks": {
+    "failover_latency_stats": {
+      "trials": 50,
+      "min_ms": 0.006,
+      "mean_ms": 0.008,
+      "median_p50_ms": 0.008,
+      "p90_ms": 0.01,
+      "p95_ms": 0.011,
+      "p99_ms": 0.013,
+      "max_ms": 0.013,
+      "carrier_grade_compliant": true
+    },
+    "split_brain_audit": {
+      "mutations_tested": 1000,
+      "split_brain_violations": 0,
+      "priority_inversions": 0,
+      "split_brain_resistant": true
+    },
+    "fail_secure_conservation": {
+      "pre_outage_flow_count": 12,
+      "outage_flow_count": 12,
+      "exact_path_matches": 12,
+      "mutation_blocked_safely": true,
+      "conservation_rate_pct": 100.0
+    },
+    "concurrency_flapping": {
+      "threads": 20,
+      "duration_sec": 5.0,
+      "flaps_executed": 52,
+      "total_http_requests": 4398,
+      "http_200_count": 4329,
+      "http_errors": 69,
+      "success_rate_pct": 98.43
+    }
+  }
+}
